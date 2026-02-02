@@ -1,4 +1,4 @@
-// Types for BlueBayCup data structures
+
 
 export interface PlayerOverallStats {
   playerId: string;

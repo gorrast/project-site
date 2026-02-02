@@ -32,6 +32,6 @@ export interface TeamStats {
   wins: number;
   draws: number;
   losses: number;
-  goals_for: number;
-  goals_against: number;
+  points_for: number;
+  points_against: number;
 }

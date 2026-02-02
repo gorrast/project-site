@@ -1,9 +1,6 @@
 import Image from "next/image";
+import HomePage from '@/components/home/HomePage'
 
-export default function Home() {
-  return (
-    <div>
-      <h1>Hello World</h1>
-    </div>
-  );
+export default function BlueBayCupPage() {
+  return <HomePage />
 }

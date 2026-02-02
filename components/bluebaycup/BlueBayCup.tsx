@@ -12,6 +12,7 @@ import {
   TeamGameweekData,
   Season
 } from './types'
+import { log } from 'console'
 
 export default function BlueBayCup() {
   const [seasons, setSeasons] = useState<Season[]>([])
@@ -25,12 +26,14 @@ export default function BlueBayCup() {
 
   // Fetch overall data and seasons on mount
   useEffect(() => {
+    // console.log('Hello1');
     fetchOverallData()
   }, [])
 
   // Fetch season-specific data when season changes
   useEffect(() => {
     if (selectedSeasonId) {
+      // console.log('SelectedSeasonId: ', selectedSeasonId, 'Fetching data...')
       fetchSeasonData(selectedSeasonId)
     }
   }, [selectedSeasonId])
@@ -43,13 +46,16 @@ export default function BlueBayCup() {
   }, [selectedSeasonId, selectedTeamForChart])
 
   const fetchOverallData = async () => {
+    // console.log('Hello2');
     try {
       const response = await fetch('/api/bluebaycup/overall')
       const data = await response.json()
-      
+      // console.log('Hello3');
+      // console.log(response);
       // Set overall stats and seasons
       setOverallData(data.overallStats)
       setSeasons(data.seasons)
+      // console.log(data);
       
       // Automatically select latest season
       if (data.latestSeason) {
@@ -58,7 +64,7 @@ export default function BlueBayCup() {
       
       setIsLoading(false)
     } catch (error) {
-      console.error('Error fetching overall data:', error)
+      // console.error('Error fetching overall data:', error)
       setIsLoading(false)
     }
   }
