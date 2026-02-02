@@ -45,7 +45,7 @@ export default function LineChart({
     const chartHeight = rect.height - padding.top - padding.bottom
 
     // Get data values
-    const values = data.map(d => d[dataKey])
+    const values = data.map(d => d[dataKey]).filter((v): v is number => v !== null)
     const minValue = Math.min(...values)
     const maxValue = Math.max(...values)
     const valueRange = maxValue - minValue || 1
@@ -76,8 +76,11 @@ export default function LineChart({
     ctx.beginPath()
     
     data.forEach((point, index) => {
+      const value = point[dataKey]
+      if (value === null) return
+      
       const x = padding.left + (chartWidth / (data.length - 1)) * index
-      const normalizedValue = (point[dataKey] - minValue) / valueRange
+      const normalizedValue = (value - minValue) / valueRange
       let y = padding.top + chartHeight - (normalizedValue * chartHeight)
       
       if (invertYAxis) {
@@ -95,8 +98,11 @@ export default function LineChart({
     // Draw points
     ctx.fillStyle = color
     data.forEach((point, index) => {
+      const value = point[dataKey]
+      if (value === null) return
+      
       const x = padding.left + (chartWidth / (data.length - 1)) * index
-      const normalizedValue = (point[dataKey] - minValue) / valueRange
+      const normalizedValue = (value - minValue) / valueRange
       let y = padding.top + chartHeight - (normalizedValue * chartHeight)
       
       if (invertYAxis) {
