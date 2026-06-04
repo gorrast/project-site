@@ -1,5 +1,14 @@
 
 
+import type { RowData } from '@tanstack/react-table'
+
+declare module '@tanstack/react-table' {
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface ColumnMeta<TData extends RowData, TValue> {
+    className?: string
+  }
+}
+
 export interface PlayerOverallStats {
   playerId: string;
   playerName: string;
@@ -25,7 +34,7 @@ export interface PlayerSeasonStats {
   losses: number;
   pointsFor: number;
   pointsAgainst: number;
-  pointsDifference: number;
+  luckFactor: number;
 }
 
 export interface GameweekData {
@@ -47,6 +56,7 @@ export interface TeamGameweekData {
   gameweek: number;
   pointsFor: number;
   pointsAgainst: number;
+  opponentName?: string;
 }
 
 export interface Season {
@@ -54,4 +64,10 @@ export interface Season {
   seasonName: string;
   startYear: number;
   endYear: number;
+}
+
+export interface HighScoreData {
+  playerName: string;
+  score: number;
+  gameweek: number;
 }

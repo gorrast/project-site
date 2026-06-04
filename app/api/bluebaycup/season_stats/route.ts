@@ -46,7 +46,56 @@ export async function POST(request: Request) {
       return NextResponse.json({ error: 'No stats found for this season' }, { status: 404 });
     }
 
-    // 4. Calculate standings table (using latest gameweek data)
+    // 4. Compute luck factor for each team (needed before building standings)
+    // Group cumulative stats by team and sort by gameweek
+    const statsByTeam: Record<number, typeof allStats> = {};
+    allStats.forEach(stat => {
+      if (!statsByTeam[stat.team_id]) statsByTeam[stat.team_id] = [];
+      statsByTeam[stat.team_id].push(stat);
+    });
+    Object.values(statsByTeam).forEach(s => s.sort((a, b) => a.gameweek - b.gameweek));
+
+    // Derive per-GW FPL scores and W/D/L points from cumulative rows
+    const perGwData: Record<number, Record<number, { fplScore: number; leaguePoints: number }>> = {};
+    Object.entries(statsByTeam).forEach(([tidStr, stats]) => {
+      const tid = parseInt(tidStr);
+      perGwData[tid] = {};
+      stats.forEach((stat, i) => {
+        const prev = stats[i - 1];
+        perGwData[tid][stat.gameweek] = {
+          fplScore: prev ? stat.points_for - prev.points_for : stat.points_for,
+          leaguePoints: prev ? stat.total_points - prev.total_points : stat.total_points,
+        };
+      });
+    });
+
+    // For each team: E[pts] per GW = 3*p_win + 1*p_draw vs. all other teams' FPL scores
+    const luckFactors: Record<number, number> = {};
+    teamIds.forEach(teamId => {
+      const otherIds = teamIds.filter(id => id !== teamId);
+      let sumExpected = 0;
+      let sumActual = 0;
+
+      Object.entries(perGwData[teamId] ?? {}).forEach(([gwStr, { fplScore, leaguePoints }]) => {
+        const gw = parseInt(gwStr);
+        const others = otherIds
+          .map(id => perGwData[id]?.[gw]?.fplScore)
+          .filter((s): s is number => s !== undefined);
+
+        if (others.length === 0) return;
+
+        const p_win = others.filter(s => s < fplScore).length / others.length;
+        const p_draw = others.filter(s => s === fplScore).length / others.length;
+        sumExpected += 3 * p_win + 1 * p_draw;
+        sumActual += leaguePoints;
+      });
+
+      luckFactors[teamId] = sumExpected > 0
+        ? Math.round((sumActual / sumExpected) * 100) / 100
+        : 1;
+    });
+
+    // 5. Calculate standings table (using latest gameweek data)
     const maxGameweek = Math.max(...allStats.map(s => s.gameweek));
     const latestStats = allStats.filter(s => s.gameweek === maxGameweek);
 
@@ -62,16 +111,17 @@ export async function POST(request: Request) {
         wins: stat.wins,
         draws: stat.draws,
         losses: stat.losses,
-        pointsFor: stat.goals_for,
-        pointsAgainst: stat.goals_against,
-        pointsDifference: stat.goals_for - stat.goals_against
+        pointsFor: stat.points_for,
+        pointsAgainst: stat.points_against,
+        luckFactor: luckFactors[stat.team_id] ?? 1,
       };
     });
 
-    // Sort by total points, then by goal difference
+    // Sort by total points, then by points for
     standings.sort((a, b) => {
       if (b.totalPoints !== a.totalPoints) return b.totalPoints - a.totalPoints;
-      return b.pointsDifference - a.pointsDifference;
+      else if (b.pointsFor !== a.pointsFor) return b.pointsFor - a.pointsFor;
+      return b.pointsAgainst - a.pointsAgainst;
     });
 
     // Add rank
@@ -79,7 +129,7 @@ export async function POST(request: Request) {
       (s as any).rank = index + 1;
     });
 
-    // 5. Calculate progress data (rank progression per gameweek)
+    // 6. Calculate progress data (rank progression per gameweek)
     const gameweeks = Array.from(new Set(allStats.map(s => s.gameweek))).sort((a, b) => a - b);
 
     const progressData = teams.map(team => {
@@ -108,8 +158,8 @@ export async function POST(request: Request) {
           gameweek: gw,
           rank,
           totalPoints: stat.total_points,
-          pointsFor: stat.goals_for,
-          pointsAgainst: stat.goals_against
+          pointsFor: stat.points_for,
+          pointsAgainst: stat.points_against
         };
       });
 
@@ -121,11 +171,38 @@ export async function POST(request: Request) {
       };
     });
 
-    // 6. Return combined data
+    // 6. Compute highest single-GW score (points_for is cumulative — diff from previous GW)
+    let maxGwScore = -1;
+    let maxGwPlayerName = '';
+    let maxGwGameweek = -1;
+
+    teams.forEach(team => {
+      const player = players?.find(p => p.player_id === team.player_id);
+      const teamStats = allStats
+        .filter(s => s.team_id === team.team_id)
+        .sort((a, b) => a.gameweek - b.gameweek);
+
+      teamStats.forEach((stat, i) => {
+        const prevPointsFor = i === 0 ? 0 : teamStats[i - 1].points_for;
+        const gwScore = stat.points_for - prevPointsFor;
+        if (gwScore > maxGwScore) {
+          maxGwScore = gwScore;
+          maxGwGameweek = stat.gameweek;
+          maxGwPlayerName = player?.name || team.team_name;
+        }
+      });
+    });
+
+    const highScoreData = maxGwScore >= 0
+      ? { playerName: maxGwPlayerName, score: maxGwScore, gameweek: maxGwGameweek }
+      : null;
+
+    // 7. Return combined data
     return NextResponse.json({
       standings,
       progressData,
-      maxGameweek
+      maxGameweek,
+      highScoreData
     });
   } catch (error) {
     console.error('Error fetching season stats:', error);

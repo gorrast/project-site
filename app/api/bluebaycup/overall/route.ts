@@ -59,6 +59,55 @@ export async function GET() {
     // 6. Filter seasons to only include finished seasons
     const finishedSeasons = seasons?.filter(season => finishedSeasonIds.has(season.season_id)) || [];
 
+    // 6b. Fetch all gameweek stats for teams in finished seasons (to compute per-GW scores)
+    const finishedTeamIds = (teams?.filter(t => finishedSeasonIds.has(t.season_id)) || []).map(t => t.team_id);
+
+    const { data: allGwStats, error: allGwStatsError } = await supabase
+      .from('team_stats')
+      .select('team_id, gameweek, points_for')
+      .in('team_id', finishedTeamIds)
+      .order('gameweek', { ascending: true });
+
+    if (allGwStatsError) throw allGwStatsError;
+
+    // 6c. Determine highest single-GW scorer per finished season
+    const highScoreWinners: Record<number, number> = {}; // seasonId -> playerId
+
+    finishedSeasons.forEach(season => {
+      const seasonTeams = teams?.filter(t => t.season_id === season.season_id) || [];
+      const seasonTeamIds = new Set(seasonTeams.map(t => t.team_id));
+
+      // Group stats by team, sorted by gameweek
+      const byTeam: Record<number, Array<{ gameweek: number; points_for: number }>> = {};
+      (allGwStats || [])
+        .filter(s => seasonTeamIds.has(s.team_id))
+        .forEach(s => {
+          if (!byTeam[s.team_id]) byTeam[s.team_id] = [];
+          byTeam[s.team_id].push({ gameweek: s.gameweek, points_for: s.points_for });
+        });
+      Object.values(byTeam).forEach(stats => stats.sort((a, b) => a.gameweek - b.gameweek));
+
+      // points_for is cumulative — compute per-GW score as the diff from the previous GW
+      let maxScore = -1;
+      let maxTeamId = -1;
+
+      Object.entries(byTeam).forEach(([teamIdStr, stats]) => {
+        stats.forEach((stat, i) => {
+          const prevPointsFor = i === 0 ? 0 : stats[i - 1].points_for;
+          const gwScore = stat.points_for - prevPointsFor;
+          if (gwScore > maxScore) {
+            maxScore = gwScore;
+            maxTeamId = parseInt(teamIdStr);
+          }
+        });
+      });
+
+      if (maxTeamId !== -1) {
+        const winningTeam = seasonTeams.find(t => t.team_id === maxTeamId);
+        if (winningTeam) highScoreWinners[season.season_id] = winningTeam.player_id;
+      }
+    });
+
     // 7. Build season winners map
     const seasonWinners: Record<number, Array<{
       playerId: number;
@@ -88,10 +137,12 @@ export async function GET() {
     const overallStats = players?.map(player => {
       const playerSeasons: Array<{
         rank: number;
+        seasonId: number;
         totalPoints: number;
         pointsFor: number;
         pointsAgainst: number;
         prizePool: number;
+        highScorePrize: number;
         overallPoints: number;
       }> = [];
 
@@ -113,10 +164,12 @@ export async function GET() {
 
         playerSeasons.push({
           rank,
+          seasonId: season.season_id,
           totalPoints: playerData.totalPoints,
           pointsFor: playerData.pointsFor,
           pointsAgainst: playerData.pointsAgainst,
-          prizePool: season.prize_pool || 0,
+          prizePool: Math.max(0, (season.prize_pool ?? 0) - (season.high_score_prize ?? 0)),
+          highScorePrize: season.high_score_prize || 0,
           overallPoints
         });
       });
@@ -141,12 +194,14 @@ export async function GET() {
         ? Math.round((playerSeasons.reduce((sum, s) => sum + s.pointsAgainst, 0) / appearances) * 10) / 10
         : 0;
 
-      // Calculate total prize money
+      // Calculate total prize money (standings + highest GW score award)
       const totPrizeMoney = playerSeasons.reduce((sum, s) => {
-        if (s.rank === 1) return sum + s.prizePool * 0.5;
-        if (s.rank === 2) return sum + s.prizePool * 0.3;
-        if (s.rank === 3) return sum + s.prizePool * 0.2;
-        return sum;
+        let prize = 0;
+        if (s.rank === 1) prize = s.prizePool * 0.5;
+        else if (s.rank === 2) prize = s.prizePool * 0.3;
+        else if (s.rank === 3) prize = s.prizePool * 0.2;
+        if (highScoreWinners[s.seasonId] === player.player_id) prize += s.highScorePrize;
+        return sum + prize;
       }, 0);
 
       return {

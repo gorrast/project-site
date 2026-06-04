@@ -1,250 +1,89 @@
 'use client'
 
-import React, { useRef, useEffect } from 'react'
+import React from 'react'
+import {
+  BarChart,
+  Bar,
+  XAxis,
+  YAxis,
+  CartesianGrid,
+  Tooltip,
+} from 'recharts'
+import {
+  ChartContainer,
+  type ChartConfig,
+} from '@/components/ui/chart'
 import { TeamGameweekData } from './types'
 
 interface ClusteredColumnChartProps {
-  data: TeamGameweekData[];
-  teamName: string;
+  data: TeamGameweekData[]
+  teamName: string
+}
+
+const chartConfig: ChartConfig = {
+  pointsFor: { label: 'Points For', color: '#3b82f6' },
+  pointsAgainst: { label: 'Points Against', color: '#ef4444' },
+}
+
+function GwTooltip({ active, payload, label, teamName }: {
+  active?: boolean
+  payload?: { dataKey: string; value: number; fill: string; payload: { opponentName: string } }[]
+  label?: string
+  teamName: string
+}) {
+  if (!active || !payload?.length) return null
+  const opponentName = payload[0]?.payload?.opponentName
+  return (
+    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm">
+      <p className="font-bold text-gray-600 dark:text-gray-400 mb-1.5">{label}</p>
+      {payload.map(entry => (
+        <div key={entry.dataKey} className="flex items-center gap-2 py-0.5">
+          <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: entry.fill }} />
+          <span className="text-gray-500 dark:text-gray-400">
+            {entry.dataKey === 'pointsFor' ? teamName : (opponentName || 'Opponent')}
+          </span>
+          <span className="ml-auto pl-4 font-semibold text-gray-900 dark:text-gray-100">{entry.value}</span>
+        </div>
+      ))}
+    </div>
+  )
 }
 
 export default function ClusteredColumnChart({ data, teamName }: ClusteredColumnChartProps) {
-  const canvasRef = useRef<HTMLCanvasElement>(null)
-  const [tooltip, setTooltip] = React.useState<{
-    visible: boolean;
-    x: number;
-    y: number;
-    content: string;
-  }>({ visible: false, x: 0, y: 0, content: '' })
-
-  useEffect(() => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const ctx = canvas.getContext('2d')
-    if (!ctx) return
-
-    // Set canvas size
-    const dpr = window.devicePixelRatio || 1
-    const rect = canvas.getBoundingClientRect()
-    canvas.width = rect.width * dpr
-    canvas.height = rect.height * dpr
-    ctx.scale(dpr, dpr)
-
-    // Clear canvas
-    ctx.clearRect(0, 0, rect.width, rect.height)
-
-    // Chart dimensions
-    const padding = { top: 50, right: 20, bottom: 60, left: 50 }
-    const chartWidth = rect.width - padding.left - padding.right
-    const chartHeight = rect.height - padding.top - padding.bottom
-
-    // Create array for all 38 gameweeks
-    const totalGameweeks = 38
-    const gameweekData = Array.from({ length: totalGameweeks }, (_, i) => {
-      const gw = i + 1
-      const existingData = data.find(d => d.gameweek === gw)
-      return {
-        gameweek: gw,
-        pointsFor: existingData?.pointsFor || 0,
-        pointsAgainst: existingData?.pointsAgainst || 0,
-        hasData: !!existingData
-      }
-    })
-
-    // Get max value for scaling (only from existing data)
-    const allValues = data.flatMap(d => [d.pointsFor, d.pointsAgainst])
-    const maxValue = allValues.length > 0 ? Math.max(...allValues) : 100
-    const yScale = chartHeight / maxValue
-
-    // Calculate bar dimensions based on 38 gameweeks
-    const groupWidth = chartWidth / totalGameweeks
-    const barWidth = (groupWidth * 0.8) / 2
-    const gap = groupWidth * 0.1
-
-    // Draw grid lines
-    ctx.strokeStyle = '#e5e7eb'
-    ctx.lineWidth = 1
-    for (let i = 0; i <= 5; i++) {
-      const y = padding.top + (chartHeight / 5) * i
-      ctx.beginPath()
-      ctx.moveTo(padding.left, y)
-      ctx.lineTo(padding.left + chartWidth, y)
-      ctx.stroke()
+  const sorted = [...data].sort((a, b) => a.gameweek - b.gameweek)
+  const chartData = sorted.map((d, idx) => {
+    const prev = sorted[idx - 1]
+    return {
+      gameweek: `GW${d.gameweek}`,
+      pointsFor: prev ? d.pointsFor - prev.pointsFor : d.pointsFor,
+      pointsAgainst: prev ? d.pointsAgainst - prev.pointsAgainst : d.pointsAgainst,
+      opponentName: d.opponentName ?? '',
     }
-
-    // Draw axes
-    ctx.strokeStyle = '#374151'
-    ctx.lineWidth = 2
-    ctx.beginPath()
-    ctx.moveTo(padding.left, padding.top)
-    ctx.lineTo(padding.left, padding.top + chartHeight)
-    ctx.lineTo(padding.left + chartWidth, padding.top + chartHeight)
-    ctx.stroke()
-
-    // Draw bars for all gameweeks
-    gameweekData.forEach((point, index) => {
-      const groupX = padding.left + (groupWidth * index) + gap
-
-      // Only draw bars if data exists
-      if (point.hasData) {
-        // Points For bar (blue)
-        const pfHeight = point.pointsFor * yScale
-        ctx.fillStyle = '#3b82f6'
-        ctx.fillRect(
-          groupX,
-          padding.top + chartHeight - pfHeight,
-          barWidth,
-          pfHeight
-        )
-
-        // Points Against bar (red)
-        const paHeight = point.pointsAgainst * yScale
-        ctx.fillStyle = '#ef4444'
-        ctx.fillRect(
-          groupX + barWidth,
-          padding.top + chartHeight - paHeight,
-          barWidth,
-          paHeight
-        )
-      }
-
-      // Draw gameweek labels (every even gameweek)
-      if (point.gameweek % 2 === 0) {
-        ctx.fillStyle = '#374151'
-        ctx.font = '10px sans-serif'
-        ctx.textAlign = 'center'
-        ctx.fillText(
-          `GW${point.gameweek}`,
-          groupX + barWidth,
-          padding.top + chartHeight + 20
-        )
-      }
-    })
-
-    // Draw Y-axis labels
-    ctx.fillStyle = '#374151'
-    ctx.font = '12px sans-serif'
-    ctx.textAlign = 'right'
-    ctx.textBaseline = 'middle'
-    for (let i = 0; i <= 5; i++) {
-      const value = (maxValue / 5) * (5 - i)
-      const y = padding.top + (chartHeight / 5) * i
-      ctx.fillText(Math.round(value).toString(), padding.left - 10, y)
-    }
-
-    // Draw title
-    ctx.font = 'bold 16px sans-serif'
-    ctx.textAlign = 'center'
-    ctx.fillText(`${teamName} - Points For vs Against by Gameweek`, rect.width / 2, 25)
-
-    // Draw legend
-    const legendY = rect.height - 25
-    ctx.font = '12px sans-serif'
-    
-    ctx.fillStyle = '#3b82f6'
-    ctx.fillRect(rect.width / 2 - 100, legendY, 15, 15)
-    ctx.fillStyle = '#374151'
-    ctx.textAlign = 'left'
-    ctx.fillText('Points For', rect.width / 2 - 80, legendY + 12)
-    
-    ctx.fillStyle = '#ef4444'
-    ctx.fillRect(rect.width / 2 + 10, legendY, 15, 15)
-    ctx.fillStyle = '#374151'
-    ctx.fillText('Points Against', rect.width / 2 + 30, legendY + 12)
-
-  }, [data, teamName])
-
-  const handleMouseMove = (event: React.MouseEvent<HTMLCanvasElement>) => {
-    const canvas = canvasRef.current
-    if (!canvas) return
-
-    const rect = canvas.getBoundingClientRect()
-    const x = event.clientX - rect.left
-    const y = event.clientY - rect.top
-
-    // Chart dimensions
-    const padding = { top: 50, right: 20, bottom: 60, left: 50 }
-    const chartWidth = rect.width - padding.left - padding.right
-    const chartHeight = rect.height - padding.top - padding.bottom
-
-    const totalGameweeks = 38
-    const groupWidth = chartWidth / totalGameweeks
-    const barWidth = (groupWidth * 0.8) / 2
-    const gap = groupWidth * 0.1
-
-    // Create gameweek data
-    const gameweekData = Array.from({ length: totalGameweeks }, (_, i) => {
-      const gw = i + 1
-      const existingData = data.find(d => d.gameweek === gw)
-      return {
-        gameweek: gw,
-        pointsFor: existingData?.pointsFor || 0,
-        pointsAgainst: existingData?.pointsAgainst || 0,
-        hasData: !!existingData
-      }
-    })
-
-    // Check if mouse is over any bar
-    for (let index = 0; index < gameweekData.length; index++) {
-      const point = gameweekData[index]
-      if (!point.hasData) continue
-
-      const groupX = padding.left + (groupWidth * index) + gap
-
-      // Check Points For bar
-      if (x >= groupX && x <= groupX + barWidth &&
-          y >= padding.top && y <= rect.height - padding.bottom) {
-        setTooltip({
-          visible: true,
-          x: event.clientX,
-          y: event.clientY,
-          content: `GW${point.gameweek}\nPoints For: ${point.pointsFor}`
-        })
-        return
-      }
-
-      // Check Points Against bar
-      if (x >= groupX + barWidth && x <= groupX + 2 * barWidth &&
-          y >= padding.top && y <= rect.height - padding.bottom) {
-        setTooltip({
-          visible: true,
-          x: event.clientX,
-          y: event.clientY,
-          content: `GW${point.gameweek}\nPoints Against: ${point.pointsAgainst}`
-        })
-        return
-      }
-    }
-
-    setTooltip({ visible: false, x: 0, y: 0, content: '' })
-  }
-
-  const handleMouseLeave = () => {
-    setTooltip({ visible: false, x: 0, y: 0, content: '' })
-  }
+  })
 
   return (
-    <div className="bg-white rounded-2xl shadow-xl p-6 border border-gray-100 hover:shadow-2xl transition-shadow duration-300 relative">
-      <canvas
-        ref={canvasRef}
-        style={{ width: '100%', height: '400px' }}
-        className="w-full"
-        onMouseMove={handleMouseMove}
-        onMouseLeave={handleMouseLeave}
-      />
-      {tooltip.visible && (
-        <div
-          className="absolute bg-gray-900 text-white text-sm px-3 py-2 rounded shadow-lg pointer-events-none whitespace-pre-line z-10"
-          style={{
-            left: `${tooltip.x}px`,
-            top: `${tooltip.y - 60}px`,
-            transform: 'translateX(-50%)'
-          }}
-        >
-          {tooltip.content}
-        </div>
-      )}
+    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-3 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-shadow duration-300">
+      <h3 className="text-base font-semibold mb-4 text-gray-900 dark:text-gray-100">
+        {teamName} — Points For vs Against by Gameweek
+      </h3>
+      <ChartContainer config={chartConfig} className="block h-[280px] sm:h-[400px] w-full aspect-auto">
+        <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
+          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
+          <XAxis dataKey="gameweek" tick={{ fontSize: 10 }} interval={1} />
+          <YAxis tick={{ fontSize: 11 }} width={40} />
+          <Tooltip content={<GwTooltip teamName={teamName} />} cursor={{ fill: 'transparent' }} />
+          <Bar dataKey="pointsFor" fill="var(--color-pointsFor)" radius={[2, 2, 0, 0]} />
+          <Bar dataKey="pointsAgainst" fill="var(--color-pointsAgainst)" radius={[2, 2, 0, 0]} />
+        </BarChart>
+      </ChartContainer>
+      <div className="flex justify-center gap-6 pt-3 text-xs">
+        {Object.entries(chartConfig).map(([key, cfg]) => (
+          <span key={key} className="flex items-center gap-1.5">
+            <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: cfg.color }} />
+            <span className="text-muted-foreground">{String(cfg.label)}</span>
+          </span>
+        ))}
+      </div>
     </div>
   )
 }

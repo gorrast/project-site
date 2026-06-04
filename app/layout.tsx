@@ -1,6 +1,10 @@
 import type { Metadata } from "next";
+import { Analytics } from "@vercel/analytics/next"
 import { Geist, Geist_Mono } from "next/font/google";
 import Link from "next/link";
+import { ThemeProvider } from "@/components/ThemeProvider";
+import { ThemeToggle } from "@/components/ThemeToggle";
+import { HomeButton } from "@/components/HomeButton";
 import "./globals.css";
 
 
@@ -25,13 +29,18 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
-      >
-        <main>
-          {children}
-        </main>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+        <ThemeProvider>
+          <div className="fixed top-4 right-4 z-[9999] flex gap-2">
+            <HomeButton />
+            <ThemeToggle />
+          </div>
+          <main>
+            {children}
+          </main>
+        </ThemeProvider>
+        <Analytics />
       </body>
     </html>
   );

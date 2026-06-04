@@ -1,4 +1,5 @@
 import csv
+import json
 
 # =========================
 # 1. PASTE YOUR DATA HERE
@@ -41,6 +42,9 @@ DATA = {
                 "Hampthechamp": [{"rank": 1, "points_for": 0, "points_against": 0, "total": 0, "wins": 0, "draws": 0, "losses": 0}, {"rank": 2, "points_for": 54, "points_against": 37, "total": 3, "gw_score_for": 54, "gw_score_against": 37, "wins": 1, "draws": 0, "losses": 0}, {"rank": 4, "points_for": 96, "points_against": 83, "total": 3, "gw_score_for": 42, "gw_score_against": 46, "wins": 1, "draws": 0, "losses": 1}, {"rank": 7, "points_for": 133, "points_against": 135, "total": 3, "gw_score_for": 37, "gw_score_against": 52, "wins": 1, "draws": 0, "losses": 2}, {"rank": 3, "points_for": 209, "points_against": 185, "total": 6, "gw_score_for": 76, "gw_score_against": 50, "wins": 2, "draws": 0, "losses": 2}, {"rank": 6, "points_for": 237, "points_against": 223, "total": 6, "gw_score_for": 28, "gw_score_against": 38, "wins": 2, "draws": 0, "losses": 3}, {"rank": 6, "points_for": 270, "points_against": 271, "total": 6, "gw_score_for": 33, "gw_score_against": 48, "wins": 2, "draws": 0, "losses": 4}, {"rank": 8, "points_for": 316, "points_against": 337, "total": 6, "gw_score_for": 46, "gw_score_against": 66, "wins": 2, "draws": 0, "losses": 5}, {"rank": 9, "points_for": 346, "points_against": 386, "total": 6, "gw_score_for": 30, "gw_score_against": 49, "wins": 2, "draws": 0, "losses": 6}, {"rank": 9, "points_for": 378, "points_against": 423, "total": 6, "gw_score_for": 32, "gw_score_against": 37, "wins": 2, "draws": 0, "losses": 7}, {"rank": 10, "points_for": 421, "points_against": 469, "total": 6, "gw_score_for": 43, "gw_score_against": 46, "wins": 2, "draws": 0, "losses": 8}, {"rank": 10, "points_for": 472, "points_against": 510, "total": 9, "gw_score_for": 51, "gw_score_against": 41, "wins": 3, "draws": 0, "losses": 8}, {"rank": 10, "points_for": 512, "points_against": 566, "total": 9, "gw_score_for": 40, "gw_score_against": 56, "wins": 3, "draws": 0, "losses": 9}, {"rank": 10, "points_for": 548, "points_against": 590, "total": 12, "gw_score_for": 36, "gw_score_against": 24, "wins": 4, "draws": 0, "losses": 9}, {"rank": 10, "points_for": 582, "points_against": 643, "total": 12, "gw_score_for": 34, "gw_score_against": 53, "wins": 4, "draws": 0, "losses": 10}, {"rank": 10, "points_for": 625, "points_against": 693, "total": 12, "gw_score_for": 43, "gw_score_against": 50, "wins": 4, "draws": 0, "losses": 11}, {"rank": 10, "points_for": 659, "points_against": 740, "total": 12, "gw_score_for": 34, "gw_score_against": 47, "wins": 4, "draws": 0, "losses": 12}, {"rank": 10, "points_for": 697, "points_against": 779, "total": 12, "gw_score_for": 38, "gw_score_against": 39, "wins": 4, "draws": 0, "losses": 13}, {"rank": 10, "points_for": 749, "points_against": 823, "total": 15, "gw_score_for": 52, "gw_score_against": 44, "wins": 5, "draws": 0, "losses": 13}, {"rank": 10, "points_for": 783, "points_against": 867, "total": 15, "gw_score_for": 34, "gw_score_against": 44, "wins": 5, "draws": 0, "losses": 14}, {"rank": 10, "points_for": 830, "points_against": 903, "total": 18, "gw_score_for": 47, "gw_score_against": 36, "wins": 6, "draws": 0, "losses": 14}, {"rank": 10, "points_for": 857, "points_against": 931, "total": 18, "gw_score_for": 27, "gw_score_against": 28, "wins": 6, "draws": 0, "losses": 15}, {"rank": 10, "points_for": 893, "points_against": 959, "total": 21, "gw_score_for": 36, "gw_score_against": 28, "wins": 7, "draws": 0, "losses": 15}, {"rank": 10, "points_for": 931, "points_against": 999, "total": 21, "gw_score_for": 38, "gw_score_against": 40, "wins": 7, "draws": 0, "losses": 16}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}, {}]
             }
         }
+
+with open("draft_data.json", "r", encoding="utf-8") as f:
+    DATA2 = json.load(f)
 
 # ===================================
 # 2. TEAM NAME → TEAM_ID MAPPING
@@ -88,7 +92,7 @@ TEAM_ID_MAP = {
 # =========================
 # 3. CSV OUTPUT
 # =========================
-OUTPUT_FILE = "team_stats.csv"
+OUTPUT_FILE = "team_stats2.csv"
 
 FIELDNAMES = [
     "team_id",
@@ -113,13 +117,21 @@ with open(OUTPUT_FILE, "w", newline="", encoding="utf-8") as csvfile:
     writer = csv.DictWriter(csvfile, fieldnames=FIELDNAMES)
     writer.writeheader()
 
-    for season, teams in DATA.items():
+    for season, teams in DATA2.items():
+        if season != "25/26":
+            continue
+
         for team_name, gw_list in teams.items():
             team_id = TEAM_ID_MAP[season].get(team_name)
             if not team_id:
                 continue
 
             for idx, stats in enumerate(gw_list):
+                gw = to_int(stats.get("wins")) + to_int(stats.get("draws")) + to_int(stats.get("losses"))
+
+                if gw <= 23:
+                    continue
+
                 if not stats or not isinstance(stats, dict):
                     continue
 
