@@ -15,7 +15,7 @@ const projects: Project[] = [
     description:
       'Fantasy Draft Premier League tracker for the Blue Bay Cup league. Tracks season development, overall performance, and more. Fetches data from FPL api, and stores in a Supabase DB',
     href: '/bluebaycup',
-    tags: ['Fantasy Football', 'Statistics', 'Next.js'],
+    tags: ['Fantasy Football', 'Statistics'],
     image: (
       <Image
         src="/bluebaycup_project.png"
@@ -25,6 +25,22 @@ const projects: Project[] = [
         className="object-cover"
       />
     ),
+  },
+  {
+    title: 'Playpilot Compare',
+    description:
+      'Evaluate and compare data for Playpilot profiles',
+    href: '/playpilot',
+    tags: ['Selenium', 'Statistics', 'Movies & TV'],
+    /* image: (
+      <Image
+        src="/bluebaycup_project.png"
+        alt="Blue Bay Cup"
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="object-cover"
+      />
+    ), */
   },
 ]
 
