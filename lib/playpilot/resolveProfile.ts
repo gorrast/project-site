@@ -43,8 +43,11 @@ export async function resolveProfileUuid(username: string, locale = 'se'): Promi
   });
 
   if (!res.ok) {
+    const bodySnippet = (await res.text().catch(() => '')).slice(0, 300);
     console.error(
-      `PlayPilot profile page ${res.status} — server: ${res.headers.get('server')}, cf-ray: ${res.headers.get('cf-ray')}`
+      `PlayPilot profile page ${res.status} ${res.statusText} — final url: ${res.url} — headers: ${JSON.stringify(
+        Object.fromEntries(res.headers.entries())
+      )} — body: ${bodySnippet}`
     );
     throw new Error(`Profile page request failed with status ${res.status}`);
   }
