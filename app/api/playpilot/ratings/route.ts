@@ -1,4 +1,3 @@
-import { NextResponse } from 'next/server';
 import { resolveProfileUuid } from '@/lib/playpilot/resolveProfile';
 import { fetchAllRatings } from '@/lib/playpilot/fetchRatings';
 
@@ -9,16 +8,41 @@ export async function GET(request: Request) {
   const username = searchParams.get('username')?.trim();
 
   if (!username) {
-    return NextResponse.json({ error: 'Missing username' }, { status: 400 });
+    return new Response(JSON.stringify({ error: 'Missing username' }), {
+      status: 400,
+      headers: { 'Content-Type': 'application/json' },
+    });
   }
 
-  try {
-    const uuid = await resolveProfileUuid(username);
-    const ratings = await fetchAllRatings(uuid);
-    return NextResponse.json({ username, uuid, ratings });
-  } catch (error) {
-    console.error('PlayPilot ratings lookup failed:', error);
-    const message = error instanceof Error ? error.message : 'Failed to fetch ratings';
-    return NextResponse.json({ error: message }, { status: 404 });
-  }
+  const encoder = new TextEncoder();
+
+  const stream = new ReadableStream({
+    async start(controller) {
+      const send = (event: Record<string, unknown>) => {
+        controller.enqueue(encoder.encode(`data: ${JSON.stringify(event)}\n\n`));
+      };
+
+      try {
+        const uuid = await resolveProfileUuid(username, {
+          onRetry: info => send({ type: 'retry', ...info }),
+        });
+        const ratings = await fetchAllRatings(uuid);
+        send({ type: 'done', username, uuid, ratings });
+      } catch (error) {
+        console.error('PlayPilot ratings lookup failed:', error);
+        const message = error instanceof Error ? error.message : 'Failed to fetch ratings';
+        send({ type: 'error', error: message });
+      } finally {
+        controller.close();
+      }
+    },
+  });
+
+  return new Response(stream, {
+    headers: {
+      'Content-Type': 'text/event-stream',
+      'Cache-Control': 'no-cache, no-transform',
+      Connection: 'keep-alive',
+    },
+  });
 }
