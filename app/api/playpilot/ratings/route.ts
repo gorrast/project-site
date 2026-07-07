@@ -2,6 +2,8 @@ import { NextResponse } from 'next/server';
 import { resolveProfileUuid } from '@/lib/playpilot/resolveProfile';
 import { fetchAllRatings } from '@/lib/playpilot/fetchRatings';
 
+export const runtime = 'edge';
+
 export async function GET(request: Request) {
   const { searchParams } = new URL(request.url);
   const username = searchParams.get('username')?.trim();
