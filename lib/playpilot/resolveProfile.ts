@@ -33,9 +33,19 @@ function findMatchingBraceEnd(text: string, startIndex: number): number {
 // within it is well-formed JSON (unlike the outer object, which has unquoted
 // top-level keys), so we locate and parse just that piece rather than the whole blob.
 export async function resolveProfileUuid(username: string, locale = 'se'): Promise<string> {
-  const res = await fetch(`${PROFILE_HOST}/${locale}/user/${encodeURIComponent(username)}/`);
+  const res = await fetch(`${PROFILE_HOST}/${locale}/user/${encodeURIComponent(username)}/`, {
+    headers: {
+      'User-Agent':
+        'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+      Accept: 'text/html,application/xhtml+xml,application/xml;q=0.9,*/*;q=0.8',
+      'Accept-Language': 'sv-SE,sv;q=0.9,en;q=0.8',
+    },
+  });
 
   if (!res.ok) {
+    console.error(
+      `PlayPilot profile page ${res.status} — server: ${res.headers.get('server')}, cf-ray: ${res.headers.get('cf-ray')}`
+    );
     throw new Error(`Profile page request failed with status ${res.status}`);
   }
 

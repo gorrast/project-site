@@ -40,7 +40,13 @@ export async function fetchAllRatings(
   let pages = 0;
 
   while (url && pages < MAX_PAGES) {
-    const res: Response = await fetch(url);
+    const res: Response = await fetch(url, {
+      headers: {
+        'User-Agent':
+          'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/124.0.0.0 Safari/537.36',
+        Accept: 'application/json',
+      },
+    });
     if (!res.ok) {
       throw new Error(`Ratings request failed with status ${res.status}`);
     }
