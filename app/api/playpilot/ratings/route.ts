@@ -23,11 +23,11 @@ export async function GET(request: Request) {
       };
 
       try {
-        const uuid = await resolveProfileUuid(username, {
+        const { uuid, totalRatings } = await resolveProfileUuid(username, {
           onRetry: info => send({ type: 'retry', ...info }),
         });
         const ratings = await fetchAllRatings(uuid);
-        send({ type: 'done', username, uuid, ratings });
+        send({ type: 'done', username, uuid, ratings, totalRatings });
       } catch (error) {
         console.error('PlayPilot ratings lookup failed:', error);
         const message = error instanceof Error ? error.message : 'Failed to fetch ratings';

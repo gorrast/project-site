@@ -9,6 +9,11 @@ export interface ResolveProfileRetryInfo {
   waitMs: number;
 }
 
+export interface ResolvedProfile {
+  uuid: string;
+  totalRatings: number | null;
+}
+
 function sleep(ms: number): Promise<void> {
   return new Promise(resolve => setTimeout(resolve, ms));
 }
@@ -53,7 +58,7 @@ function findMatchingBraceEnd(text: string, startIndex: number): number {
 export async function resolveProfileUuid(
   username: string,
   options: { locale?: string; onRetry?: (info: ResolveProfileRetryInfo) => void } = {}
-): Promise<string> {
+): Promise<ResolvedProfile> {
   const { locale = 'se', onRetry } = options;
   const url = `${PROFILE_HOST}/${locale}/user/${encodeURIComponent(username)}/`;
 
@@ -87,7 +92,12 @@ export async function resolveProfileUuid(
         throw new Error('Profile UUID missing from embedded profile data');
       }
 
-      return uuid as string;
+      const totalRatings = profileData?.profile?.counts?.ratings;
+
+      return {
+        uuid: uuid as string,
+        totalRatings: typeof totalRatings === 'number' ? totalRatings : null,
+      };
     }
 
     lastStatus = res.status;
