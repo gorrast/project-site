@@ -137,7 +137,7 @@ export default function PlayPilot() {
               value={username}
               onChange={e => setUsername(e.target.value)}
               onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-              placeholder="PlayPilot username (e.g. benjaminsten)"
+              placeholder="PlayPilot username (e.g. hugowigh)"
               className="flex-1 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 font-medium text-gray-900 dark:text-gray-100 transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-500 outline-none"
             />
             <button
