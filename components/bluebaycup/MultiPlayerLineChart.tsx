@@ -22,14 +22,31 @@ interface MultiPlayerLineChartProps {
   invertYAxis?: boolean
 }
 
-const COLORS = [
-  '#3b82f6', 
-  '#ef4444', 
-  '#10b981', 
-  '#f59e0b', 
-  '#8b5cf6', 
-  '#ec4899'
+// Fixed palette spread evenly across the full hue wheel (red, orange, amber,
+// yellow, lime, green, teal, cyan, blue, violet, magenta, pink) for maximum
+// visual variety. Assigned by player_id below, never by array position, so a
+// given player always gets the same color everywhere.
+const PLAYER_COLORS = [
+  '#cc2538', // red
+  '#d46000', // orange
+  '#c48400', // amber
+  '#bda500', // yellow
+  '#4b9600', // lime
+  '#008d41', // green
+  '#009284', // teal
+  '#0091b9', // cyan
+  '#0067db', // blue
+  '#6744c5', // violet
+  '#9b2ba3', // magenta
+  '#ca488f', // pink
 ]
+
+function colorForPlayerId(playerId: string): string {
+  const id = parseInt(playerId, 10)
+  if (!Number.isFinite(id)) return PLAYER_COLORS[0]
+  const idx = ((id - 1) % PLAYER_COLORS.length + PLAYER_COLORS.length) % PLAYER_COLORS.length
+  return PLAYER_COLORS[idx]
+}
 
 export default function MultiPlayerLineChart({
   playersData,
@@ -61,9 +78,9 @@ export default function MultiPlayerLineChart({
   })
 
   const chartConfig: ChartConfig = Object.fromEntries(
-    playersData.map((player, i) => [
+    playersData.map(player => [
       player.playerName,
-      { label: player.playerName, color: COLORS[i % COLORS.length] },
+      { label: player.playerName, color: colorForPlayerId(player.playerId) },
     ])
   )
 
@@ -114,12 +131,12 @@ export default function MultiPlayerLineChart({
               )
             }}
           />
-          {playersData.map((player, i) => (
+          {playersData.map(player => (
             <Line
               key={player.playerName}
               type="monotone"
               dataKey={player.playerName}
-              stroke={COLORS[i % COLORS.length]}
+              stroke={colorForPlayerId(player.playerId)}
               strokeWidth={2}
               dot={{ r: 3 }}
               activeDot={(dotProps) => {
@@ -130,7 +147,7 @@ export default function MultiPlayerLineChart({
                     cx={cx ?? 0}
                     cy={cy ?? 0}
                     r={5}
-                    fill={fill ?? COLORS[i % COLORS.length]}
+                    fill={fill ?? colorForPlayerId(player.playerId)}
                     stroke="white"
                     strokeWidth={2}
                     style={{ cursor: 'pointer' }}
@@ -145,9 +162,9 @@ export default function MultiPlayerLineChart({
         </LineChart>
       </ChartContainer>
       <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 pt-3 text-xs">
-        {playersData.map((player, i) => (
+        {playersData.map(player => (
           <span key={player.playerName} className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: COLORS[i % COLORS.length] }} />
+            <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: colorForPlayerId(player.playerId) }} />
             <span className="text-muted-foreground">{player.playerName}</span>
           </span>
         ))}
