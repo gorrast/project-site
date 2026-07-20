@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# project-site
 
-## Getting Started
+Hugo Wigh's personal site — a small collection of side projects and tools. The live site is at **[wigh.nu](https://wigh.nu)**.
 
-First, run the development server:
+## Pages
+
+- **`/`** — Home: an overview of the projects hosted here.
+- **`/bluebaycup`** — Blue Bay Cup: a tracker for a private Fantasy Premier League mini-league. Fetches gameweek data from the FPL API and shows season standings, overall multi-season rankings, prize money splits, and a luck-factor stat. Includes an admin panel at `/bluebaycup/admin` for entering gameweek results and managing seasons/players.
+- **`/playpilot`** — PlayPilot Compare: looks up and compares ratings data from PlayPilot profiles.
+
+## Stack
+
+- **Frontend:** Next.js (App Router), React, Tailwind — deployed on Vercel.
+- **Backend:** split by runtime needs —
+  - `/api/playpilot/*` is a Next.js (TypeScript) Edge route. It needs the Edge runtime specifically to rotate through regions when scraping PlayPilot, since non-edge requests get rejected; it also streams live retry progress to the client over SSE.
+  - `/api/bluebaycup/*` and `/api/todos` are served by a Python FastAPI app (`api/index.py`), routed there via `vercel.json` rewrites.
+- **Database:** Supabase (Postgres).
+
+## Development
+
+Frontend-only, fast iteration — but note that `/api/bluebaycup/*` and `/api/todos` will 404 here, since those routes live in the Python function and plain `next dev` doesn't apply `vercel.json` rewrites:
 
 ```bash
 npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Full stack, matching production routing (Next.js + the Python function + rewrites, all on one port):
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+npm run dev:vercel
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+First run needs the project linked to a Vercel account: `npx vercel login`, then `npm run dev:vercel` (it will prompt to link/create the project).
 
-## Learn More
+### Python backend setup
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r api/requirements.txt
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+Point your editor's Python interpreter at `.venv/bin/python` (VS Code users: already configured via `.vscode/settings.json`).
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+## Database (Supabase)
 
-## Deploy on Vercel
+Schema (see `lib/supabase/database_schema.png` for a diagram):
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+- `players` — `player_id`, `name`
+- `seasons` — `season_id`, `year`, `prize_pool`, `high_score_prize`
+- `teams` — `team_id`, `player_id` (FK), `season_id` (FK), `team_name`
+- `team_stats` — `team_id` (FK), `gameweek`, `rank`, `total_points`, `wins`, `draws`, `losses`, `points_for`, `points_against`
+- `admin_credentials` — `username`, `password_hash`, `salt` (BlueBayCup admin panel login)
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+Required environment variables (`.env`):
+
+- `NEXT_PUBLIC_SUPABASE_URL`
+- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
+- `SUPABASE_SERVICE_ROLE_KEY` — used by admin routes; bypasses RLS
+- `ADMIN_SESSION_SECRET` — HMAC secret for signing admin session cookies
+
+To seed an admin login, run `node scripts/create-admin-credentials.mjs <username> <password>` and execute the printed SQL in the Supabase SQL editor.
+
+---
+
+For the live version of this site, visit **[wigh.nu](https://wigh.nu)**.
