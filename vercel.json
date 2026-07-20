@@ -1,0 +1,6 @@
+{
+  "rewrites": [
+    { "source": "/api/todos", "destination": "/api/index" },
+    { "source": "/api/bluebaycup/:path*", "destination": "/api/index" }
+  ]
+}
