@@ -51,16 +51,19 @@ export default function TitleList({ ratings, selectedRating, onClearRating }: Ti
           <Table>
             <TableHeader className="sticky top-0 bg-white dark:bg-gray-800 z-10">
               <TableRow>
+                <TableHead>Rating</TableHead>
                 <TableHead>Title</TableHead>
                 <TableHead>Type</TableHead>
                 <TableHead>Year</TableHead>
                 <TableHead>Genres</TableHead>
-                <TableHead className="text-right">Rating</TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
               {sorted.map((rating, i) => (
                 <TableRow key={`${rating.title}-${i}`}>
+                  <TableCell className="font-bold text-purple-600 dark:text-purple-400">
+                    {rating.score}
+                  </TableCell>
                   <TableCell className="font-medium text-gray-900 dark:text-gray-100 whitespace-normal">
                     {rating.title}
                   </TableCell>
@@ -72,9 +75,6 @@ export default function TitleList({ ratings, selectedRating, onClearRating }: Ti
                   </TableCell>
                   <TableCell className="text-gray-600 dark:text-gray-400 whitespace-normal">
                     {rating.genres.length > 0 ? rating.genres.join(', ') : '—'}
-                  </TableCell>
-                  <TableCell className="text-right font-bold text-purple-600 dark:text-purple-400">
-                    {rating.score}
                   </TableCell>
                 </TableRow>
               ))}
