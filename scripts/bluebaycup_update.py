@@ -29,24 +29,20 @@ load_env_file(PROJECT_ROOT / ".env")
 from api import anon_client, admin_client
 import requests
 
-# Manual response-inspection mode (calls input() in a loop) — only ever
-# enabled explicitly for local debugging. Defaults off, so it can never fire
-# in CI even if left on by accident (no stdin there, would just hang/EOF).
+# Manual response-inspection mode - only ever enabled explicitly for local debugging.
+# Defaults off
 debug = os.environ.get("BLUEBAYCUP_DEBUG") == "1"
 
 # ---------------------------------------------------------------------------
 # Logging
 #
 # GitHub Actions captures each step's stdout/stderr automatically and keeps it
-# in the run log (default 90-day retention, configurable in repo settings) —
-# no committed .log file needed. logging.basicConfig below sends everything
-# there.
+# in the run log (default 90-day retention)
 #
 # The gha_* helpers additionally emit GitHub Actions "workflow commands"
 # (docs: https://docs.github.com/actions/using-workflows/workflow-commands-for-github-actions),
 # which turn a line into a highlighted annotation on the run's summary page —
-# distinct from the raw log, good for seeing "did this actually work" at a
-# glance without reading the full output.
+# distinct from the raw log
 # ---------------------------------------------------------------------------
 
 logging.basicConfig(
@@ -155,12 +151,11 @@ def insert_new_data(rows_to_insert: list) -> bool:
 
 
 def update(response: dict, TEAMS: dict, current_gw: int) -> bool:
-    """Main update: builds this gameweek's cumulative rows for every team and
+    """
+    Main update: 
+    builds this gameweek's cumulative rows for every team and
     inserts them. Returns True on success, False on failure.
-
-    Relies on the caller having already verified current_gw > MAX_GW (see
-    __main__) — a workflow-level concurrency group prevents two runs from
-    racing that check, so it isn't re-verified here."""
+    """
     rows_to_insert = []
     for player in response["standings"]:
         league_entry = player["league_entry"]
