@@ -1,0 +1,38 @@
+name: BlueBayCup weekly update
+
+on:
+  schedule:
+    # Daily at 06:00 UTC = 07:00 Swedish winter time (CET, UTC+1) or 08:00 Swedish summer time. 
+    - cron: '0 6 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: bluebaycup-update
+  # Never cancel a run that's already writing to the database. 
+  # A second trigger queues behind it instead.
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version-file: '.python-version'
+          cache: 'pip'
+          cache-dependency-path: api/requirements.txt
+
+      - name: Install dependencies
+        run: pip install -r api/requirements.txt
+
+      - name: Run BlueBayCup update
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: python scripts/bluebaycup_update.py
