@@ -1,15 +1,20 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next"
-import { Geist, Geist_Mono } from "next/font/google";
-import Link from "next/link";
+import { Space_Grotesk, IBM_Plex_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { HomeButton } from "@/components/HomeButton";
+import { GlobalNavIcons } from "@/components/GlobalNavIcons";
 import "./globals.css";
 
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
+  weight: ["500", "700"],
+  subsets: ["latin"],
+});
+
+const ibmPlexSans = IBM_Plex_Sans({
+  variable: "--font-ibm-plex-sans",
+  weight: ["400", "500", "600", "700"],
   subsets: ["latin"],
 });
 
@@ -30,12 +35,9 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body className={`${geistSans.variable} ${geistMono.variable} antialiased`}>
+      <body className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${geistMono.variable} antialiased`}>
         <ThemeProvider>
-          <div className="fixed top-4 right-4 z-9999 flex gap-2">
-            <HomeButton />
-            <ThemeToggle />
-          </div>
+          <GlobalNavIcons />
           <main>
             {children}
           </main>

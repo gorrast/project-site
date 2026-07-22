@@ -161,17 +161,17 @@ class TeamUpdateBody(BaseModel):
     api_entry_id: int
 
 
-class TeamEntry(BaseModel):
-    teamId: int
-    pointsFor: float
-    pointsAgainst: float
-    result: Literal["W", "D", "L"]
+class GameweekMatch(BaseModel):
+    teamAId: int
+    teamBId: Optional[int] = None
+    teamAScore: float
+    teamBScore: Optional[float] = None
 
 
 class GameweekBody(BaseModel):
     seasonId: int
     gameweek: int
-    entries: List[TeamEntry]
+    matches: List[GameweekMatch]
 
 
 class SeasonStatsBody(BaseModel):
@@ -208,7 +208,7 @@ def get_overall():
     teams = client.table("teams").select("team_id, player_id, season_id").execute().data
     final_stats = (
         client.table("team_stats")
-        .select("team_id, total_points, points_for, points_against, teams(season_id)")
+        .select("team_id, total_points, points_for, points_against, teams!team_stats_team_id_fkey(season_id)")
         .eq("gameweek", 38)
         .execute()
         .data
@@ -277,6 +277,34 @@ def get_overall():
             )
         standings.sort(key=lambda s: -s["totalPoints"])
         season_winners[season["season_id"]] = standings
+
+    def resolve_player_name(player_id):
+        p = next((pl for pl in players if pl["player_id"] == player_id), None)
+        return p["name"] if p else ""
+
+    trophy_history = []
+    for season in finished_seasons:
+        top3 = season_winners.get(season["season_id"], [])[:3]
+        if not top3:
+            continue
+        trophy_history.append(
+            {
+                "seasonId": str(season["season_id"]),
+                "seasonName": season["year"],
+                "winner": {"playerName": resolve_player_name(top3[0]["playerId"]), "points": top3[0]["totalPoints"]},
+                "runnerUp": (
+                    {"playerName": resolve_player_name(top3[1]["playerId"]), "points": top3[1]["totalPoints"]}
+                    if len(top3) > 1
+                    else None
+                ),
+                "third": (
+                    {"playerName": resolve_player_name(top3[2]["playerId"]), "points": top3[2]["totalPoints"]}
+                    if len(top3) > 2
+                    else None
+                ),
+                "margin": (top3[0]["totalPoints"] - top3[1]["totalPoints"]) if len(top3) > 1 else None,
+            }
+        )
 
     overall_stats = []
     for player in players:
@@ -382,9 +410,58 @@ def get_overall():
     latest_season = formatted_seasons[0] if formatted_seasons else None
 
     return JSONResponse(
-        {"overallStats": overall_stats, "seasons": formatted_seasons, "latestSeason": latest_season},
+        {
+            "overallStats": overall_stats,
+            "seasons": formatted_seasons,
+            "latestSeason": latest_season,
+            "trophyHistory": trophy_history,
+        },
         headers={"Cache-Control": "public, max-age=3600"},
     )
+
+
+def derive_gw_results(stats_by_team: dict, teams_by_id: dict, players_by_id: dict) -> dict:
+    """For each team, diff consecutive cumulative team_stats rows into a
+    chronological list of {gameweek, result, opponentTeamId,
+    opponentPlayerName, myScore, oppScore}. Rows with no opponent_id
+    (byes / gameweeks with no recorded match) are skipped entirely."""
+    results: dict = {}
+    for team_id, stats in stats_by_team.items():
+        team_results = []
+        for i, stat in enumerate(stats):
+            opponent_team_id = stat.get("opponent_id")
+            if opponent_team_id is None:
+                continue
+
+            prev = stats[i - 1] if i > 0 else None
+            wins_delta = stat["wins"] - (prev["wins"] if prev else 0)
+            draws_delta = stat["draws"] - (prev["draws"] if prev else 0)
+            losses_delta = stat["losses"] - (prev["losses"] if prev else 0)
+
+            if wins_delta == 1:
+                result = "W"
+            elif draws_delta == 1:
+                result = "D"
+            elif losses_delta == 1:
+                result = "L"
+            else:
+                continue
+
+            opponent_team = teams_by_id.get(opponent_team_id)
+            opponent_player = players_by_id.get(opponent_team["player_id"]) if opponent_team else None
+
+            team_results.append(
+                {
+                    "gameweek": stat["gameweek"],
+                    "result": result,
+                    "opponentTeamId": opponent_team_id,
+                    "opponentPlayerName": opponent_player["name"] if opponent_player else "",
+                    "myScore": stat["points_for"] - (prev["points_for"] if prev else 0),
+                    "oppScore": stat["points_against"] - (prev["points_against"] if prev else 0),
+                }
+            )
+        results[team_id] = team_results
+    return results
 
 
 @app.post("/api/bluebaycup/season_stats")
@@ -430,6 +507,10 @@ def get_season_stats(body: SeasonStatsBody):
         stats_by_team.setdefault(stat["team_id"], []).append(stat)
     for stats in stats_by_team.values():
         stats.sort(key=lambda s: s["gameweek"])
+
+    teams_by_id = {t["team_id"]: t for t in teams}
+    players_by_id = {p["player_id"]: p for p in players}
+    form_by_team = derive_gw_results(stats_by_team, teams_by_id, players_by_id)
 
     per_gw_data: dict = {}
     for team_id, stats in stats_by_team.items():
@@ -477,6 +558,7 @@ def get_season_stats(body: SeasonStatsBody):
                 "pointsFor": stat["points_for"],
                 "pointsAgainst": stat["points_against"],
                 "luckFactor": luck_factors.get(stat["team_id"], 1),
+                "form": form_by_team.get(stat["team_id"], [])[-5:],
             }
         )
 
@@ -496,12 +578,20 @@ def get_season_stats(body: SeasonStatsBody):
             stat = next((s for s in team_stats if s["gameweek"] == gw), None)
             if not stat:
                 gameweek_data.append(
-                    {"gameweek": gw, "rank": None, "totalPoints": 0, "pointsFor": 0, "pointsAgainst": 0}
+                    {
+                        "gameweek": gw, "rank": None, "totalPoints": 0, "pointsFor": 0, "pointsAgainst": 0,
+                        "opponentName": None, "opponentTeamId": None,
+                    }
                 )
                 continue
             gw_stats = [s for s in all_stats if s["gameweek"] == gw]
             sorted_gw = sorted(gw_stats, key=lambda s: -s["total_points"])
             rank = next(i for i, s in enumerate(sorted_gw) if s["team_id"] == team["team_id"]) + 1
+
+            opponent_team_id = stat.get("opponent_id")
+            opponent_team = teams_by_id.get(opponent_team_id) if opponent_team_id else None
+            opponent_player = players_by_id.get(opponent_team["player_id"]) if opponent_team else None
+
             gameweek_data.append(
                 {
                     "gameweek": gw,
@@ -509,6 +599,8 @@ def get_season_stats(body: SeasonStatsBody):
                     "totalPoints": stat["total_points"],
                     "pointsFor": stat["points_for"],
                     "pointsAgainst": stat["points_against"],
+                    "opponentName": opponent_player["name"] if opponent_player else None,
+                    "opponentTeamId": opponent_team_id,
                 }
             )
 
@@ -547,6 +639,90 @@ def get_season_stats(body: SeasonStatsBody):
         "maxGameweek": max_gameweek,
         "highScoreData": high_score_data,
     }
+
+
+@app.get("/api/bluebaycup/head_to_head")
+def get_head_to_head():
+    client = anon_client()
+
+    teams = client.table("teams").select("team_id, player_id, season_id").execute().data
+    players = client.table("players").select("player_id, name").execute().data
+    team_ids = [t["team_id"] for t in teams]
+    all_stats = (
+        client.table("team_stats").select("*").in_("team_id", team_ids).order("gameweek", desc=False).execute().data
+        if team_ids
+        else []
+    )
+
+    teams_by_id = {t["team_id"]: t for t in teams}
+    players_by_id = {p["player_id"]: p for p in players}
+
+    stats_by_team: dict = {}
+    for stat in all_stats:
+        stats_by_team.setdefault(stat["team_id"], []).append(stat)
+    for stats in stats_by_team.values():
+        stats.sort(key=lambda s: s["gameweek"])
+
+    results_by_team = derive_gw_results(stats_by_team, teams_by_id, players_by_id)
+
+    # (playerId, opponentPlayerId) -> chronological list of matches, aggregated
+    # across every team_id that player has ever had (i.e. across seasons).
+    matchups: dict = {}
+    for team_id, matches in results_by_team.items():
+        team = teams_by_id.get(team_id)
+        if not team:
+            continue
+        player_id = team["player_id"]
+        season_id = team["season_id"]
+        for m in matches:
+            opponent_team = teams_by_id.get(m["opponentTeamId"])
+            if not opponent_team:
+                continue
+            key = (player_id, opponent_team["player_id"])
+            matchups.setdefault(key, []).append(
+                {
+                    "seasonId": season_id,
+                    "gameweek": m["gameweek"],
+                    "result": m["result"],
+                    "myScore": m["myScore"],
+                    "oppScore": m["oppScore"],
+                }
+            )
+
+    head_to_head: dict = {}
+    for (player_id, opponent_player_id), matches in matchups.items():
+        matches.sort(key=lambda m: (m["seasonId"], m["gameweek"]))
+        wins = sum(1 for m in matches if m["result"] == "W")
+        draws = sum(1 for m in matches if m["result"] == "D")
+        losses = sum(1 for m in matches if m["result"] == "L")
+        total = wins + draws + losses
+        win_pct = round((wins + 0.5 * draws) / total * 100, 1) if total else 0.0
+
+        opponent_player = players_by_id.get(opponent_player_id)
+        form = [
+            {"gameweek": m["gameweek"], "result": m["result"], "myScore": m["myScore"], "oppScore": m["oppScore"]}
+            for m in matches[-5:]
+        ]
+
+        head_to_head.setdefault(str(player_id), []).append(
+            {
+                "opponentPlayerId": str(opponent_player_id),
+                "opponentPlayerName": opponent_player["name"] if opponent_player else "",
+                "wins": wins,
+                "draws": draws,
+                "losses": losses,
+                "winPct": win_pct,
+                "form": form,
+            }
+        )
+
+    for opponents in head_to_head.values():
+        opponents.sort(key=lambda o: -o["winPct"])
+
+    return JSONResponse(
+        {"headToHead": head_to_head},
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -753,14 +929,47 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
 
 @app.post("/api/bluebaycup/admin/gameweek")
 def submit_gameweek(body: GameweekBody, username: str = Depends(require_admin)):
-    if not body.seasonId or body.gameweek is None or not body.entries:
-        raise HTTPException(status_code=400, detail="seasonId, gameweek, and entries are required")
+    if not body.seasonId or body.gameweek is None or not body.matches:
+        raise HTTPException(status_code=400, detail="seasonId, gameweek, and matches are required")
 
     if body.gameweek < 0 or body.gameweek > 38:
         raise HTTPException(status_code=400, detail="Gameweek must be a whole number between 0 and 38")
 
     client = admin_client()
-    team_ids = [e.teamId for e in body.entries]
+
+    season_teams = client.table("teams").select("team_id").eq("season_id", body.seasonId).execute().data
+    season_team_ids = {t["team_id"] for t in season_teams}
+    if not season_team_ids:
+        raise HTTPException(status_code=400, detail="No teams found for this season")
+
+    assigned_team_ids: list = []
+    for m in body.matches:
+        if m.teamBId is None:
+            if m.teamBScore is not None:
+                raise HTTPException(status_code=400, detail=f"Team {m.teamAId} has a bye but teamBScore was provided")
+        else:
+            if m.teamAId == m.teamBId:
+                raise HTTPException(status_code=400, detail=f"Team {m.teamAId} cannot play itself")
+            if m.teamBScore is None:
+                raise HTTPException(status_code=400, detail=f"Missing score for team {m.teamBId}")
+        assigned_team_ids.append(m.teamAId)
+        if m.teamBId is not None:
+            assigned_team_ids.append(m.teamBId)
+
+    if len(assigned_team_ids) != len(set(assigned_team_ids)):
+        raise HTTPException(status_code=400, detail="A team appears more than once across the submitted matches")
+    if set(assigned_team_ids) != season_team_ids:
+        raise HTTPException(status_code=400, detail="Every team in this season must appear exactly once across the matches")
+
+    bye_count = sum(1 for m in body.matches if m.teamBId is None)
+    expected_byes = 1 if len(season_team_ids) % 2 == 1 else 0
+    if bye_count != expected_byes:
+        raise HTTPException(
+            status_code=400,
+            detail=f"Expected {expected_byes} bye(s) for a {len(season_team_ids)}-team season, got {bye_count}",
+        )
+
+    team_ids = list(season_team_ids)
 
     existing = (
         client.table("team_stats")
@@ -786,28 +995,35 @@ def submit_gameweek(body: GameweekBody, username: str = Depends(require_admin)):
         for s in prev.data:
             prev_stats[s["team_id"]] = s
 
-    new_stats = []
-    for entry in body.entries:
-        prev = prev_stats.get(
-            entry.teamId,
-            {"total_points": 0, "wins": 0, "draws": 0, "losses": 0, "points_for": 0, "points_against": 0},
-        )
-        wins_this_week = 1 if entry.result == "W" else 0
-        draws_this_week = 1 if entry.result == "D" else 0
-        losses_this_week = 1 if entry.result == "L" else 0
-        league_points_this_week = 3 if entry.result == "W" else (1 if entry.result == "D" else 0)
+    default_prev = {"total_points": 0, "wins": 0, "draws": 0, "losses": 0, "points_for": 0, "points_against": 0}
 
-        new_stats.append(
-            {
-                "team_id": entry.teamId,
-                "total_points": prev["total_points"] + league_points_this_week,
-                "wins": prev["wins"] + wins_this_week,
-                "draws": prev["draws"] + draws_this_week,
-                "losses": prev["losses"] + losses_this_week,
-                "points_for": prev["points_for"] + entry.pointsFor,
-                "points_against": prev["points_against"] + entry.pointsAgainst,
-            }
-        )
+    def build_row(team_id: int, opponent_team_id, my_score: float, opp_score, result: Optional[str]):
+        prev = prev_stats.get(team_id, default_prev)
+        wins_delta = 1 if result == "W" else 0
+        draws_delta = 1 if result == "D" else 0
+        losses_delta = 1 if result == "L" else 0
+        league_points_delta = 3 if result == "W" else (1 if result == "D" else 0)
+        return {
+            "team_id": team_id,
+            "opponent_id": opponent_team_id,
+            "total_points": prev["total_points"] + league_points_delta,
+            "wins": prev["wins"] + wins_delta,
+            "draws": prev["draws"] + draws_delta,
+            "losses": prev["losses"] + losses_delta,
+            "points_for": prev["points_for"] + my_score,
+            "points_against": prev["points_against"] + (opp_score or 0),
+        }
+
+    new_stats = []
+    for m in body.matches:
+        if m.teamBId is None:
+            # Bye: no result, no league-points change, FPL score still counts toward points_for.
+            new_stats.append(build_row(m.teamAId, None, m.teamAScore, None, None))
+        else:
+            result_a = "W" if m.teamAScore > m.teamBScore else ("L" if m.teamAScore < m.teamBScore else "D")
+            result_b = "L" if result_a == "W" else ("W" if result_a == "L" else "D")
+            new_stats.append(build_row(m.teamAId, m.teamBId, m.teamAScore, m.teamBScore, result_a))
+            new_stats.append(build_row(m.teamBId, m.teamAId, m.teamBScore, m.teamAScore, result_b))
 
     sorted_stats = sorted(new_stats, key=lambda s: (-s["total_points"], -s["points_for"]))
     rank_map = {s["team_id"]: i + 1 for i, s in enumerate(sorted_stats)}
@@ -817,6 +1033,7 @@ def submit_gameweek(body: GameweekBody, username: str = Depends(require_admin)):
             "team_id": s["team_id"],
             "gameweek": body.gameweek,
             "rank": rank_map[s["team_id"]],
+            "opponent_id": s["opponent_id"],
             "total_points": s["total_points"],
             "wins": s["wins"],
             "draws": s["draws"],

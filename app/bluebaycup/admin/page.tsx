@@ -10,7 +10,7 @@ interface Player { player_id: number; name: string }
 interface SeasonRow { season_id: number; year: string; prize_pool: number; high_score_prize: number | null; league_api_id: number | null }
 interface TeamRow { team_id: number; team_name: string; player_id: number; player_name: string; api_entry_id: number | null }
 interface ParticipantRow { playerId: number | null; teamName: string; apiEntryId: string }
-interface GameweekEntry { teamId: number; playerName: string; teamName: string; pointsFor: string; pointsAgainst: string; result: 'W' | 'D' | 'L' }
+interface PairSlot { teamAId: number | null; teamBId: number | null; teamAScore: string; teamBScore: string; isBye: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
@@ -645,12 +645,18 @@ function SeasonsTab() {
 
 // ─── Gameweek Tab ─────────────────────────────────────────────────────────────
 
+function emptySlots(teamCount: number): PairSlot[] {
+  const slotCount = Math.ceil(teamCount / 2)
+  return Array.from({ length: slotCount }, () => ({ teamAId: null, teamBId: null, teamAScore: '', teamBScore: '', isBye: false }))
+}
+
 function GameweekTab() {
   const [seasons, setSeasons] = useState<SeasonRow[]>([])
   const [selectedSeasonId, setSelectedSeasonId] = useState<number | null>(null)
   const [gameweek, setGameweek] = useState('')
   const [gameweekError, setGameweekError] = useState('')
-  const [entries, setEntries] = useState<GameweekEntry[]>([])
+  const [allTeams, setAllTeams] = useState<TeamRow[]>([])
+  const [slots, setSlots] = useState<PairSlot[]>([])
   const [loadingTeams, setLoadingTeams] = useState(false)
   const [status, setStatus] = useState<{ msg: string; type: 'error' | 'success' | 'info' } | null>(null)
   const [loading, setLoading] = useState(false)
@@ -663,14 +669,14 @@ function GameweekTab() {
 
   const loadTeams = useCallback(async (id: number) => {
     setLoadingTeams(true)
-    setEntries([])
+    setAllTeams([])
+    setSlots([])
     const res = await fetch(`/api/bluebaycup/admin/season/${id}`)
     if (res.ok) {
       const d = await res.json()
-      setEntries(d.teams.map((t: TeamRow) => ({
-        teamId: t.team_id, playerName: t.player_name, teamName: t.team_name,
-        pointsFor: '', pointsAgainst: '', result: 'W' as const,
-      })))
+      const teams: TeamRow[] = d.teams ?? []
+      setAllTeams(teams)
+      setSlots(emptySlots(teams.length))
     } else {
       setStatus({ msg: 'Failed to load teams', type: 'error' })
     }
@@ -679,8 +685,32 @@ function GameweekTab() {
 
   useEffect(() => { if (selectedSeasonId) loadTeams(selectedSeasonId) }, [selectedSeasonId, loadTeams])
 
-  const updateEntry = (teamId: number, patch: Partial<GameweekEntry>) =>
-    setEntries(prev => prev.map(e => e.teamId === teamId ? { ...e, ...patch } : e))
+  const updateSlot = (index: number, patch: Partial<PairSlot>) =>
+    setSlots(prev => prev.map((s, i) => i === index ? { ...s, ...patch } : s))
+
+  const toggleBye = (index: number, isBye: boolean) =>
+    setSlots(prev => prev.map((s, i) => i === index ? { ...s, isBye, teamBId: isBye ? null : s.teamBId, teamBScore: isBye ? '' : s.teamBScore } : s))
+
+  // Teams unavailable for a given slot/side: used by any OTHER slot, or by
+  // the other side of this same slot (can't play yourself).
+  const unavailableTeamIds = (slotIndex: number, side: 'A' | 'B'): Set<number> => {
+    const used = new Set<number>()
+    slots.forEach((s, i) => {
+      if (i === slotIndex) {
+        if (side === 'A' && s.teamBId != null) used.add(s.teamBId)
+        if (side === 'B' && s.teamAId != null) used.add(s.teamAId)
+        return
+      }
+      if (s.teamAId != null) used.add(s.teamAId)
+      if (s.teamBId != null) used.add(s.teamBId)
+    })
+    return used
+  }
+
+  const teamLabel = (teamId: number | null) => {
+    const t = allTeams.find(t => t.team_id === teamId)
+    return t ? `${t.player_name} (${t.team_name})` : ''
+  }
 
   const validateGameweek = (val: string): boolean => {
     const n = Number(val)
@@ -692,10 +722,36 @@ function GameweekTab() {
     return true
   }
 
+  const validateSlots = (): string | null => {
+    const expectedByes = allTeams.length % 2 === 1 ? 1 : 0
+    const byeCount = slots.filter(s => s.isBye).length
+    if (byeCount !== expectedByes) {
+      return `Expected ${expectedByes} bye${expectedByes === 1 ? '' : 's'} for ${allTeams.length} teams, got ${byeCount}`
+    }
+    const assigned: number[] = []
+    for (const s of slots) {
+      if (s.teamAId == null) return 'Every match needs a team selected'
+      assigned.push(s.teamAId)
+      if (!s.isBye) {
+        if (s.teamBId == null) return 'Every non-bye match needs two teams selected'
+        assigned.push(s.teamBId)
+        if (s.teamAScore.trim() === '' || s.teamBScore.trim() === '') return 'Every non-bye match needs both scores'
+      } else if (s.teamAScore.trim() === '') {
+        return 'Bye teams still need their FPL score entered'
+      }
+    }
+    if (new Set(assigned).size !== assigned.length) return 'A team is assigned to more than one match'
+    if (assigned.length !== allTeams.length) return 'Every team must be assigned to exactly one match'
+    return null
+  }
+
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     if (!selectedSeasonId) return
     if (!validateGameweek(gameweek)) return
+    const slotsError = validateSlots()
+    if (slotsError) { setStatus({ msg: slotsError, type: 'error' }); return }
+
     setLoading(true)
     setStatus(null)
     try {
@@ -705,11 +761,11 @@ function GameweekTab() {
         body: JSON.stringify({
           seasonId: selectedSeasonId,
           gameweek: Number(gameweek),
-          entries: entries.map(e => ({
-            teamId: e.teamId,
-            pointsFor: Number(e.pointsFor),
-            pointsAgainst: Number(e.pointsAgainst),
-            result: e.result,
+          matches: slots.map(s => ({
+            teamAId: s.teamAId,
+            teamBId: s.isBye ? null : s.teamBId,
+            teamAScore: Number(s.teamAScore),
+            teamBScore: s.isBye ? null : Number(s.teamBScore),
           })),
         }),
       })
@@ -717,7 +773,7 @@ function GameweekTab() {
       if (res.ok) {
         setStatus({ msg: `Gameweek ${gameweek} submitted`, type: 'success' })
         setGameweek('')
-        setEntries(prev => prev.map(e => ({ ...e, pointsFor: '', pointsAgainst: '', result: 'W' as const })))
+        setSlots(emptySlots(allTeams.length))
       } else {
         setStatus({ msg: d.error ?? 'Failed to submit', type: 'error' })
       }
@@ -761,56 +817,84 @@ function GameweekTab() {
 
       {loadingTeams && <p className="text-sm text-gray-500">Loading teams…</p>}
 
-      {entries.length > 0 && (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Player</th>
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Team</th>
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">FPL pts (for)</th>
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">FPL pts (against)</th>
-                <th className="text-left py-2 font-medium text-gray-600 dark:text-gray-400">Result</th>
-              </tr>
-            </thead>
-            <tbody>
-              {entries.map(e => (
-                <tr key={e.teamId} className="border-b border-gray-100 dark:border-gray-800">
-                  <td className="py-2 pr-4 dark:text-gray-200">{e.playerName}</td>
-                  <td className="py-2 pr-4 text-gray-500 dark:text-gray-400">{e.teamName}</td>
-                  <td className="py-2 pr-4">
-                    <input
-                      type="number" min={0}
-                      value={e.pointsFor}
-                      onChange={ev => updateEntry(e.teamId, { pointsFor: ev.target.value })}
-                      className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-20 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
-                      required placeholder="0"
-                    />
-                  </td>
-                  <td className="py-2 pr-4">
-                    <input
-                      type="number" min={0}
-                      value={e.pointsAgainst}
-                      onChange={ev => updateEntry(e.teamId, { pointsAgainst: ev.target.value })}
-                      className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 w-20 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
-                      required placeholder="0"
-                    />
-                  </td>
-                  <td className="py-2">
+      {slots.length > 0 && (
+        <div className="flex flex-col gap-3">
+          {slots.map((slot, i) => {
+            const availableA = allTeams.filter(t => !unavailableTeamIds(i, 'A').has(t.team_id))
+            const availableB = allTeams.filter(t => !unavailableTeamIds(i, 'B').has(t.team_id))
+            const scoreA = Number(slot.teamAScore)
+            const scoreB = Number(slot.teamBScore)
+            const resultLabel = slot.isBye
+              ? 'Bye'
+              : slot.teamAScore.trim() === '' || slot.teamBScore.trim() === ''
+                ? ''
+                : scoreA === scoreB
+                  ? 'Draw'
+                  : scoreA > scoreB
+                    ? `${teamLabel(slot.teamAId)} wins`
+                    : `${teamLabel(slot.teamBId)} wins`
+
+            return (
+              <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex flex-col gap-2">
+                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-2 items-center">
+                  <div className="flex gap-2">
                     <select
-                      value={e.result}
-                      onChange={ev => updateEntry(e.teamId, { result: ev.target.value as 'W' | 'D' | 'L' })}
-                      className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                      value={slot.teamAId ?? ''}
+                      onChange={e => updateSlot(i, { teamAId: Number(e.target.value) || null })}
+                      className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                      required
                     >
-                      <option value="W">Win</option>
-                      <option value="D">Draw</option>
-                      <option value="L">Loss</option>
+                      <option value="">— team —</option>
+                      {availableA.map(t => <option key={t.team_id} value={t.team_id}>{t.player_name} ({t.team_name})</option>)}
                     </select>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+                    <input
+                      type="number" min={0}
+                      value={slot.teamAScore}
+                      onChange={e => updateSlot(i, { teamAScore: e.target.value })}
+                      placeholder="pts"
+                      className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                      required
+                    />
+                  </div>
+
+                  <span className="text-xs font-semibold text-gray-400 text-center">vs</span>
+
+                  <div className="flex gap-2">
+                    {slot.isBye ? (
+                      <span className="flex-1 flex items-center px-2 py-1.5 text-sm text-gray-400 italic">no opponent</span>
+                    ) : (
+                      <>
+                        <select
+                          value={slot.teamBId ?? ''}
+                          onChange={e => updateSlot(i, { teamBId: Number(e.target.value) || null })}
+                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                          required
+                        >
+                          <option value="">— team —</option>
+                          {availableB.map(t => <option key={t.team_id} value={t.team_id}>{t.player_name} ({t.team_name})</option>)}
+                        </select>
+                        <input
+                          type="number" min={0}
+                          value={slot.teamBScore}
+                          onChange={e => updateSlot(i, { teamBScore: e.target.value })}
+                          placeholder="pts"
+                          className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                          required
+                        />
+                      </>
+                    )}
+                  </div>
+                </div>
+                <div className="flex items-center justify-between gap-2">
+                  <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
+                    <input type="checkbox" checked={slot.isBye} onChange={e => toggleBye(i, e.target.checked)} />
+                    Bye (no opponent this week)
+                  </label>
+                  {resultLabel && <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{resultLabel}</span>}
+                </div>
+              </div>
+            )
+          })}
         </div>
       )}
 
@@ -818,7 +902,7 @@ function GameweekTab() {
 
       <button
         type="submit"
-        disabled={loading || !entries.length || !!gameweekError}
+        disabled={loading || !slots.length || !!gameweekError}
         className="self-start bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 px-6 rounded font-medium text-sm"
       >
         {loading ? 'Submitting…' : 'Submit Gameweek'}

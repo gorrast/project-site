@@ -24,6 +24,15 @@ export interface PlayerOverallStats {
   totPrizeMoney: number;
 }
 
+export interface FormEntry {
+  gameweek: number;
+  result: 'W' | 'D' | 'L';
+  opponentTeamId: number | null;
+  opponentPlayerName: string;
+  myScore: number;
+  oppScore: number;
+}
+
 export interface PlayerSeasonStats {
   playerId: string;
   playerName: string;
@@ -35,6 +44,7 @@ export interface PlayerSeasonStats {
   pointsFor: number;
   pointsAgainst: number;
   luckFactor: number;
+  form: FormEntry[];
 }
 
 export interface GameweekData {
@@ -43,6 +53,8 @@ export interface GameweekData {
   totalPoints: number;
   pointsFor: number;
   pointsAgainst: number;
+  opponentName: string | null;
+  opponentTeamId: number | null;
 }
 
 export interface PlayerProgressData {
@@ -56,7 +68,7 @@ export interface TeamGameweekData {
   gameweek: number;
   pointsFor: number;
   pointsAgainst: number;
-  opponentName?: string;
+  opponentName?: string | null;
 }
 
 export interface Season {
@@ -64,10 +76,40 @@ export interface Season {
   seasonName: string;
   startYear: number;
   endYear: number;
+  prizePool: number;
+  isFinished: boolean;
 }
 
 export interface HighScoreData {
   playerName: string;
   score: number;
   gameweek: number;
+}
+
+export interface HeadToHeadFormEntry {
+  gameweek: number;
+  result: 'W' | 'D' | 'L';
+  myScore: number;
+  oppScore: number;
+}
+
+export interface HeadToHeadOpponent {
+  opponentPlayerId: string;
+  opponentPlayerName: string;
+  wins: number;
+  draws: number;
+  losses: number;
+  winPct: number;
+  form: HeadToHeadFormEntry[];
+}
+
+export type HeadToHeadData = Record<string, HeadToHeadOpponent[]>;
+
+export interface TrophySeasonEntry {
+  seasonId: string;
+  seasonName: string;
+  winner: { playerName: string; points: number };
+  runnerUp: { playerName: string; points: number } | null;
+  third: { playerName: string; points: number } | null;
+  margin: number | null;
 }

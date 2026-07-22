@@ -1,3 +1,4 @@
+import json
 import logging
 import os
 import sys
@@ -156,6 +157,16 @@ def update(response: dict, TEAMS: dict, current_gw: int) -> bool:
     builds this gameweek's cumulative rows for every team and
     inserts them. Returns True on success, False on failure.
     """
+    opponent_by_team = {}
+    for m in response.get("matches", []):
+        if m.get("event") != current_gw:
+            continue
+        team_a = TEAMS.get(m.get("league_entry_1"))
+        team_b = TEAMS.get(m.get("league_entry_2"))
+        if team_a is not None and team_b is not None:
+            opponent_by_team[team_a] = team_b
+            opponent_by_team[team_b] = team_a
+
     rows_to_insert = []
     for player in response["standings"]:
         league_entry = player["league_entry"]
@@ -171,6 +182,7 @@ def update(response: dict, TEAMS: dict, current_gw: int) -> bool:
             "losses": int(player["matches_lost"]),
             "points_for": player["points_for"],
             "points_against": player["points_against"],
+            "opponent_id": opponent_by_team.get(team_id),
         }
         rows_to_insert.append(row)
 
@@ -203,11 +215,45 @@ def print_response(response: dict) -> None:
                 res = res[row]
             print("\n\nOutput:")
             print(res)
+            write = input("\nWrite to file? (Y/N): ").lower() == "y"
+            if write:
+                write_to_json(res)
         except KeyError as e:
             print("Invalid key, try again", e)
 
         user_input = input()
 
+
+def write_to_json(res: object, output_path: str | Path | None = None) -> Path:
+    """Write a JSON-compatible value to disk as nicely formatted JSON.
+
+    Accepts either:
+    - a JSON string
+    - a Python dict/list/primitive value
+
+    Args:
+        res: A JSON string or a Python object that can be serialized.
+        output_path: Optional destination file path. Defaults to a file named
+            "response.json" in the project root.
+
+    Returns:
+        The path to the written file.
+    """
+    if output_path is None:
+        output_path = PROJECT_ROOT / "response.json"
+    else:
+        output_path = Path(output_path)
+
+    if not output_path.is_absolute():
+        output_path = PROJECT_ROOT / output_path
+
+    if isinstance(res, str):
+        payload = json.loads(res)
+    else:
+        payload = res
+
+    output_path.write_text(json.dumps(payload, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return output_path
 
 if __name__ == "__main__":
     log.info("Starting BlueBayCup weekly update")
@@ -222,6 +268,7 @@ if __name__ == "__main__":
     if debug:
         print_response(response)
         sys.exit(0)
+
 
     gameweek = sum([
         int(response["standings"][0]["matches_drawn"]),
