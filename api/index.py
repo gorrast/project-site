@@ -7,6 +7,7 @@ import secrets
 import time
 from typing import List, Literal, Optional
 
+import requests
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
@@ -138,12 +139,14 @@ class Participant(BaseModel):
     playerId: Optional[int] = None
     playerName: Optional[str] = None
     teamName: str
+    apiEntryId: Optional[int] = None
 
 
 class SeasonCreateBody(BaseModel):
     year: str
     prizePool: float
     highScorePrize: Optional[float] = 0
+    league_api_id: int
     participants: List[Participant]
 
 
@@ -151,6 +154,11 @@ class SeasonUpdateBody(BaseModel):
     year: str
     prizePool: float
     highScorePrize: float
+    league_api_id: int
+
+
+class TeamUpdateBody(BaseModel):
+    api_entry_id: int
 
 
 class TeamEntry(BaseModel):
@@ -192,7 +200,7 @@ def get_overall():
     players = client.table("players").select("player_id, name").execute().data
     seasons = (
         client.table("seasons")
-        .select("season_id, year, prize_pool, high_score_prize")
+        .select("season_id, year, prize_pool, high_score_prize, league_api_id")
         .order("season_id", desc=True)
         .execute()
         .data
@@ -627,13 +635,37 @@ def create_player(body: PlayerCreateBody, username: str = Depends(require_admin)
     return {"player": result.data[0]}
 
 
+@app.get("/api/bluebaycup/admin/fpl-league-entries")
+def get_fpl_league_entries(leagueId: int, username: str = Depends(require_admin)):
+    url = f"https://draft.premierleague.com/api/league/{leagueId}/details"
+    try:
+        resp = requests.get(url, timeout=15)
+    except requests.RequestException:
+        raise HTTPException(status_code=502, detail="Failed to reach the FPL API")
+
+    if resp.status_code != 200:
+        raise HTTPException(status_code=502, detail=f"FPL API returned status {resp.status_code}")
+
+    data = resp.json()
+    entries = []
+    for entry in data.get("league_entries", []):
+        team_name = (
+            entry.get("entry_name")
+            or " ".join(filter(None, [entry.get("player_first_name"), entry.get("player_last_name")]))
+            or f"Entry {entry.get('id')}"
+        )
+        entries.append({"entryId": entry.get("id"), "teamName": team_name})
+
+    return {"entries": entries}
+
+
 @app.get("/api/bluebaycup/admin/season")
 def list_seasons(username: str = Depends(require_admin)):
     client = admin_client()
     try:
         result = (
             client.table("seasons")
-            .select("season_id, year, prize_pool, high_score_prize")
+            .select("season_id, year, prize_pool, high_score_prize, league_api_id")
             .order("season_id", desc=True)
             .execute()
         )
@@ -644,8 +676,8 @@ def list_seasons(username: str = Depends(require_admin)):
 
 @app.post("/api/bluebaycup/admin/season")
 def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)):
-    if not body.year or body.prizePool is None or not body.participants:
-        raise HTTPException(status_code=400, detail="year, prizePool, and participants are required")
+    if not body.year or body.prizePool is None or not body.participants or not body.league_api_id:
+        raise HTTPException(status_code=400, detail="year, prizePool, api_id, and participants are required")
 
     client = admin_client()
 
@@ -657,6 +689,7 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
                     "year": body.year,
                     "prize_pool": body.prizePool,
                     "high_score_prize": body.highScorePrize or 0,
+                    "league_api_id": body.league_api_id,
                 }
             )
             .execute()
@@ -670,7 +703,7 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
         if p.type == "existing":
             if not p.playerId:
                 raise HTTPException(status_code=400, detail="Missing playerId for existing player")
-            resolved_participants.append({"player_id": p.playerId, "teamName": p.teamName})
+            resolved_participants.append({"player_id": p.playerId, "teamName": p.teamName, "apiEntryId": p.apiEntryId})
         else:
             name = (p.playerName or "").strip()
             if not name:
@@ -680,10 +713,17 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
                 new_player = new_player_result.data[0]
             except Exception:
                 raise HTTPException(status_code=500, detail=f"Failed to create player: {p.playerName}")
-            resolved_participants.append({"player_id": new_player["player_id"], "teamName": p.teamName})
+            resolved_participants.append(
+                {"player_id": new_player["player_id"], "teamName": p.teamName, "apiEntryId": p.apiEntryId}
+            )
 
     teams_to_insert = [
-        {"player_id": p["player_id"], "season_id": season["season_id"], "team_name": p["teamName"]}
+        {
+            "player_id": p["player_id"],
+            "season_id": season["season_id"],
+            "team_name": p["teamName"],
+            "api_entry_id": p["apiEntryId"],
+        }
         for p in resolved_participants
     ]
     try:
@@ -802,7 +842,7 @@ def get_season(season_id: int, username: str = Depends(require_admin)):
     try:
         season_result = (
             client.table("seasons")
-            .select("season_id, year, prize_pool, high_score_prize")
+            .select("season_id, year, prize_pool, high_score_prize, league_api_id")
             .eq("season_id", season_id)
             .single()
             .execute()
@@ -814,7 +854,7 @@ def get_season(season_id: int, username: str = Depends(require_admin)):
     try:
         teams_result = (
             client.table("teams")
-            .select("team_id, team_name, player_id, players(name)")
+            .select("team_id, team_name, player_id, api_entry_id, players(name)")
             .eq("season_id", season_id)
             .execute()
         )
@@ -827,6 +867,7 @@ def get_season(season_id: int, username: str = Depends(require_admin)):
             "team_name": t["team_name"],
             "player_id": t["player_id"],
             "player_name": (t.get("players") or {}).get("name", ""),
+            "api_entry_id": t["api_entry_id"],
         }
         for t in teams_result.data
     ]
@@ -858,9 +899,25 @@ def update_season(season_id: int, body: SeasonUpdateBody, username: str = Depend
     client = admin_client()
     try:
         client.table("seasons").update(
-            {"year": body.year, "prize_pool": body.prizePool, "high_score_prize": body.highScorePrize}
+            {
+                "year": body.year,
+                "prize_pool": body.prizePool,
+                "high_score_prize": body.highScorePrize,
+                "league_api_id": body.league_api_id,
+            }
         ).eq("season_id", season_id).execute()
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to update season")
+
+    return {"success": True}
+
+
+@app.patch("/api/bluebaycup/admin/teams/{team_id}")
+def update_team(team_id: int, body: TeamUpdateBody, username: str = Depends(require_admin)):
+    client = admin_client()
+    try:
+        client.table("teams").update({"api_entry_id": body.api_entry_id}).eq("team_id", team_id).execute()
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to update team")
 
     return {"success": True}
