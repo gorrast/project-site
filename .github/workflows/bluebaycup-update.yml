@@ -20,19 +20,15 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Set up Python
-        uses: actions/setup-python@v5
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
         with:
           python-version-file: '.python-version'
-          cache: 'pip'
-          cache-dependency-path: api/requirements.txt
-
-      - name: Install dependencies
-        run: pip install -r api/requirements.txt
+          enable-cache: true
 
       - name: Run BlueBayCup update
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
-        run: python scripts/bluebaycup_update.py
+        run: uv run scripts/bluebaycup_update.py

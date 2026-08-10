@@ -34,11 +34,13 @@ First run needs the project linked to a Vercel account: `npx vercel login`, then
 
 ### Python backend setup
 
+Dependencies are managed with [uv](https://docs.astral.sh/uv/):
+
 ```bash
-python3 -m venv .venv
-source .venv/bin/activate
-pip install -r api/requirements.txt
+uv sync
 ```
+
+This creates `.venv` and installs everything from `uv.lock`. Run scripts with `uv run`, e.g. `uv run scripts/bluebaycup_update.py`.
 
 Point your editor's Python interpreter at `.venv/bin/python` (VS Code users: already configured via `.vscode/settings.json`).
 
