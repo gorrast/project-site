@@ -139,7 +139,8 @@ class Participant(BaseModel):
     playerId: Optional[int] = None
     playerName: Optional[str] = None
     teamName: str
-    apiEntryId: Optional[int] = None
+    apiEntryId: int
+    draftPick: int
 
 
 class SeasonCreateBody(BaseModel):
@@ -159,6 +160,7 @@ class SeasonUpdateBody(BaseModel):
 
 class TeamUpdateBody(BaseModel):
     api_entry_id: int
+    draft_pick: int
 
 
 class GameweekMatch(BaseModel):
@@ -830,7 +832,7 @@ def get_fpl_league_entries(leagueId: int, username: str = Depends(require_admin)
             or " ".join(filter(None, [entry.get("player_first_name"), entry.get("player_last_name")]))
             or f"Entry {entry.get('id')}"
         )
-        entries.append({"entryId": entry.get("id"), "teamName": team_name})
+        entries.append({"entryId": entry.get("id"), "teamName": team_name, "draftPick": entry.get("waiver_pick")})
 
     return {"entries": entries}
 
@@ -879,7 +881,9 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
         if p.type == "existing":
             if not p.playerId:
                 raise HTTPException(status_code=400, detail="Missing playerId for existing player")
-            resolved_participants.append({"player_id": p.playerId, "teamName": p.teamName, "apiEntryId": p.apiEntryId})
+            resolved_participants.append(
+                {"player_id": p.playerId, "teamName": p.teamName, "apiEntryId": p.apiEntryId, "draftPick": p.draftPick}
+            )
         else:
             name = (p.playerName or "").strip()
             if not name:
@@ -890,7 +894,12 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
             except Exception:
                 raise HTTPException(status_code=500, detail=f"Failed to create player: {p.playerName}")
             resolved_participants.append(
-                {"player_id": new_player["player_id"], "teamName": p.teamName, "apiEntryId": p.apiEntryId}
+                {
+                    "player_id": new_player["player_id"],
+                    "teamName": p.teamName,
+                    "apiEntryId": p.apiEntryId,
+                    "draftPick": p.draftPick,
+                }
             )
 
     teams_to_insert = [
@@ -899,6 +908,7 @@ def create_season(body: SeasonCreateBody, username: str = Depends(require_admin)
             "season_id": season["season_id"],
             "team_name": p["teamName"],
             "api_entry_id": p["apiEntryId"],
+            "draft_pick": p["draftPick"],
         }
         for p in resolved_participants
     ]
@@ -1071,7 +1081,7 @@ def get_season(season_id: int, username: str = Depends(require_admin)):
     try:
         teams_result = (
             client.table("teams")
-            .select("team_id, team_name, player_id, api_entry_id, players(name)")
+            .select("team_id, team_name, player_id, api_entry_id, draft_pick, players(name)")
             .eq("season_id", season_id)
             .execute()
         )
@@ -1085,6 +1095,7 @@ def get_season(season_id: int, username: str = Depends(require_admin)):
             "player_id": t["player_id"],
             "player_name": (t.get("players") or {}).get("name", ""),
             "api_entry_id": t["api_entry_id"],
+            "draft_pick": t["draft_pick"],
         }
         for t in teams_result.data
     ]
@@ -1133,7 +1144,9 @@ def update_season(season_id: int, body: SeasonUpdateBody, username: str = Depend
 def update_team(team_id: int, body: TeamUpdateBody, username: str = Depends(require_admin)):
     client = admin_client()
     try:
-        client.table("teams").update({"api_entry_id": body.api_entry_id}).eq("team_id", team_id).execute()
+        client.table("teams").update(
+            {"api_entry_id": body.api_entry_id, "draft_pick": body.draft_pick}
+        ).eq("team_id", team_id).execute()
     except Exception:
         raise HTTPException(status_code=500, detail="Failed to update team")
 

@@ -8,8 +8,9 @@ type Tab = 'seasons' | 'gameweek'
 
 interface Player { player_id: number; name: string }
 interface SeasonRow { season_id: number; year: string; prize_pool: number; high_score_prize: number | null; league_api_id: number | null }
-interface TeamRow { team_id: number; team_name: string; player_id: number; player_name: string; api_entry_id: number | null }
-interface ParticipantRow { playerId: number | null; teamName: string; apiEntryId: string }
+interface TeamRow { team_id: number; team_name: string; player_id: number; player_name: string; api_entry_id: number | null; draft_pick: number | null }
+interface ParticipantRow { playerId: number | null; teamName: string; apiEntryId: string; draftPick: string }
+interface FplEntry { entryId: number; teamName: string; draftPick: number | null }
 interface PairSlot { teamAId: number | null; teamBId: number | null; teamAScore: string; teamBScore: string; isBye: boolean }
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
@@ -113,15 +114,15 @@ function SeasonsTab() {
   const [createLoading, setCreateLoading] = useState(false)
 
   // FPL entry ID lookup, keyed off newLeagueApiId
-  const [fplEntries, setFplEntries] = useState<{ entryId: number; teamName: string }[] | null>(null)
+  const [fplEntries, setFplEntries] = useState<FplEntry[] | null>(null)
   const [fplFetchLoading, setFplFetchLoading] = useState(false)
   const [fplFetchError, setFplFetchError] = useState('')
 
-  // Manage teams (api_entry_id) state
+  // Manage teams (api_entry_id / draft_pick) state
   const [teamsSeasonId, setTeamsSeasonId] = useState<number | null>(null)
   const [seasonTeams, setSeasonTeams] = useState<TeamRow[]>([])
   const [teamsLoading, setTeamsLoading] = useState(false)
-  const [teamEditValues, setTeamEditValues] = useState<Record<number, string>>({})
+  const [teamEditValues, setTeamEditValues] = useState<Record<number, { apiEntryId: string; draftPick: string }>>({})
   const [teamStatus, setTeamStatus] = useState<Record<number, { msg: string; type: 'error' | 'success' }>>({})
   const [teamSaving, setTeamSaving] = useState<number | null>(null)
 
@@ -147,14 +148,36 @@ function SeasonsTab() {
     setParticipantCount(count)
     setParticipantRows(prev => {
       if (count > prev.length) {
-        return [...prev, ...Array.from({ length: count - prev.length }, () => ({ playerId: null as number | null, teamName: '', apiEntryId: '' }))]
+        return [...prev, ...Array.from({ length: count - prev.length }, () => ({ playerId: null as number | null, teamName: '', apiEntryId: '', draftPick: '' }))]
       }
       return prev.slice(0, count)
     })
   }
 
+  // Case-insensitive, trimmed match against the fetched FPL entries by team name.
+  const matchFplEntry = (teamName: string, entries: FplEntry[] | null) => {
+    const needle = teamName.trim().toLowerCase()
+    if (!needle || !entries) return null
+    return entries.find(e => e.teamName.trim().toLowerCase() === needle) ?? null
+  }
+
+  // Fills apiEntryId/draftPick from a matched FPL entry, without clobbering values already typed in.
+  const withFplAutoFill = (row: ParticipantRow, entries: FplEntry[] | null): ParticipantRow => {
+    const match = matchFplEntry(row.teamName, entries)
+    if (!match) return row
+    return {
+      ...row,
+      apiEntryId: row.apiEntryId.trim() ? row.apiEntryId : String(match.entryId),
+      draftPick: !row.draftPick.trim() && match.draftPick != null ? String(match.draftPick) : row.draftPick,
+    }
+  }
+
   const updateRow = (i: number, patch: Partial<ParticipantRow>) =>
-    setParticipantRows(prev => prev.map((r, idx) => idx === i ? { ...r, ...patch } : r))
+    setParticipantRows(prev => prev.map((r, idx) => {
+      if (idx !== i) return r
+      const merged = { ...r, ...patch }
+      return patch.teamName !== undefined ? withFplAutoFill(merged, fplEntries) : merged
+    }))
 
   const startEdit = (s: SeasonRow) => {
     setEditingId(s.season_id)
@@ -229,7 +252,9 @@ function SeasonsTab() {
       const res = await fetch(`/api/bluebaycup/admin/fpl-league-entries?leagueId=${encodeURIComponent(newLeagueApiId.trim())}`)
       const d = await res.json()
       if (res.ok) {
-        setFplEntries(d.entries ?? [])
+        const entries: FplEntry[] = d.entries ?? []
+        setFplEntries(entries)
+        setParticipantRows(prev => prev.map(r => withFplAutoFill(r, entries)))
       } else {
         setFplFetchError(d.error ?? 'Failed to fetch entry IDs')
       }
@@ -247,6 +272,8 @@ function SeasonsTab() {
     for (const r of participantRows) {
       if (!r.playerId) { setCreateStatus({ msg: 'Select a player for each row', type: 'error' }); return }
       if (!r.teamName.trim()) { setCreateStatus({ msg: 'Enter a team name for each participant', type: 'error' }); return }
+      if (!r.apiEntryId.trim()) { setCreateStatus({ msg: 'Enter an API entry ID for each participant', type: 'error' }); return }
+      if (!r.draftPick.trim()) { setCreateStatus({ msg: 'Enter a draft pick for each participant', type: 'error' }); return }
     }
     setCreateLoading(true)
     setCreateStatus(null)
@@ -262,7 +289,8 @@ function SeasonsTab() {
           type: 'existing',
           playerId: r.playerId,
           teamName: r.teamName.trim(),
-          apiEntryId: r.apiEntryId.trim() ? Number(r.apiEntryId) : null,
+          apiEntryId: Number(r.apiEntryId),
+          draftPick: Number(r.draftPick),
         })),
       }),
     })
@@ -291,29 +319,38 @@ function SeasonsTab() {
       const d = await res.json()
       const teams: TeamRow[] = d.teams ?? []
       setSeasonTeams(teams)
-      setTeamEditValues(Object.fromEntries(teams.map(t => [t.team_id, String(t.api_entry_id ?? '')])))
+      setTeamEditValues(Object.fromEntries(teams.map(t => [
+        t.team_id,
+        { apiEntryId: String(t.api_entry_id ?? ''), draftPick: String(t.draft_pick ?? '') },
+      ])))
     } else {
       setSeasonTeams([])
     }
     setTeamsLoading(false)
   }
 
-  const saveTeamApiId = async (teamId: number) => {
+  const saveTeamRow = async (teamId: number) => {
     const value = teamEditValues[teamId]
-    if (!value?.trim()) {
+    if (!value?.apiEntryId.trim()) {
       setTeamStatus(prev => ({ ...prev, [teamId]: { msg: 'Enter an API entry ID', type: 'error' } }))
+      return
+    }
+    if (!value?.draftPick.trim()) {
+      setTeamStatus(prev => ({ ...prev, [teamId]: { msg: 'Enter a draft pick', type: 'error' } }))
       return
     }
     setTeamSaving(teamId)
     const res = await fetch(`/api/bluebaycup/admin/teams/${teamId}`, {
       method: 'PATCH',
       headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({ api_entry_id: Number(value) }),
+      body: JSON.stringify({ api_entry_id: Number(value.apiEntryId), draft_pick: Number(value.draftPick) }),
     })
     setTeamSaving(null)
     if (res.ok) {
       setTeamStatus(prev => ({ ...prev, [teamId]: { msg: 'Saved', type: 'success' } }))
-      setSeasonTeams(prev => prev.map(t => t.team_id === teamId ? { ...t, api_entry_id: Number(value) } : t))
+      setSeasonTeams(prev => prev.map(t => t.team_id === teamId
+        ? { ...t, api_entry_id: Number(value.apiEntryId), draft_pick: Number(value.draftPick) }
+        : t))
     } else {
       const d = await res.json()
       setTeamStatus(prev => ({ ...prev, [teamId]: { msg: d.error ?? 'Failed to save', type: 'error' } }))
@@ -362,6 +399,7 @@ function SeasonsTab() {
                       <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
                         <th className="text-left py-1.5 px-3 font-medium text-gray-600 dark:text-gray-400">Team name</th>
                         <th className="text-left py-1.5 px-3 font-medium text-gray-600 dark:text-gray-400">Entry ID</th>
+                        <th className="text-left py-1.5 px-3 font-medium text-gray-600 dark:text-gray-400">Draft pick</th>
                       </tr>
                     </thead>
                     <tbody>
@@ -369,6 +407,7 @@ function SeasonsTab() {
                         <tr key={entry.entryId} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
                           <td className="py-1.5 px-3 dark:text-gray-200">{entry.teamName}</td>
                           <td className="py-1.5 px-3 text-gray-600 dark:text-gray-400 font-mono">{entry.entryId}</td>
+                          <td className="py-1.5 px-3 text-gray-600 dark:text-gray-400 font-mono">{entry.draftPick ?? '—'}</td>
                         </tr>
                       ))}
                     </tbody>
@@ -395,13 +434,14 @@ function SeasonsTab() {
 
           {participantRows.length > 0 && (
           <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-3 gap-3 pb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="grid grid-cols-4 gap-3 pb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
               <span>Player</span>
               <span>Team name</span>
-              <span>API entry ID (optional)</span>
+              <span>API entry ID</span>
+              <span>Draft pick</span>
             </div>
             {participantRows.map((row, i) => (
-              <div key={i} className="grid grid-cols-3 gap-3">
+              <div key={i} className="grid grid-cols-4 gap-3">
                 <select
                   value={row.playerId ?? ''}
                   onChange={e => updateRow(i, { playerId: Number(e.target.value) || null })}
@@ -425,6 +465,16 @@ function SeasonsTab() {
                   onChange={e => updateRow(i, { apiEntryId: e.target.value })}
                   placeholder="e.g. 12345"
                   className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                  required
+                />
+                <input
+                  type="number"
+                  min={1}
+                  value={row.draftPick}
+                  onChange={e => updateRow(i, { draftPick: e.target.value })}
+                  placeholder="e.g. 3"
+                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                  required
                 />
               </div>
             ))}
@@ -479,7 +529,7 @@ function SeasonsTab() {
         </button>
 
         <h2 className="text-lg font-semibold dark:text-gray-100">
-          Team API Entry IDs {season ? `— ${season.year}` : ''}
+          Team API Entry IDs & Draft Picks {season ? `— ${season.year}` : ''}
         </h2>
 
         {teamsLoading ? (
@@ -494,6 +544,7 @@ function SeasonsTab() {
                   <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Player</th>
                   <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Team</th>
                   <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">API entry ID</th>
+                  <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Draft pick</th>
                   <th className="py-2"></th>
                 </tr>
               </thead>
@@ -506,16 +557,32 @@ function SeasonsTab() {
                       <input
                         type="number"
                         min={0}
-                        value={teamEditValues[team.team_id] ?? ''}
-                        onChange={e => setTeamEditValues(prev => ({ ...prev, [team.team_id]: e.target.value }))}
+                        value={teamEditValues[team.team_id]?.apiEntryId ?? ''}
+                        onChange={e => setTeamEditValues(prev => ({
+                          ...prev,
+                          [team.team_id]: { ...prev[team.team_id], apiEntryId: e.target.value, draftPick: prev[team.team_id]?.draftPick ?? '' },
+                        }))}
                         placeholder="e.g. 12345"
                         className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-32"
+                      />
+                    </td>
+                    <td className="py-2 pr-4">
+                      <input
+                        type="number"
+                        min={1}
+                        value={teamEditValues[team.team_id]?.draftPick ?? ''}
+                        onChange={e => setTeamEditValues(prev => ({
+                          ...prev,
+                          [team.team_id]: { ...prev[team.team_id], draftPick: e.target.value, apiEntryId: prev[team.team_id]?.apiEntryId ?? '' },
+                        }))}
+                        placeholder="e.g. 3"
+                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-24"
                       />
                     </td>
                     <td className="py-2">
                       <div className="flex items-center gap-2">
                         <button
-                          onClick={() => saveTeamApiId(team.team_id)}
+                          onClick={() => saveTeamRow(team.team_id)}
                           disabled={teamSaving === team.team_id}
                           className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
                         >
