@@ -117,6 +117,7 @@ function SeasonsTab() {
   const [fplEntries, setFplEntries] = useState<FplEntry[] | null>(null)
   const [fplFetchLoading, setFplFetchLoading] = useState(false)
   const [fplFetchError, setFplFetchError] = useState('')
+  const [fplDraftPickAvailable, setFplDraftPickAvailable] = useState(true)
 
   // Manage teams (api_entry_id / draft_pick) state
   const [teamsSeasonId, setTeamsSeasonId] = useState<number | null>(null)
@@ -248,12 +249,14 @@ function SeasonsTab() {
     setFplFetchLoading(true)
     setFplFetchError('')
     setFplEntries(null)
+    setFplDraftPickAvailable(true)
     try {
       const res = await fetch(`/api/bluebaycup/admin/fpl-league-entries?leagueId=${encodeURIComponent(newLeagueApiId.trim())}`)
       const d = await res.json()
       if (res.ok) {
         const entries: FplEntry[] = d.entries ?? []
         setFplEntries(entries)
+        setFplDraftPickAvailable(Boolean(d.draftPickAvailable))
         setParticipantRows(prev => prev.map(r => withFplAutoFill(r, entries)))
       } else {
         setFplFetchError(d.error ?? 'Failed to fetch entry IDs')
@@ -301,7 +304,7 @@ function SeasonsTab() {
       setNewYear(''); setNewPrizePool(''); setNewHighScorePrize(''); setNewLeagueApiId('')
       setParticipantCount(null)
       setParticipantRows([])
-      setFplEntries(null); setFplFetchError('')
+      setFplEntries(null); setFplFetchError(''); setFplDraftPickAvailable(true)
       await fetchAll()
       setTimeout(() => { setView('list'); setCreateStatus(null) }, 1200)
     } else {
@@ -388,6 +391,12 @@ function SeasonsTab() {
             </button>
 
             {fplFetchError && <div className="mt-2"><StatusMsg msg={fplFetchError} type="error" /></div>}
+
+            {fplEntries && fplEntries.length > 0 && !fplDraftPickAvailable && (
+              <div className="mt-2">
+                <StatusMsg msg="Draft picks aren't available yet for this league (the draft hasn't completed) — enter them manually." type="info" />
+              </div>
+            )}
 
             {fplEntries && (
               fplEntries.length === 0 ? (

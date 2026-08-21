@@ -825,16 +825,41 @@ def get_fpl_league_entries(leagueId: int, username: str = Depends(require_admin)
         raise HTTPException(status_code=502, detail=f"FPL API returned status {resp.status_code}")
 
     data = resp.json()
+    league_entries = data.get("league_entries", [])
+
+    # Draft pick order comes from the draft's round-1 choices (permanent history, keyed by
+    # each entry's `entry_id`), not from `waiver_pick` on league_entries — that field is a
+    # live waiver-priority snapshot that drifts away from draft order as the season progresses.
+    draft_pick_by_entry_id: dict[int, int] = {}
+    if data.get("league", {}).get("draft_status") == "post":
+        try:
+            choices_resp = requests.get(f"https://draft.premierleague.com/api/draft/{leagueId}/choices", timeout=15)
+        except requests.RequestException:
+            choices_resp = None
+        if choices_resp is not None and choices_resp.status_code == 200:
+            round_one = [c for c in choices_resp.json().get("choices", []) if c.get("round") == 1]
+            picks_by_entry_id = {c["entry"]: c["pick"] for c in round_one}
+            # Vacant league slots (never joined by a manager) have entry_id None and never
+            # appear in the draft choices — exclude them so one empty slot doesn't blank out
+            # every real team's draft pick.
+            entry_ids = {entry.get("entry_id") for entry in league_entries if entry.get("entry_id") is not None}
+            if entry_ids and entry_ids.issubset(picks_by_entry_id.keys()):
+                draft_pick_by_entry_id = picks_by_entry_id
+
     entries = []
-    for entry in data.get("league_entries", []):
+    for entry in league_entries:
         team_name = (
             entry.get("entry_name")
             or " ".join(filter(None, [entry.get("player_first_name"), entry.get("player_last_name")]))
             or f"Entry {entry.get('id')}"
         )
-        entries.append({"entryId": entry.get("id"), "teamName": team_name, "draftPick": entry.get("waiver_pick")})
+        entries.append({
+            "entryId": entry.get("id"),
+            "teamName": team_name,
+            "draftPick": draft_pick_by_entry_id.get(entry.get("entry_id")),
+        })
 
-    return {"entries": entries}
+    return {"entries": entries, "draftPickAvailable": bool(draft_pick_by_entry_id)}
 
 
 @app.get("/api/bluebaycup/admin/season")
