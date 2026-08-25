@@ -586,10 +586,6 @@ def get_season_stats(body: SeasonStatsBody):
                     }
                 )
                 continue
-            gw_stats = [s for s in all_stats if s["gameweek"] == gw]
-            sorted_gw = sorted(gw_stats, key=lambda s: -s["total_points"])
-            rank = next(i for i, s in enumerate(sorted_gw) if s["team_id"] == team["team_id"]) + 1
-
             opponent_team_id = stat.get("opponent_id")
             opponent_team = teams_by_id.get(opponent_team_id) if opponent_team_id else None
             opponent_player = players_by_id.get(opponent_team["player_id"]) if opponent_team else None
@@ -597,7 +593,7 @@ def get_season_stats(body: SeasonStatsBody):
             gameweek_data.append(
                 {
                     "gameweek": gw,
-                    "rank": rank,
+                    "rank": stat["rank"],
                     "totalPoints": stat["total_points"],
                     "pointsFor": stat["points_for"],
                     "pointsAgainst": stat["points_against"],

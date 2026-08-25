@@ -36,7 +36,7 @@ export default function TeamGameweekBreakdown({ playersData }: TeamGameweekBreak
       </div>
       {selected && (
         <ClusteredColumnChart
-          data={selected.gameweeks.map(g => ({
+          data={selected.gameweeks.filter(g => g.gameweek > 0).map(g => ({
             gameweek: g.gameweek,
             pointsFor: g.pointsFor,
             pointsAgainst: g.pointsAgainst,
