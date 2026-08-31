@@ -518,6 +518,11 @@ def get_season_stats(body: SeasonStatsBody):
     for team_id, stats in stats_by_team.items():
         per_gw_data[team_id] = {}
         for i, stat in enumerate(stats):
+            if stat["gameweek"] == 0:
+                # Synthetic all-zero baseline row seeded at season creation, not a
+                # real gameweek — every team ties at 0 here, which would otherwise
+                # count as an unmet "expected" point for everyone.
+                continue
             prev = stats[i - 1] if i > 0 else None
             per_gw_data[team_id][stat["gameweek"]] = {
                 "fplScore": stat["points_for"] - prev["points_for"] if prev else stat["points_for"],
