@@ -1,0 +1,33 @@
+name: FPL historical odds backfill
+
+# Manual only. Must be run after "FPL historical backfill" -- this script
+# resolves each match's gw by looking it up in the already-backfilled
+# fpl.raw_gameweek_stats.
+on:
+  workflow_dispatch: {}
+
+concurrency:
+  group: fpl-backfill-historical-odds
+  # Never cancel a run that's already writing to the database.
+  # A second trigger queues behind it instead.
+  cancel-in-progress: false
+
+jobs:
+  backfill:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version-file: '.python-version'
+          enable-cache: true
+
+      - name: Run historical odds backfill
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: uv run pipeline/backfill_historical_odds.py

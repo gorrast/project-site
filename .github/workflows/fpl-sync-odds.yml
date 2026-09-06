@@ -1,0 +1,35 @@
+name: FPL odds sync
+
+on:
+  schedule:
+    # Weekly, Mondays at 08:00 UTC -- odds firm up close to kickoff, no need
+    # to poll more often for a weekly decision cycle.
+    - cron: '0 8 * * 1'
+  workflow_dispatch: {}
+
+concurrency:
+  group: fpl-sync-odds
+  # Never cancel a run that's already writing to the database.
+  # A second trigger queues behind it instead.
+  cancel-in-progress: false
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version-file: '.python-version'
+          enable-cache: true
+
+      - name: Run odds sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: uv run pipeline/sync_odds.py
