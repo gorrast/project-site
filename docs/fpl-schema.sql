@@ -1,7 +1,12 @@
--- FPL project schema — full rebuild
--- Safe to run as-is only if fpl.* currently holds no real data (true as of
--- this point: no pipeline has run yet). If ever unsure, check row counts
--- before dropping.
+-- FPL project schema — reference / target structure
+--
+-- ⚠️ DO NOT run this file wholesale anymore. fpl.raw_gameweek_stats,
+-- fpl.players, and fpl.fixture_odds now hold real backfilled data —
+-- the `drop schema cascade` below would destroy it. This file exists
+-- as a reference for the intended full structure (and for standing up
+-- a fresh/test environment from scratch), not as a script to re-run
+-- against the live project. For incremental changes, write a targeted
+-- `alter table` instead and apply it directly.
 
 drop schema if exists fpl cascade;
 create schema fpl;
@@ -95,6 +100,8 @@ create table fpl.features (
   fixture bigint not null,
   position text not null,              -- from raw_gameweek_stats, not players
   fixtures_this_gw int,                -- 1 normally, 2 on a double gameweek — a rotation-risk signal, not a grain fix
+  gameweeks_ahead int,                  -- 0 for played fixtures (historical or already-happened); 1..N for forward predict-rows, where 1 = the very next gameweek
+                                        -- (added after initial backfill via: alter table fpl.features add column gameweeks_ahead int;)
   was_home boolean,
   opponent_team text,
   team_win_prob numeric,
