@@ -1,0 +1,50 @@
+name: FPL scheduled update
+
+# Consolidated into one workflow (rather than independently-scheduled ones)
+# because compute_features.py depends on both sync steps' output being fresh
+# in the same run -- separate cron schedules can't guarantee that ordering.
+on:
+  schedule:
+    # Daily at 07:00 UTC (offset an hour from the BlueBayCup update to avoid runner
+    # contention). Also serves as the Supabase keep-alive ping regardless of matchday.
+    - cron: '0 7 * * *'
+  workflow_dispatch: {}
+
+concurrency:
+  group: fpl-scheduled-update
+  # Never cancel a run that's already writing to the database.
+  # A second trigger queues behind it instead.
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install uv
+        uses: astral-sh/setup-uv@v6
+        with:
+          python-version-file: '.python-version'
+          enable-cache: true
+
+      - name: Run current-season sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: uv run pipeline/sync_current_season.py
+
+      - name: Run odds sync
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+          ODDS_API_KEY: ${{ secrets.ODDS_API_KEY }}
+        run: uv run pipeline/sync_odds.py
+
+      - name: Compute features
+        env:
+          NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
+          SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
+        run: uv run pipeline/compute_features.py
