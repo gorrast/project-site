@@ -74,24 +74,35 @@ def extract_stats(stats: dict) -> dict:
     return out
 
 
-def sync_players(bootstrap: dict) -> tuple[dict[int, int], dict[int, str], dict[int, str]]:
+def sync_players(
+    bootstrap: dict,
+) -> tuple[dict[int, int], dict[int, str], dict[int, str], dict[int, int]]:
     """Upserts fpl.players from bootstrap-static and returns
-    (team_id_by_player, position_by_player, team_name_by_id)."""
+    (team_id_by_player, position_by_player, team_name_by_id, code_by_player).
+
+    team_by_player/position_by_player stay keyed by the live per-season element
+    id (bootstrap's "id") since they're used for in-run lookups against
+    live["elements"] and fixture data, which are element-id-keyed. code_by_player
+    resolves that same element id to FPL's cross-season-stable `code` -- the
+    only value actually persisted as player_id, since element ids get
+    reassigned every season."""
     teams_by_id = {t["id"]: t["name"] for t in bootstrap["teams"]}
     positions_by_id = {p["id"]: p["singular_name_short"] for p in bootstrap["element_types"]}
 
     player_rows = []
     team_by_player: dict[int, int] = {}
     position_by_player: dict[int, str] = {}
+    code_by_player: dict[int, int] = {}
     for element in bootstrap["elements"]:
-        player_id = element["id"]
+        element_id = element["id"]
         team_id = element["team"]
         position = positions_by_id.get(element["element_type"])
-        team_by_player[player_id] = team_id
-        position_by_player[player_id] = position
+        team_by_player[element_id] = team_id
+        position_by_player[element_id] = position
+        code_by_player[element_id] = element["code"]
         player_rows.append(
             {
-                "id": player_id,
+                "code": element["code"],
                 "name": f"{element['first_name']} {element['second_name']}".strip(),
                 "current_team": teams_by_id.get(team_id),
                 "current_position": position,
@@ -99,7 +110,7 @@ def sync_players(bootstrap: dict) -> tuple[dict[int, int], dict[int, str], dict[
         )
 
     upsert_in_batches(admin_client(), "players", player_rows)
-    return team_by_player, position_by_player, teams_by_id
+    return team_by_player, position_by_player, teams_by_id, code_by_player
 
 
 def fetch_fixtures(gw: int) -> list[dict]:
@@ -121,6 +132,7 @@ def single_fixture_rows(
     team_by_player: dict[int, int],
     position_by_player: dict[int, str],
     teams_by_id: dict[int, str],
+    code_by_player: dict[int, int],
     gw: int,
 ) -> list[dict]:
     team_single_fixture = {}
@@ -132,8 +144,8 @@ def single_fixture_rows(
 
     rows = []
     for element in live["elements"]:
-        player_id = element["id"]
-        team_id = team_by_player.get(player_id)
+        element_id = element["id"]
+        team_id = team_by_player.get(element_id)
         if team_id is None or team_id in double_teams:
             continue
 
@@ -147,12 +159,12 @@ def single_fixture_rows(
 
         rows.append(
             {
-                "player_id": player_id,
+                "player_id": code_by_player.get(element_id),
                 "season": CURRENT_SEASON,
                 "gw": gw,
                 "fixture": fixture["id"],
                 "team": teams_by_id.get(team_id),
-                "position": position_by_player.get(player_id),
+                "position": position_by_player.get(element_id),
                 "opponent_team": teams_by_id.get(opponent_id),
                 "was_home": was_home,
                 **extract_stats(element["stats"]),
@@ -166,14 +178,16 @@ def double_fixture_rows(
     team_by_player: dict[int, int],
     position_by_player: dict[int, str],
     teams_by_id: dict[int, str],
+    code_by_player: dict[int, int],
     gw: int,
 ) -> list[dict]:
-    player_ids = [pid for pid, team_id in team_by_player.items() if team_id in double_teams]
+    element_ids = [eid for eid, team_id in team_by_player.items() if team_id in double_teams]
 
     rows = []
-    for player_id in player_ids:
-        summary = get_json(ELEMENT_SUMMARY_URL.format(player_id=player_id))
-        team_id = team_by_player.get(player_id)
+    for element_id in element_ids:
+        # This endpoint is keyed by the live per-season element id, not code.
+        summary = get_json(ELEMENT_SUMMARY_URL.format(player_id=element_id))
+        team_id = team_by_player.get(element_id)
         for entry in summary.get("history", []):
             if entry.get("round") != gw:
                 continue
@@ -181,12 +195,12 @@ def double_fixture_rows(
             opponent_id = entry.get("opponent_team")
             rows.append(
                 {
-                    "player_id": player_id,
+                    "player_id": code_by_player.get(element_id),
                     "season": CURRENT_SEASON,
                     "gw": gw,
                     "fixture": entry["fixture"],
                     "team": teams_by_id.get(team_id),
-                    "position": position_by_player.get(player_id),
+                    "position": position_by_player.get(element_id),
                     "opponent_team": teams_by_id.get(opponent_id) if opponent_id is not None else None,
                     "was_home": was_home,
                     **extract_stats(entry),
@@ -200,15 +214,18 @@ def build_stat_rows(
     team_by_player: dict[int, int],
     position_by_player: dict[int, str],
     teams_by_id: dict[int, str],
+    code_by_player: dict[int, int],
 ) -> list[dict]:
     fixtures = fetch_fixtures(gw)
     double_teams = double_gw_team_ids(fixtures)
     live = get_json(LIVE_URL.format(gw=gw))
 
-    rows = single_fixture_rows(live, fixtures, double_teams, team_by_player, position_by_player, teams_by_id, gw)
+    rows = single_fixture_rows(
+        live, fixtures, double_teams, team_by_player, position_by_player, teams_by_id, code_by_player, gw
+    )
     if double_teams:
         log.info("GW%d: double gameweek for team ids %s", gw, sorted(double_teams))
-        rows += double_fixture_rows(double_teams, team_by_player, position_by_player, teams_by_id, gw)
+        rows += double_fixture_rows(double_teams, team_by_player, position_by_player, teams_by_id, code_by_player, gw)
 
     return rows
 
@@ -217,14 +234,14 @@ if __name__ == "__main__":
     log.info("Starting current-season sync for %s", CURRENT_SEASON)
 
     bootstrap = get_json(BOOTSTRAP_URL)
-    team_by_player, position_by_player, teams_by_id = sync_players(bootstrap)
+    team_by_player, position_by_player, teams_by_id, code_by_player = sync_players(bootstrap)
 
     finished_gws = [e["id"] for e in bootstrap["events"] if e.get("finished") and e.get("data_checked")]
     log.info("Finished gameweeks so far this season: %s", finished_gws)
 
     total_rows = 0
     for gw in finished_gws:
-        rows = build_stat_rows(gw, team_by_player, position_by_player, teams_by_id)
+        rows = build_stat_rows(gw, team_by_player, position_by_player, teams_by_id, code_by_player)
         upsert_in_batches(admin_client(), "raw_gameweek_stats", rows)
         total_rows += len(rows)
         log.info("GW%d: upserted %d fixture rows", gw, len(rows))

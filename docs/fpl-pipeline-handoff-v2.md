@@ -2,6 +2,27 @@
 
 This supersedes the original ingestion handoff. Attach `fpl-schema.sql` (already applied to Supabase — the definitive source of truth for table structure, don't re-derive shapes from this doc) and the existing `/pipeline` directory when starting this task. **Revise the existing scripts in place** where the underlying logic still applies (CSV parsing, upsert patterns, Supabase auth setup) — don't discard working code just because the schema moved.
 
+## Critical bugfix: player identity is broken across seasons — fix this before anything else
+
+A real data-corruption bug was found by inspecting live Supabase data: `fpl.players` was keyed on FPL's per-season `id`/`element` field, which gets **reassigned every season**. Confirmed directly against the source data: element id `1` is Folarin Balogun in 2023-24, Fábio Vieira in 2024-25, and David Raya in 2025-26. Three different real players' historical stats are currently stacked under one identity in `raw_gameweek_stats`, and `fpl.players` only reflects whichever backfill or sync happened to run most recently.
+
+**Do not fix this with name matching.** Names aren't reliably stable either — in this same data, David Raya's own `second_name` is stored as `"Raya Martin"` in one season's file and `"Raya Martín"` in another. Name matching would fail on exactly the case it's meant to solve, and unlike an ID collision, a bad name match doesn't error — it silently merges two different people.
+
+**The fix: use FPL's own `code` field**, confirmed stable across seasons for the same real player — David Raya is `id=113`/`code=154561` in 2023-24 and `id=1`/`code=154561` in 2025-26, same code both times. `fpl.players` is now keyed on `code`, not `id` (already updated in `fpl-schema.sql`).
+
+**Run this before re-running any backfill:**
+
+```sql
+alter table fpl.players rename column id to code;
+truncate table fpl.players cascade; -- wipes players + everything FK'd to it (raw_gameweek_stats, features, predictions). fixture_odds is untouched — it has no player reference.
+```
+
+**Fix for `backfill_historical.py`**: `merged_gw.csv` only has the per-season `element` column, not `code`. For each season, also fetch that season's `players_raw.csv` (`.../data/{season}/players_raw.csv`, same repo), which has both `id` (matches `merged_gw.csv`'s `element` for that season) and `code`. Join on `element == id` within each season to resolve `code`, and write `code` — never the raw `element` value — as the key for both `fpl.players` and `raw_gameweek_stats.player_id`.
+
+**Fix for `sync_current_season.py`**: this script shows no symptoms yet, because the corruption only appears *across* seasons and this script has only ever run within one — but the underlying bug is identical. `bootstrap-static`'s `elements[]` already includes `code` directly (no extra fetch needed), so switch to writing `elements[].code` instead of `elements[].id`. Fix this now, not after the fact — otherwise the same corruption reappears the moment this season's `id` values get reassigned next August.
+
+Re-run `backfill_historical.py` once fixed; `sync_current_season.py` self-corrects on its next scheduled run.
+
 ## What changed since the original handoff, and why
 
 - `raw_gameweek_stats`'s primary key moved from `(player_id, season, gw)` to `(player_id, season, fixture)`. A team can play twice in one FPL gameweek (a "double gameweek") — the old key collides when that happens.

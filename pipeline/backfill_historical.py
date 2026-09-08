@@ -80,12 +80,31 @@ def fetch_teams_map(season: str) -> dict[int, str]:
     return dict(zip(teams_df["id"], teams_df["name"]))
 
 
-def build_player_rows(df: pd.DataFrame) -> list[dict]:
+def fetch_code_by_element_id(season: str) -> dict[int, int]:
+    """merged_gw.csv's `element` column is that season's FPL id, which gets
+    reassigned every season -- not a stable player identity. players_raw.csv
+    (same repo) has both that season's `id` (== merged_gw's `element`) and
+    `code`, FPL's actual cross-season-stable identifier. This resolves one to
+    the other so nothing downstream ever persists the raw `element` value."""
+    url = f"https://raw.githubusercontent.com/vaastav/Fantasy-Premier-League/master/data/{season}/players_raw.csv"
+    try:
+        players_raw_df = pd.read_csv(url, encoding="utf-8-sig")
+    except Exception as e:
+        log.error("Failed to fetch/parse players_raw.csv for season %s: %s", season, e)
+        sys.exit(1)
+    return dict(zip(players_raw_df["id"], players_raw_df["code"]))
+
+
+def build_player_rows(df: pd.DataFrame, code_by_element_id: dict[int, int]) -> list[dict]:
     players: dict[int, dict] = {}
     for _, row in df.iterrows():
-        player_id = int(row["element"])
-        players[player_id] = {
-            "id": player_id,
+        element_id = int(row["element"])
+        code = code_by_element_id.get(element_id)
+        if code is None:
+            log.warning("element %s has no code in this season's players_raw.csv -- skipping", element_id)
+            continue
+        players[code] = {
+            "code": int(code),
             "name": clean_value(row.get("name")),
             "current_team": clean_value(row.get("team")),
             "current_position": clean_value(row.get("position")),
@@ -93,7 +112,9 @@ def build_player_rows(df: pd.DataFrame) -> list[dict]:
     return list(players.values())
 
 
-def build_stat_rows(df: pd.DataFrame, season: str, teams_map: dict[int, str]) -> list[dict]:
+def build_stat_rows(
+    df: pd.DataFrame, season: str, teams_map: dict[int, str], code_by_element_id: dict[int, int]
+) -> list[dict]:
     # Each CSV row already represents one fixture (the `fixture` column), so this
     # is a direct per-row mapping onto the (player_id, season, fixture) grain --
     # no aggregation needed. The source file occasionally contains exact
@@ -105,8 +126,14 @@ def build_stat_rows(df: pd.DataFrame, season: str, teams_map: dict[int, str]) ->
 
     rows = []
     for _, row in df.iterrows():
+        element_id = int(row["element"])
+        code = code_by_element_id.get(element_id)
+        if code is None:
+            log.warning("element %s has no code in this season's players_raw.csv -- skipping fixture %s", element_id, row["fixture"])
+            continue
+
         stat_row = {
-            "player_id": int(row["element"]),
+            "player_id": int(code),
             "season": season,
             "gw": int(row["GW"]),
             "fixture": int(row["fixture"]),
@@ -128,11 +155,12 @@ def build_stat_rows(df: pd.DataFrame, season: str, teams_map: dict[int, str]) ->
 def process_season(season: str) -> int:
     df = fetch_season_df(season)
     teams_map = fetch_teams_map(season)
+    code_by_element_id = fetch_code_by_element_id(season)
 
-    player_rows = build_player_rows(df)
+    player_rows = build_player_rows(df, code_by_element_id)
     upsert_in_batches(admin_client(), "players", player_rows)
 
-    stat_rows = build_stat_rows(df, season, teams_map)
+    stat_rows = build_stat_rows(df, season, teams_map, code_by_element_id)
     upsert_in_batches(admin_client(), "raw_gameweek_stats", stat_rows)
 
     return len(stat_rows)

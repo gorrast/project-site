@@ -18,7 +18,16 @@ create schema fpl;
 -- join historical rows against these.
 -- ============================================================
 create table fpl.players (
-  id bigint primary key,               -- FPL 'element' id
+  code bigint primary key,             -- FPL's cross-season-stable player identifier.
+                                        -- NOT bootstrap-static's per-season "id"/"element" —
+                                        -- that gets REASSIGNED every season (confirmed: id=1
+                                        -- was Balogun in 2023-24, Vieira in 2024-25, Raya in
+                                        -- 2025-26). Using "id" here caused three real players'
+                                        -- historical stats to be stacked under one identity.
+                                        -- `code` is present in bootstrap-static's elements[]
+                                        -- and in each season's players_raw.csv in the archive
+                                        -- (merged_gw.csv does not carry it — join on that
+                                        -- season's element/id to players_raw.csv to resolve it).
   name text not null,
   current_team text not null,
   current_position text not null
@@ -33,7 +42,7 @@ create table fpl.players (
 -- predate ~2025-26) are null by design; LightGBM handles this natively.
 -- ============================================================
 create table fpl.raw_gameweek_stats (
-  player_id bigint references fpl.players(id),
+  player_id bigint references fpl.players(code),
   season text not null,
   gw int not null,                     -- which gameweek this fixture belongs to (not unique alone)
   fixture bigint not null,             -- unique match id within a season; the true grain of this table
@@ -94,7 +103,7 @@ create table fpl.fixture_odds (
 -- that's the row to feed to model.predict().
 -- ============================================================
 create table fpl.features (
-  player_id bigint references fpl.players(id),
+  player_id bigint references fpl.players(code),
   season text not null,
   gw int not null,
   fixture bigint not null,
@@ -134,7 +143,7 @@ create index idx_features_pgw on fpl.features (player_id, season, gw);
 -- rollup the decision layer and frontend actually consume.
 -- ============================================================
 create table fpl.predictions (
-  player_id bigint references fpl.players(id),
+  player_id bigint references fpl.players(code),
   season text not null,
   gw int not null,
   fixture bigint not null,

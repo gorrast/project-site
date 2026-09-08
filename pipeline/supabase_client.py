@@ -43,3 +43,28 @@ def admin_client() -> Client:
 def upsert_in_batches(client: Client, table: str, rows: list[dict], batch_size: int = 500) -> None:
     for i in range(0, len(rows), batch_size):
         client.schema("fpl").table(table).upsert(rows[i : i + batch_size]).execute()
+
+
+def fetch_all_rows(
+    client: Client,
+    table: str,
+    select: str = "*",
+    filters: list[tuple[str, object]] | None = None,
+    page_size: int = 1000,
+) -> list[dict]:
+    """Pages through an entire fpl.<table> select, since Supabase caps rows per request.
+
+    `filters` is a list of (column, value) pairs applied as `.eq(column, value)`.
+    """
+    rows: list[dict] = []
+    offset = 0
+    while True:
+        query = client.schema("fpl").table(table).select(select)
+        for column, value in filters or []:
+            query = query.eq(column, value)
+        resp = query.range(offset, offset + page_size - 1).execute()
+        rows.extend(resp.data)
+        if len(resp.data) < page_size:
+            break
+        offset += page_size
+    return rows
