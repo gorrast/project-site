@@ -42,6 +42,13 @@ const projects: Project[] = [
       />
     ), */
   },
+  {
+    title: 'FPL Points Predictions',
+    description:
+      'Model-predicted Fantasy Premier League points, with a live Draft league roster viewer and optimized starting XI.',
+    href: '/fpl-pred',
+    tags: ['Machine Learning', 'Fantasy Football'],
+  },
 ]
 
 export default function HomePage() {
