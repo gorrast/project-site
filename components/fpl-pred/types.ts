@@ -34,7 +34,7 @@ export interface ScheduleEntry {
 
 export interface LeagueResponse {
   league_id: number
-  current_gw: number
+  upcoming_gw: number
   teams: LeagueTeam[]
   schedule: ScheduleEntry[]
 }

@@ -62,6 +62,13 @@ def normalize_position(position: str) -> str:
     return "GKP" if position == "GK" else position
 
 
+# The only positions Draft FPL squads are built from. fpl.players/fpl.features
+# also carry real-life managers ("AM" — FPL's Assistant Manager feature,
+# Classic-only) since they share the same underlying player database; those
+# must never surface in a Draft-facing route.
+VALID_POSITIONS = {"GKP", "DEF", "MID", "FWD"}
+
+
 # ---------------------------------------------------------------------------
 # Predictions
 # ---------------------------------------------------------------------------
@@ -113,6 +120,8 @@ def fetch_predictions_for_codes(client: Client, codes: Optional[list] = None) ->
     result = {}
     for code, feats in features_by_player.items():
         position = normalize_position(feats[0]["position"])
+        if position not in VALID_POSITIONS:
+            continue  # e.g. "AM" (real-life managers) — not a Draft-eligible position
         chance_of_playing = next((f["chance_of_playing"] for f in feats if f["chance_of_playing"] is not None), None)
 
         # Sum across fixtures so a double gameweek is handled correctly (mirrors
@@ -267,7 +276,12 @@ def get_team(team_id: int):
 def get_league(league_id: int):
     details = draft_get(f"league/{league_id}/details", not_found_detail=f"League {league_id} not found")
     bootstrap = fetch_bootstrap()
-    current_gw = bootstrap["events"]["current"]
+    # The opponent shown alongside a roster should be for the upcoming
+    # matchup, not the one already played — bootstrap's "current" event can
+    # itself already be finished (see most_recent_completed_gw), so "current"
+    # is the wrong thing to key the schedule off of. Rosters (get_team) are
+    # deliberately one gw behind this, per the accepted staleness trade-off.
+    upcoming_gw = most_recent_completed_gw(bootstrap) + 1
 
     league_entries = details.get("league_entries", [])
     # `matches` keys teams by an internal league_entry id, distinct from the
@@ -285,7 +299,7 @@ def get_league(league_id: int):
 
     schedule = []
     for m in details.get("matches", []):
-        if m.get("event") != current_gw:
+        if m.get("event") != upcoming_gw:
             continue
         team_a = entry_id_by_league_entry.get(m.get("league_entry_1"))
         team_b = entry_id_by_league_entry.get(m.get("league_entry_2"))
@@ -295,7 +309,7 @@ def get_league(league_id: int):
         schedule.append({"team_id": team_a, "opponent_team_id": team_b, "finished": finished})
         schedule.append({"team_id": team_b, "opponent_team_id": team_a, "finished": finished})
 
-    return {"league_id": league_id, "current_gw": current_gw, "teams": teams, "schedule": schedule}
+    return {"league_id": league_id, "upcoming_gw": upcoming_gw, "teams": teams, "schedule": schedule}
 
 
 @router.get("/league/{league_id}/availability")
