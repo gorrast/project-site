@@ -2,7 +2,6 @@ import base64
 import hashlib
 import hmac
 import json
-import os
 import secrets
 import time
 from typing import List, Literal, Optional
@@ -11,7 +10,8 @@ import requests
 from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
-from supabase import Client, create_client
+
+from .clients import admin_client, anon_client
 
 app = FastAPI()
 
@@ -27,34 +27,6 @@ async def http_exception_handler(request: Request, exc: HTTPException):
 @app.exception_handler(Exception)
 async def unhandled_exception_handler(request: Request, exc: Exception):
     return JSONResponse(status_code=500, content={"error": "Internal server error"})
-
-
-# ---------------------------------------------------------------------------
-# Supabase clients
-# ---------------------------------------------------------------------------
-
-_anon_client: Optional[Client] = None
-_admin_client: Optional[Client] = None
-
-
-def anon_client() -> Client:
-    global _anon_client
-    if _anon_client is None:
-        _anon_client = create_client(
-            os.environ["NEXT_PUBLIC_SUPABASE_URL"],
-            os.environ["NEXT_PUBLIC_SUPABASE_ANON_KEY"],
-        )
-    return _anon_client
-
-
-def admin_client() -> Client:
-    global _admin_client
-    if _admin_client is None:
-        _admin_client = create_client(
-            os.environ["NEXT_PUBLIC_SUPABASE_URL"],
-            os.environ["SUPABASE_SERVICE_ROLE_KEY"],
-        )
-    return _admin_client
 
 
 # ---------------------------------------------------------------------------
@@ -1177,3 +1149,15 @@ def update_team(team_id: int, body: TeamUpdateBody, username: str = Depends(requ
         raise HTTPException(status_code=500, detail="Failed to update team")
 
     return {"success": True}
+
+
+# ---------------------------------------------------------------------------
+# FPL Points Predictions routes (imported last: api/__init__.py imports
+# admin_client/anon_client from this module, and .fpl importing the api
+# package back would otherwise see a partially-initialized module if this
+# import ran before those names existed)
+# ---------------------------------------------------------------------------
+
+from .fpl import router as fpl_router  # noqa: E402
+
+app.include_router(fpl_router)
