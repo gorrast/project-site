@@ -45,6 +45,20 @@ def code_by_element(bootstrap: dict) -> dict:
     return {el["id"]: el["code"] for el in bootstrap["elements"]}
 
 
+def team_code_by_name(bootstrap: dict) -> dict:
+    """Maps a PL club's display name (as stored in fpl.players.current_team)
+    to FPL's per-club `code`, used to build shirt image URLs — e.g.
+    https://fantasy.premierleague.com/dist/img/shirts/standard/shirt_{code}-66.png
+    (or shirt_{code}_1-66.png for the goalkeeper kit). Draft's bootstrap-static
+    carries the same team code/name pairs as Classic's, so no extra host is
+    needed for this."""
+    return {t["name"]: t["code"] for t in bootstrap["teams"]}
+
+
+def team_short_name_by_name(bootstrap: dict) -> dict:
+    return {t["name"]: t["short_name"] for t in bootstrap["teams"]}
+
+
 def most_recent_completed_gw(bootstrap: dict) -> int:
     """The current Draft gameweek can itself already be finished (events.current
     is not always the right "next" gw) — so this is the max finished event id,
@@ -75,12 +89,12 @@ VALID_POSITIONS = {"GKP", "DEF", "MID", "FWD"}
 
 
 def fetch_predictions_for_codes(client: Client, codes: Optional[list] = None) -> dict:
-    """Returns {code: {position, xpts_mean, adjusted_xpts, chance_of_playing}}
-    for players with a gameweeks_ahead=1 fpl.features row this season. Codes
-    with no such row are simply absent from the result (not an error) — right
-    now that's every code, since the pipeline hasn't produced ahead=1 rows
-    yet for this season; callers must treat an empty result as "predictions
-    not available" rather than "no players".
+    """Returns {code: {position, xpts_mean, adjusted_xpts, chance_of_playing,
+    opponent_team, was_home}} for players with a gameweeks_ahead=1 fpl.features
+    row this season. Codes with no such row are simply absent from the result
+    (not an error) — right now that's every code, since the pipeline hasn't
+    produced ahead=1 rows yet for this season; callers must treat an empty
+    result as "predictions not available" rather than "no players".
 
     Pass codes=None to fetch every player with an ahead=1 row (used by the
     players browser); pass an explicit list to scope to a roster (used by
@@ -92,7 +106,7 @@ def fetch_predictions_for_codes(client: Client, codes: Optional[list] = None) ->
     features_query = (
         client.schema("fpl")
         .table("features")
-        .select("player_id, fixture, position, chance_of_playing")
+        .select("player_id, fixture, position, chance_of_playing, opponent_team, was_home")
         .eq("season", CURRENT_SEASON)
         .eq("gameweeks_ahead", 1)
     )
@@ -140,11 +154,16 @@ def fetch_predictions_for_codes(client: Client, codes: Optional[list] = None) ->
             if xpts_mean is not None and chance_of_playing is not None
             else xpts_mean
         )
+        # Double gameweeks would have two fixtures/opponents — take the first
+        # for display purposes, same simplification already used for position
+        # and chance_of_playing above.
         result[code] = {
             "position": position,
             "xpts_mean": xpts_mean,
             "adjusted_xpts": adjusted_xpts,
             "chance_of_playing": chance_of_playing,
+            "opponent_team": feats[0]["opponent_team"],
+            "was_home": feats[0]["was_home"],
         }
     return result
 
@@ -206,6 +225,8 @@ def get_team(team_id: int):
     bootstrap = fetch_bootstrap()
     gw = most_recent_completed_gw(bootstrap)
     code_map = code_by_element(bootstrap)
+    team_codes = team_code_by_name(bootstrap)
+    team_short_names = team_short_name_by_name(bootstrap)
 
     picks_data = draft_get(
         f"entry/{team_id}/event/{gw}",
@@ -245,15 +266,20 @@ def get_team(team_id: int):
         # recent transfer the pipeline hasn't ingested) — the optimizer still
         # needs a position to slot them into.
         position = pred["position"] if pred else normalize_position(player_row.get("current_position") or "MID")
+        team_name = player_row.get("current_team", "")
         roster.append(
             {
                 "code": code,
                 "name": player_row.get("name", f"Player {code}"),
-                "team": player_row.get("current_team", ""),
+                "team": team_name,
+                "team_code": team_codes.get(team_name),
                 "position": position,
                 "xpts_mean": pred["xpts_mean"] if pred else None,
                 "adjusted_xpts": pred["adjusted_xpts"] if pred else None,
                 "chance_of_playing": pred["chance_of_playing"] if pred else None,
+                "opponent_team": pred["opponent_team"] if pred else None,
+                "opponent_team_short": team_short_names.get(pred["opponent_team"]) if pred else None,
+                "was_home": pred["was_home"] if pred else None,
             }
         )
 
@@ -339,7 +365,13 @@ def get_players(league_id: int = Query(...)):
 
     codes = list(predictions_by_code.keys())
     players_rows = (
-        client.schema("fpl").table("players").select("code, name, current_team").in_("code", codes).execute().data
+        client.schema("fpl")
+        .table("players")
+        .select("code, name, current_team")
+        .eq("currently_in_epl", True)
+        .in_("code", codes)
+        .execute()
+        .data
     )
     players_by_code = {p["code"]: p for p in players_rows}
 
@@ -348,7 +380,12 @@ def get_players(league_id: int = Query(...)):
 
     players = []
     for code, pred in predictions_by_code.items():
-        player_row = players_by_code.get(code, {})
+        player_row = players_by_code.get(code)
+        if player_row is None:
+            # Not currently in the Premier League (e.g. a departed player the
+            # pipeline hasn't purged yet) — defense in depth, on top of
+            # compute_features.py no longer generating rows for these at all.
+            continue
         players.append(
             {
                 "code": code,

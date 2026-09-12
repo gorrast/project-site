@@ -155,9 +155,34 @@ if __name__ == "__main__":
     players = fetch_all_rows(client, "players")
     form_snapshot = latest_form_snapshot(df)
 
+    # fpl.players accumulates every player ever synced, including ones who've
+    # since left the Premier League entirely -- their current_team just stays
+    # frozen at wherever they were last seen, which can still be a real PL
+    # club (e.g. a transfer to a non-PL club leaves current_team pointing at
+    # their old, still-active club). bootstrap-static's current elements list
+    # is the only reliable "still in the league" signal, so filter against it
+    # directly here rather than trusting fpl.players.current_team.
+    current_codes = {e["code"] for e in bootstrap["elements"]}
+    active_players = [p for p in players if p["code"] in current_codes]
+    inactive_codes = [p["code"] for p in players if p["code"] not in current_codes]
+    log.info(
+        "%d of %d fpl.players rows are still in the Premier League (%d excluded from predict-row generation)",
+        len(active_players), len(players), len(inactive_codes),
+    )
+
+    if inactive_codes:
+        # Upsert alone never deletes -- a player who left the league keeps
+        # generating fresh predict-rows forever unless already-generated ones
+        # for them are explicitly purged. Safe to run every time: once a
+        # player's rows are gone, this is a no-op for them from then on.
+        client.schema("fpl").table("features").delete().eq("season", CURRENT_SEASON).is_(
+            "target_points", "null"
+        ).in_("player_id", inactive_codes).execute()
+        log.info("Purged stale predict-rows for %d players no longer in the Premier League", len(inactive_codes))
+
     if unfinished_gws:
         predict_rows = build_predict_rows(
-            players, unfinished_gws, teams_by_id, name_to_id, chance_of_playing_by_player, form_snapshot, odds_by_key, now
+            active_players, unfinished_gws, teams_by_id, name_to_id, chance_of_playing_by_player, form_snapshot, odds_by_key, now
         )
         upsert_in_batches(client, "features", predict_rows)
         log.info("Part (b): upserted %d predict rows across %d gameweeks", len(predict_rows), len(unfinished_gws))

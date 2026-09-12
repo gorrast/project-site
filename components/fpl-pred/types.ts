@@ -6,10 +6,14 @@ export interface FplPlayer {
   code: number
   name: string
   team: string
+  team_code: number | null
   position: string
   xpts_mean: number | null
   adjusted_xpts: number | null
   chance_of_playing: number | null
+  opponent_team: string | null
+  opponent_team_short: string | null
+  was_home: boolean | null
 }
 
 export interface TeamRosterResponse {

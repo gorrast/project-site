@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
-import TeamPanel from './TeamPanel'
+import Pitch from './Pitch'
 import PlayersTable from './PlayersTable'
 import { DEFAULT_LEAGUE_ID } from '@/lib/fpl/config'
 import type { LeagueResponse, TeamRosterResponse, PlayersResponse } from './types'
@@ -235,14 +235,14 @@ export default function FplPred() {
                 Select your team above to see your starting XI.
               </div>
             ) : (
-              <TeamPanel title="My Team" data={myTeam} loading={myTeamLoading} error={myTeamError} />
-            )}
-            {selectedTeamId !== null && opponentTeamId !== null && (
-              <TeamPanel
-                title={`Opponent — ${opponentName}`}
-                data={opponentTeam}
-                loading={opponentTeamLoading}
-                error={opponentTeamError}
+              <Pitch
+                myTeam={myTeam}
+                myLoading={myTeamLoading}
+                myError={myTeamError}
+                opponentTeam={opponentTeam}
+                opponentLoading={opponentTeamLoading}
+                opponentError={opponentTeamError}
+                opponentName={opponentName}
               />
             )}
           </div>

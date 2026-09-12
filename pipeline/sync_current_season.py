@@ -106,10 +106,25 @@ def sync_players(
                 "name": f"{element['first_name']} {element['second_name']}".strip(),
                 "current_team": teams_by_id.get(team_id),
                 "current_position": position,
+                "currently_in_epl": True,
             }
         )
 
-    upsert_in_batches(admin_client(), "players", player_rows)
+    client = admin_client()
+    upsert_in_batches(client, "players", player_rows)
+
+    # Upsert alone never removes a row's stale state -- a player who's since
+    # left the Premier League entirely (transferred abroad, retired) simply
+    # stops appearing in bootstrap-static, but their old fpl.players row (and
+    # its now-frozen current_team) lingers forever unless explicitly flipped
+    # here. This is the source of truth downstream code should check, not the
+    # team-name heuristic (a transfer to a non-PL club leaves current_team
+    # pointing at a club that's still very much in the league).
+    current_codes = [element["code"] for element in bootstrap["elements"]]
+    client.schema("fpl").table("players").update({"currently_in_epl": False}).not_.in_(
+        "code", current_codes
+    ).execute()
+
     return team_by_player, position_by_player, teams_by_id, code_by_player
 
 
