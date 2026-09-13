@@ -18,9 +18,18 @@ Usage (from the repo root):
 
     --person {Hugo,Benjamin}   required; selects the pnr and sets buyer
     --max-receipts N           default 0 (unlimited); stop after N imported
-    --since YYYY-MM-DD         skip receipts purchased before this date
+    --since YYYY-MM-DD         stop at receipts purchased before this date;
+                                defaults to config.get_import_cutoff_date()
+                                (env var ICA_IMPORT_CUTOFF_DATE) when omitted
     --dry-run                  fetch and parse, print summary, write nothing
     --dump-raw DIR             also write each fetched receipt's raw JSON to DIR
+
+Both --since and its config default assume the receipt list comes back
+newest-first (true in every run observed so far, but not something the
+GraphQL query guarantees) — once a receipt older than the cutoff is hit, the
+scan stops entirely rather than skipping past it, since everything after it
+is expected to be older still. A log line always announces this so it's
+never a silent assumption.
 """
 
 from __future__ import annotations
@@ -133,9 +142,11 @@ def main(argv: list[str] | None = None) -> None:
     args = build_arg_parser().parse_args(argv)
     pnr, buyer = config.get_person_config(args.person)
 
-    since: date | None = None
+    since: date | None
     if args.since:
         since = datetime.strptime(args.since, "%Y-%m-%d").date()
+    else:
+        since = config.get_import_cutoff_date()
 
     client = config.get_client()
     allowed_cards = config.get_ica_card_last4()
@@ -202,8 +213,13 @@ def main(argv: list[str] | None = None) -> None:
 
                 if since and parsed.purchased_at.date() < since:
                     stats["skipped_before_since"] += 1
-                    pbar.set_postfix(_postfix(stats), refresh=False)
-                    continue
+                    log(
+                        f"Receipt {kivra_id} was purchased {parsed.purchased_at.date()}, "
+                        f"before the cutoff {since} — stopping here (assumes the receipt "
+                        "list is newest-first; anything after this point is expected to "
+                        "be older still)."
+                    )
+                    break
 
                 for warning in parsed.warnings:
                     log(f"  [warn] receipt {kivra_id}: {warning}")

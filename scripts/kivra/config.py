@@ -12,6 +12,7 @@ from __future__ import annotations
 
 import os
 import sys
+from datetime import date, datetime
 from pathlib import Path
 
 PROJECT_ROOT = Path(__file__).resolve().parents[2]
@@ -69,3 +70,20 @@ def get_ica_card_last4() -> set[str]:
     """
     raw = os.environ.get("ICA_CARD_LAST4", "")
     return {part.strip() for part in raw.split(",") if part.strip()}
+
+
+def get_import_cutoff_date() -> date | None:
+    """
+    Default floor for --since (cli.py): receipts purchased before this date
+    are never imported, without having to pass --since on every invocation.
+    Reads ICA_IMPORT_CUTOFF_DATE (YYYY-MM-DD); returns None (no cutoff) if
+    unset or blank. An explicit --since on the command line overrides this
+    for that run rather than combining with it.
+    """
+    raw = os.environ.get("ICA_IMPORT_CUTOFF_DATE", "").strip()
+    if not raw:
+        return None
+    try:
+        return datetime.strptime(raw, "%Y-%m-%d").date()
+    except ValueError:
+        sys.exit(f"ICA_IMPORT_CUTOFF_DATE={raw!r} is not a valid YYYY-MM-DD date")
