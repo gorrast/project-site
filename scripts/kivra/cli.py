@@ -6,11 +6,17 @@ this end to end, and docs/ica-kivra-importer-handoff.md for the full spec.
 Every invocation, including --dry-run, authenticates fresh via BankID —
 Kivra has no long-lived session, so there is nothing to cache.
 
-Every ICA-sender receipt is imported regardless of which card paid for it,
-but receipts.excluded is set automatically based on config.get_ica_card_last4()
+Every receipt in the Kivra inbox is imported, regardless of store — there is
+no longer a sender/store filter (deliberate change from the original spec's
+"ICA sender only" design; see the DEPARTURES note in NOTICE.md). Instead,
+receipts.excluded is set automatically based on config.get_ica_card_last4()
 (env var ICA_CARD_LAST4) — a best-effort scan of the receipt's payment
-terminal dump, since Kivra exposes no clean card field. Nothing is silently
-dropped; excluded stays human-editable afterward like any other import.
+terminal dump, since Kivra exposes no clean card field — so whether a
+purchase counts toward the shared account is decided by which card paid for
+it, not which store it was at. Nothing is silently dropped; excluded stays
+human-editable afterward like any other import. Since parse.py was only
+validated against ICA's receipt shape, expect more [warn]/[reconcile] lines
+from other stores until their shapes are seen and confirmed too.
 
 Usage (from the repo root):
 
@@ -62,7 +68,6 @@ def _postfix(stats: dict) -> dict:
     return {
         "imported": stats["imported"],
         "dup": stats["skipped_duplicate"],
-        "other-store": stats["skipped_non_ica"],
         "excluded": stats["excluded"],
     }
 
@@ -154,7 +159,6 @@ def main(argv: list[str] | None = None) -> None:
     stats = {
         "seen": 0,
         "skipped_duplicate": 0,
-        "skipped_non_ica": 0,
         "skipped_before_since": 0,
         "imported": 0,
         "excluded": 0,
@@ -196,11 +200,6 @@ def main(argv: list[str] | None = None) -> None:
                 detail = api_client.graphql_query(
                     "ReceiptDetails", RECEIPT_DETAILS_QUERY, {"key": kivra_id}
                 )
-
-                if parse.get_sender_name(detail) != "ICA":
-                    stats["skipped_non_ica"] += 1
-                    pbar.set_postfix(_postfix(stats), refresh=False)
-                    continue
 
                 if args.dump_raw:
                     args.dump_raw.mkdir(parents=True, exist_ok=True)

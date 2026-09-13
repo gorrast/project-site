@@ -18,9 +18,41 @@ kept to three tables and nothing derived (handoff §13).
 
 from __future__ import annotations
 
-from .parse import ParsedReceipt
+from .parse import ParsedLine, ParsedReceipt
 
 SCHEMA = "ica"
+
+
+def _resolve_consumers(
+    lines: list[ParsedLine], default_consumers: dict[str, str | None], buyer: str
+) -> dict[int, str]:
+    """
+    Resolves each line's consumer, keyed by its local line_no. Every line
+    gets a real value now — never NULL — since the app no longer computes a
+    live fallback chain at read time (see api/ica_tracking.py's
+    `line_consumer()`); `receipt_lines.consumer` is the sole source of truth
+    for a line's consumer from the moment it's written.
+
+    An article line resolves to `products.default_consumer` for its
+    raw_name if one is set, otherwise the receipt's buyer.
+
+    A discount/deposit line (applies_to_line_no set) always inherits its
+    parent product line's *resolved* consumer, rather than an independent
+    lookup against its own raw_name — a discount belongs to whoever the
+    product it discounts belongs to, not to whatever default_consumer
+    happens to be set on that discount's own (often one-off) raw_name.
+    `applies_to_line_no` only ever points to a plain article line (never
+    chains through another discount), so this is a single-level lookup, not
+    recursive.
+    """
+    resolved: dict[int, str] = {}
+    for line in lines:
+        if line.applies_to_line_no is None:
+            resolved[line.line_no] = default_consumers.get(line.raw_name) or buyer
+    for line in lines:
+        if line.applies_to_line_no is not None:
+            resolved[line.line_no] = resolved[line.applies_to_line_no]
+    return resolved
 
 
 def receipt_exists(client, kivra_id: str) -> bool:
@@ -71,8 +103,12 @@ def import_receipt(client, parsed: ParsedReceipt, buyer: str, *, excluded: bool 
       — and is never touched again by a later import of the same receipt
       (receipts are only ever inserted once; see handoff §7.2). It stays
       human-editable afterward in Supabase like any other `excluded` value.
-    - Freezes `consumer` on each line from `products.default_consumer` at
-      import time only (handoff §7.5); NULL stays NULL (unreviewed).
+    - Freezes `consumer` on each article line from `products.default_consumer`
+      at import time, falling back to `buyer` when no default is set yet —
+      every line gets a real value, never NULL (handoff §7.5, as amended: see
+      scripts/kivra/NOTICE.md). A discount/deposit line inherits its parent
+      article's resolved consumer instead of its own independent lookup (see
+      _resolve_consumers).
     - Article lines are inserted first, then discount lines, with
       `applies_to_line_id` resolved from the article insert's generated ids
       via each line's local `line_no` (handoff §7.6).
@@ -85,6 +121,7 @@ def import_receipt(client, parsed: ParsedReceipt, buyer: str, *, excluded: bool 
     if new_names:
         upsert_products(client, new_names)
     default_consumers = {**{name: None for name in new_names}, **existing_consumers}
+    line_consumers = _resolve_consumers(parsed.lines, default_consumers, buyer)
 
     receipt_resp = (
         client.schema(SCHEMA)
@@ -115,7 +152,7 @@ def import_receipt(client, parsed: ParsedReceipt, buyer: str, *, excluded: bool 
                 "raw_name": line.raw_name,
                 "quantity": str(line.quantity) if line.quantity is not None else None,
                 "line_total": str(line.line_total),
-                "consumer": default_consumers.get(line.raw_name),
+                "consumer": line_consumers.get(line.line_no),
             }
 
         inserted_articles = []

@@ -60,6 +60,38 @@ derived from upstream.
   levels deep under `scripts/kivra/vendor/interaction/` instead of living at upstream's
   repository root. No `sys.path` manipulation was used anywhere.
 
+## Departures from the original handoff spec
+
+`docs/ica-kivra-importer-handoff.md` is the original spec this project was built from. A few
+things changed since, by direct decision, after real usage revealed better information than the
+spec had when it was written:
+
+- **§7.1's sender filter ("keep only ICA") was removed.** The importer now imports every
+  receipt in the Kivra inbox regardless of store, and relies entirely on
+  `config.get_ica_card_last4()`/`receipts.excluded` (which card paid) to decide what counts
+  toward the shared account — not which store it was at. `parse.py` was only validated against
+  ICA's receipt shape; other stores may need parser adjustments as their shapes turn up (same
+  warn-and-flag approach as everything else — see `parse.py`'s module docstring).
+- **A discount/deposit line's `consumer` is inherited from its parent article line**
+  (`supabase_io._resolve_consumers`), not independently looked up against its own `raw_name` —
+  see that function's docstring for why.
+- **`ICA_IMPORT_CUTOFF_DATE`** (config default for `--since`) and **`ICA_CARD_LAST4`**
+  (config-driven `excluded`) were both added beyond the original spec's `.env` list (§10).
+- **§7.5's "freeze default_consumer, else leave consumer NULL" was replaced with "freeze
+  default_consumer, else freeze the buyer."** The web app originally computed a live
+  read-time fallback chain (`receipt_lines.consumer` → `products.default_consumer` →
+  `receipts.buyer`) so a NULL line always displayed *something* without ever writing to it.
+  In practice this meant editing a product's default on the Products tab silently
+  re-colored every past receipt that had ridden on that fallback — surprising once enough
+  products had been classified after the fact. `_resolve_consumers` now always freezes a
+  real value at import time (`products.default_consumer` for that `raw_name` if set, else
+  the buyer the importer was invoked with) and the app's `api/ica_tracking.py` no longer
+  computes any fallback — `receipt_lines.consumer` is the sole source of truth, full stop.
+  `scripts/kivra/backfill_consumers.py` is the one-time migration that filled every
+  already-imported NULL row the same way. A product's default now only affects raw_names
+  not yet seen in a future import; correcting a product's classification on receipts
+  already imported means editing the affected lines directly in the Receipts tab.
+
 ## Upgrade path
 
 If Kivra changes its API and upstream fixes it, diff the relevant file(s) under

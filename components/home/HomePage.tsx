@@ -49,6 +49,13 @@ const projects: Project[] = [
     href: '/fpl-pred',
     tags: ['Machine Learning', 'Fantasy Football'],
   },
+  {
+    title: 'Food Expenses',
+    description:
+      'Private household grocery expense tracker for Hugo & Benjamin — who consumed how much, on what, per month.',
+    href: '/ica-tracking',
+    tags: ['Supabase', 'Household'],
+  },
 ]
 
 export default function HomePage() {
