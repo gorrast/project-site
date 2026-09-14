@@ -515,7 +515,7 @@ def get_reports(
 
     if person == "total":
         total = t["total"]
-        prod_list = sorted(t["byProd"].values(), key=lambda p: p["total"], reverse=True)[:9]
+        prod_list = sorted(t["byProd"].values(), key=lambda p: p["total"], reverse=True)[:10]
         top_products = [
             {
                 "rank": i + 1, "name": p["name"], "count": p["count"], "total": p["total"],
@@ -527,7 +527,7 @@ def get_reports(
     else:
         total = t[person]
         candidates = [p for p in t["byProd"].values() if p[f"count_{person}"] > 0]
-        prod_list = sorted(candidates, key=lambda p: p[person], reverse=True)[:9]
+        prod_list = sorted(candidates, key=lambda p: p[person], reverse=True)[:10]
         top_products = [
             {
                 "rank": i + 1, "name": p["name"], "count": p[f"count_{person}"], "total": p[person],

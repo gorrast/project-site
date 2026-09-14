@@ -96,7 +96,7 @@ export function ReportsSection({ scope, onScopeChange, monthKey }: ReportsSectio
                 <div
                   key={p.name}
                   className="grid items-center gap-2 px-4 py-2.5 border-t border-gray-100 dark:border-gray-700"
-                  style={{ gridTemplateColumns: '16px minmax(0,1fr) 56px 40px 82px' }}
+                  style={{ gridTemplateColumns: '20px minmax(0,1fr) 56px 40px 82px' }}
                 >
                   <span className="font-mono text-[10.5px] text-gray-400">{p.rank}</span>
                   <span className="min-w-0">

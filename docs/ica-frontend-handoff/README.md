@@ -116,7 +116,7 @@ Scope defaults to the month on This month and all time on Trends, and persists i
 
 Two cards side by side, `repeat(auto-fit, minmax(290px, 1fr))`, `gap: 14px`, each white with `1px solid #f3f4f6`, 16px radius, section label in Geist Mono 10.5px uppercase `#6b7280`, rows separated by `1px solid #f3f4f6`.
 
-**Top products** — grid `16px minmax(0,1fr) 56px 40px 82px`: rank (Geist Mono 10.5px `#9ca3af`), display name (13px, ellipsis), a 5px `#4b5563` bar scaled against the top product, `×N` count (Geist Mono 11px `#9ca3af`), amount (Geist Mono 12px, right). Top 9.
+**Top products** — grid `16px minmax(0,1fr) 56px 40px 82px`: rank (Geist Mono 10.5px `#9ca3af`), display name (13px, ellipsis), a 5px `#4b5563` bar scaled against the top product, `×N` count (Geist Mono 11px `#9ca3af`), amount (Geist Mono 12px, right). Top 10.
 
 **By category** — grid `minmax(0,1fr) minmax(0,1.1fr) 82px`: category name, a 10px stacked bar of shared/Hugo/Benjamin proportions, amount. Sorted by total descending.
 
