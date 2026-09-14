@@ -1,0 +1,977 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;700&family=IBM+Plex+Sans:wght@400;500;600;700&family=Geist+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+  body { margin: 0; background: #f9fafb; color: #111827; font-family: "IBM Plex Sans", system-ui, sans-serif; -webkit-font-smoothing: antialiased; }
+  a { color: #2563eb; text-decoration: none; }
+  a:hover { color: #1d4ed8; text-decoration: underline; }
+  button { font-family: inherit; }
+</style>
+</helmet>
+<div style="max-width: 1180px; margin: 0 auto; padding: 26px 18px 90px; display: flex; flex-direction: column; gap: 18px">
+
+  <header style="display: flex; flex-wrap: wrap; gap: 14px; align-items: flex-end; justify-content: space-between">
+    <div style="display: flex; flex-direction: column; gap: 4px">
+      <div style="font-family: 'Geist Mono', monospace; font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase; color: #6b7280">ica · hugo &amp; benjamin</div>
+      <h1 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 34px; line-height: 1.05; margin: 0; letter-spacing: -0.02em">Food expenses</h1>
+    </div>
+    <sc-if value="{{ showMonthNav }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; align-items: center; gap: 8px">
+      <button onClick="{{ prevMonth }}" style="width: 32px; height: 32px; border: 1px solid #e5e7eb; background: #ffffff; border-radius: 10px; cursor: pointer; color: #111827; font-size: 14px; display: flex; align-items: center; justify-content: center" style-hover="background: #f3f4f6">‹</button>
+      <div style="min-width: 150px; text-align: center; font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 15px">{{ monthLabel }}</div>
+      <button onClick="{{ nextMonth }}" style="width: 32px; height: 32px; border: 1px solid #e5e7eb; background: #ffffff; border-radius: 10px; cursor: pointer; color: #111827; font-size: 14px; display: flex; align-items: center; justify-content: center" style-hover="background: #f3f4f6">›</button>
+      <button onClick="{{ exportCsv }}" style="margin-left: 6px; height: 32px; border: 1px solid #e5e7eb; background: #ffffff; border-radius: 10px; padding: 0 10px; font-size: 14px; font-weight: 500; color: #111827; cursor: pointer; white-space: nowrap" style-hover="background: #f3f4f6">Export CSV</button>
+    </div>
+    </sc-if>
+  </header>
+
+  <nav style="display: flex; gap: 2px; border-bottom: 1px solid #e5e7eb">
+    <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="3">
+      <button onClick="{{ t.onClick }}" style="padding: 10px 14px; border: 0; background: none; cursor: pointer; font-family: 'Space Grotesk', sans-serif; font-size: 14px; font-weight: 500; display: flex; align-items: center; gap: 7px; white-space: nowrap; color: {{ t.color }}; border-bottom: 2px solid {{ t.underline }}; margin-bottom: -1px">
+        <span>{{ t.label }}</span>
+        <sc-if value="{{ t.badge }}" hint-placeholder-val="{{ false }}">
+          <span style="font-family: 'Geist Mono', monospace; font-size: 10px; white-space: nowrap; background: #fff7ed; color: #c2410c; border: 1px solid #fed7aa; border-radius: 9px; padding: 1px 7px">{{ t.badge }}</span>
+        </sc-if>
+      </button>
+    </sc-for>
+  </nav>
+
+  <sc-if value="{{ isMonth }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 28px">
+
+      <section style="display: grid; grid-template-columns: repeat(auto-fit, minmax(172px, 1fr)); gap: 12px">
+        <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="5">
+          <div style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 8px; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+            <div style="display: flex; align-items: center; gap: 7px">
+              <span style="width: 8px; height: 8px; border-radius: 50%; background: {{ b.color }}"></span>
+              <span style="font-family: 'Geist Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280">{{ b.label }}</span>
+            </div>
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 26px; line-height: 1; letter-spacing: -0.02em">{{ b.amount }}</div>
+            <div style="font-size: 12px; color: #6b7280">{{ b.sub }}</div>
+          </div>
+        </sc-for>
+      </section>
+
+      <sc-if value="{{ showBudget }}" hint-placeholder-val="{{ true }}">
+        <section style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; padding: 16px 18px; display: flex; flex-direction: column; gap: 10px; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+          <div style="display: flex; flex-wrap: wrap; gap: 6px 18px; align-items: baseline; justify-content: space-between">
+            <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 500; font-size: 14px">Monthly target {{ budgetTarget }}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 12.5px; color: {{ budgetColor }}; white-space: nowrap">{{ budgetNote }}</div>
+          </div>
+          <div style="height: 8px; border-radius: 4px; background: #f3f4f6; overflow: hidden">
+            <div style="height: 8px; width: {{ budgetPct }}; background: {{ budgetColor }}; border-radius: 4px"></div>
+          </div>
+        </section>
+      </sc-if>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isTrends }}" hint-placeholder-val="{{ false }}">
+    <div style="display: flex; flex-direction: column; gap: 28px">
+      <section style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; padding: 20px 18px 14px; box-shadow: 0 10px 15px -3px rgba(17,24,39,0.08), 0 4px 6px -4px rgba(17,24,39,0.05); display: flex; flex-direction: column">
+        <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; margin: 0 0 18px; color: #111827">Spending by month, against a {{ budgetTarget }} target</h3>
+        <div style="display: flex; gap: 8px; height: 280px">
+          <div style="width: 40px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #6b7280">
+            <sc-for list="{{ yTicks }}" as="y" hint-placeholder-count="5">
+              <span style="white-space: nowrap; transform: translateY(-50%)">{{ y }}</span>
+            </sc-for>
+          </div>
+          <div style="position: relative; flex: 1; min-width: 0">
+            <sc-for list="{{ gridLines }}" as="g" hint-placeholder-count="4">
+              <div style="position: absolute; left: 0; right: 0; top: {{ g }}; border-top: 1px dashed #cccccc"></div>
+            </sc-for>
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; border-top: 1px solid #cccccc"></div>
+            <div style="position: absolute; left: 0; right: 0; top: {{ budgetTop }}; border-top: 2px dashed #dc2626; z-index: 3"></div>
+            <div style="position: absolute; right: 2px; top: {{ budgetTop }}; transform: translateY(-100%); font-size: 11px; color: #dc2626; background: #ffffff; padding: 0 4px; z-index: 3; white-space: nowrap">budget</div>
+            <svg viewBox="0 0 100 100" preserveAspectRatio="none" style="position: absolute; inset: 0; width: 100%; height: 100%; z-index: 2; pointer-events: none; overflow: visible">
+              <polyline points="{{ totalPoints }}" fill="none" stroke="#111827" stroke-width="2" vector-effect="non-scaling-stroke"></polyline>
+            </svg>
+            <div style="position: absolute; inset: 0; display: flex; align-items: stretch">
+              <sc-for list="{{ chartMonths }}" as="m" hint-placeholder-count="8">
+                <div onClick="{{ m.onClick }}" onMouseEnter="{{ m.onEnter }}" onMouseLeave="{{ m.onLeave }}" style="position: relative; flex: 1; min-width: 0; cursor: pointer; background: {{ m.bg }}; display: flex; align-items: flex-end; justify-content: center; gap: 3px; padding: 0 5px">
+                  <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="3">
+                    <div style="flex: 1; max-width: 16px; height: {{ b.h }}; background: {{ b.color }}; border-radius: 2px 2px 0 0"></div>
+                  </sc-for>
+                  <div style="position: absolute; left: 50%; top: {{ m.dotTop }}; width: 6px; height: 6px; margin-left: -3px; margin-top: -3px; border-radius: 50%; background: #111827; z-index: 4"></div>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ hoverActive }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: {{ hover.left }}; top: {{ hover.top }}; z-index: 6; pointer-events: none; transform: {{ hover.transform }}; border: 1px solid #e5e7eb; background: #ffffff; border-radius: 8px; padding: 7px 10px; box-shadow: 0 10px 15px -3px rgba(17,24,39,0.14); min-width: 168px">
+                <div style="font-size: 12px; font-weight: 500; margin-bottom: 6px; white-space: nowrap">{{ hover.label }}</div>
+                <sc-for list="{{ hover.rows }}" as="hr" hint-placeholder-count="4">
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 11.5px">
+                    <span style="width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; background: {{ hr.color }}"></span>
+                    <span style="color: #6b7280; white-space: nowrap">{{ hr.label }}</span>
+                    <span style="margin-left: auto; padding-left: 16px; font-family: 'Geist Mono', monospace; font-weight: 500; white-space: nowrap">{{ hr.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; padding-top: 6px">
+          <div style="width: 40px"></div>
+          <div style="flex: 1; min-width: 0; display: flex">
+            <sc-for list="{{ chartMonths }}" as="m" hint-placeholder-count="8">
+              <div style="flex: 1; min-width: 0; text-align: center; font-size: 11px; color: {{ m.labelColor }}; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ m.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; padding-top: 14px">
+          <sc-for list="{{ legend }}" as="l" hint-placeholder-count="5">
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; white-space: nowrap">
+              <span style="width: 9px; height: {{ l.h }}; border-radius: 2px; flex-shrink: 0; background: {{ l.color }}; border-top: {{ l.dash }}"></span>{{ l.label }}
+            </span>
+          </sc-for>
+        </div>
+      </section>
+
+      <section style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; padding: 20px 18px 14px; box-shadow: 0 10px 15px -3px rgba(17,24,39,0.08), 0 4px 6px -4px rgba(17,24,39,0.05); display: flex; flex-direction: column">
+        <div style="display: flex; flex-wrap: wrap; gap: 10px 14px; align-items: center; justify-content: space-between; margin-bottom: 16px">
+          <h3 style="font-family: 'Space Grotesk', sans-serif; font-size: 16px; font-weight: 600; margin: 0; color: #111827">One product over time</h3>
+          <select value="{{ prodSel }}" onChange="{{ onProdSel }}" style="height: 32px; min-width: 220px; max-width: 100%; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0 8px; font-family: inherit; font-size: 14px; font-weight: 500; color: #111827; background: #ffffff; cursor: pointer; outline: none">
+            <sc-for list="{{ prodOptions }}" as="po" hint-placeholder-count="10">
+              <option value="{{ po.value }}">{{ po.label }}</option>
+            </sc-for>
+          </select>
+        </div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(126px, 1fr)); gap: 10px; margin-bottom: 18px">
+          <sc-for list="{{ prodStats }}" as="ps" hint-placeholder-count="5">
+            <div style="border: 1px solid #f3f4f6; border-radius: 10px; padding: 10px 12px; display: flex; flex-direction: column; gap: 4px; min-width: 0">
+              <div style="font-size: 12px; color: #6b7280; white-space: nowrap; overflow: hidden; text-overflow: ellipsis">{{ ps.label }}</div>
+              <div style="font-family: 'Geist Mono', monospace; font-size: 14px; font-weight: 500; color: {{ ps.color }}; white-space: nowrap">{{ ps.value }}</div>
+            </div>
+          </sc-for>
+        </div>
+        <div style="display: flex; gap: 8px; height: 210px">
+          <div style="width: 40px; display: flex; flex-direction: column; justify-content: space-between; align-items: flex-end; font-size: 11px; color: #6b7280">
+            <sc-for list="{{ prodTicks }}" as="y" hint-placeholder-count="5">
+              <span style="white-space: nowrap; transform: translateY(-50%)">{{ y }}</span>
+            </sc-for>
+          </div>
+          <div style="position: relative; flex: 1; min-width: 0">
+            <sc-for list="{{ gridLines }}" as="g" hint-placeholder-count="4">
+              <div style="position: absolute; left: 0; right: 0; top: {{ g }}; border-top: 1px dashed #cccccc"></div>
+            </sc-for>
+            <div style="position: absolute; left: 0; right: 0; bottom: 0; border-top: 1px solid #cccccc"></div>
+            <div style="position: absolute; inset: 0; display: flex; align-items: stretch">
+              <sc-for list="{{ prodMonths }}" as="pm" hint-placeholder-count="8">
+                <div onMouseEnter="{{ pm.onEnter }}" onMouseLeave="{{ pm.onLeave }}" style="position: relative; flex: 1; min-width: 0; display: flex; align-items: flex-end; justify-content: center; padding: 0 6px; background: {{ pm.bg }}">
+                  <div style="width: 100%; max-width: 30px; display: flex; flex-direction: column; justify-content: flex-end; height: 100%">
+                    <sc-for list="{{ pm.segs }}" as="sg" hint-placeholder-count="3">
+                      <div style="height: {{ sg.h }}; background: {{ sg.color }}; border-radius: {{ sg.radius }}"></div>
+                    </sc-for>
+                  </div>
+                </div>
+              </sc-for>
+            </div>
+            <sc-if value="{{ prodHoverActive }}" hint-placeholder-val="{{ false }}">
+              <div style="position: absolute; left: {{ prodHover.left }}; top: {{ prodHover.top }}; transform: {{ prodHover.transform }}; z-index: 6; pointer-events: none; border: 1px solid #e5e7eb; background: #ffffff; border-radius: 8px; padding: 7px 10px; box-shadow: 0 10px 15px -3px rgba(17,24,39,0.14); min-width: 168px">
+                <div style="font-size: 12px; font-weight: 500; margin-bottom: 6px; white-space: nowrap">{{ prodHover.label }}</div>
+                <sc-for list="{{ prodHover.rows }}" as="phr" hint-placeholder-count="5">
+                  <div style="display: flex; align-items: center; gap: 8px; padding: 2px 0; font-size: 11.5px">
+                    <span style="width: 8px; height: 8px; border-radius: 2px; flex-shrink: 0; background: {{ phr.color }}"></span>
+                    <span style="color: #6b7280; white-space: nowrap">{{ phr.label }}</span>
+                    <span style="margin-left: auto; padding-left: 16px; font-family: 'Geist Mono', monospace; font-weight: 500; white-space: nowrap">{{ phr.value }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </sc-if>
+          </div>
+        </div>
+        <div style="display: flex; gap: 8px; padding-top: 6px">
+          <div style="width: 40px"></div>
+          <div style="flex: 1; min-width: 0; display: flex">
+            <sc-for list="{{ prodMonths }}" as="pm" hint-placeholder-count="8">
+              <div style="flex: 1; min-width: 0; text-align: center; font-size: 11px; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ pm.label }}</div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="display: flex; flex-wrap: wrap; justify-content: center; gap: 6px 16px; padding-top: 14px">
+          <sc-for list="{{ stackLegend }}" as="sl" hint-placeholder-count="3">
+            <span style="display: flex; align-items: center; gap: 6px; font-size: 12px; color: #6b7280; white-space: nowrap">
+              <span style="width: 9px; height: 9px; border-radius: 2px; flex-shrink: 0; background: {{ sl.color }}"></span>{{ sl.label }}
+            </span>
+          </sc-for>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ showReports }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 28px">
+      <section style="display: flex; flex-direction: column; gap: 12px">
+        <div style="display: flex; align-items: center; justify-content: space-between; gap: 12px; flex-wrap: wrap">
+          <h2 style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 19px; margin: 0; letter-spacing: -0.01em">Where the money goes</h2>
+          <div style="display: flex; gap: 2px; background: #ffffff; border: 1px solid #e5e7eb; border-radius: 10px; padding: 2px">
+            <sc-for list="{{ scopeOpts }}" as="sc" hint-placeholder-count="2">
+              <button onClick="{{ sc.onClick }}" style="border: 0; border-radius: 8px; height: 26px; padding: 0 10px; cursor: pointer; font-size: 14px; font-weight: 500; white-space: nowrap; background: {{ sc.bg }}; color: {{ sc.fg }}">{{ sc.label }}</button>
+            </sc-for>
+          </div>
+        </div>
+        <div style="font-size: 12px; color: #6b7280; margin-top: -4px">{{ scopeCaption }}</div>
+        <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; align-items: start">
+          <div style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+            <div style="height: 40px; display: flex; align-items: center; padding: 0 16px; font-size: 14px; font-weight: 500; color: #111827; border-bottom: 1px solid #e5e7eb">Top products</div>
+            <sc-for list="{{ topProducts }}" as="p" hint-placeholder-count="9">
+              <div onClick="{{ p.onClick }}" title="Show over time" style="cursor: pointer; display: grid; grid-template-columns: 16px minmax(0, 1fr) 56px 40px 82px; gap: 10px; align-items: center; padding: 8px 16px; border-bottom: 1px solid #e5e7eb; font-size: 14px" style-hover="background: #f9fafb">
+                <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9ca3af">{{ p.rank }}</div>
+                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ p.name }}</div>
+                <div style="display: flex; height: 5px; border-radius: 3px; overflow: hidden; background: #f3f4f6">
+                  <div style="width: {{ p.pct }}; background: #4b5563"></div>
+                </div>
+                <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9ca3af; text-align: right">×{{ p.count }}</div>
+                <div style="font-family: 'Geist Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap">{{ p.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+            <div style="height: 40px; display: flex; align-items: center; padding: 0 16px; font-size: 14px; font-weight: 500; color: #111827; border-bottom: 1px solid #e5e7eb">By category</div>
+            <sc-for list="{{ categories }}" as="c" hint-placeholder-count="8">
+              <div style="display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.1fr) 82px; gap: 12px; align-items: center; padding: 8px 16px; border-bottom: 1px solid #e5e7eb; font-size: 14px" style-hover="background: #f9fafb">
+                <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ c.name }}</div>
+                <div style="display: flex; height: 10px; border-radius: 3px; overflow: hidden; background: #f3f4f6">
+                  <div style="width: {{ c.hugoPct }}; background: {{ c.hugoColor }}"></div>
+                  <div style="width: {{ c.benPct }}; background: {{ c.benColor }}"></div>
+                  <div style="width: {{ c.sharedPct }}; background: #9333ea"></div>
+                  <div style="width: {{ c.openPct }}; background: #d1d5db"></div>
+                </div>
+                <div style="font-family: 'Geist Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap">{{ c.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+      </section>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isReceipts }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 12px">
+      <div style="display: flex; flex-wrap: wrap; gap: 8px 14px; align-items: center; font-family: 'Geist Mono', monospace; font-size: 11px; color: #6b7280">
+        <sc-for list="{{ keyHints }}" as="k" hint-placeholder-count="5">
+          <span style="display: flex; align-items: center; gap: 5px; white-space: nowrap">
+            <span style="border: 1px solid #e5e7eb; background: #ffffff; border-radius: 5px; padding: 1px 6px; color: #374151">{{ k.key }}</span>{{ k.label }}
+          </span>
+        </sc-for>
+      </div>
+      <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(290px, 1fr)); gap: 14px; align-items: start">
+
+        <section style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; overflow: hidden; min-width: 0; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+          <div style="padding: 13px 16px; display: flex; align-items: center; justify-content: space-between; gap: 10px; font-family: 'Geist Mono', monospace; font-size: 10.5px; letter-spacing: 0.08em; text-transform: uppercase; color: #6b7280">
+            <span style="white-space: nowrap">{{ receiptCount }} receipts · {{ monthLabel }}</span>
+            <span style="white-space: nowrap">{{ monthShort }}</span>
+          </div>
+          <sc-for list="{{ receiptRows }}" as="r" hint-placeholder-count="8">
+            <div onClick="{{ r.onClick }}" style="display: grid; grid-template-columns: 3px minmax(0, 1fr) minmax(86px, auto); gap: 11px; align-items: center; padding: 11px 16px 11px 13px; border-top: 1px solid #f3f4f6; cursor: pointer; background: {{ r.bg }}" style-hover="background: #f9fafb">
+              <span style="width: 3px; height: 30px; border-radius: 2px; background: {{ r.buyerColor }}"></span>
+              <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0; opacity: {{ r.opacity }}">
+                <div style="font-size: 13.5px; font-weight: 500; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ r.store }}</div>
+                <div style="font-family: 'Geist Mono', monospace; font-size: 10.5px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ r.meta }}</div>
+              </div>
+              <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 3px">
+                <span style="font-family: 'Geist Mono', monospace; font-size: 12.5px; white-space: nowrap; text-decoration: {{ r.strike }}; opacity: {{ r.opacity }}">{{ r.total }}</span>
+                <span style="font-family: 'Geist Mono', monospace; font-size: 9.5px; letter-spacing: 0.06em; text-transform: uppercase; white-space: nowrap; color: {{ r.flagColor }}">{{ r.flag }}</span>
+              </div>
+            </div>
+          </sc-for>
+        </section>
+
+        <section style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; overflow: hidden; min-width: 0; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+          <div style="padding: 14px 16px; display: flex; flex-wrap: wrap; gap: 10px; align-items: center; justify-content: space-between; border-bottom: 1px solid #f3f4f6">
+            <div style="display: flex; flex-direction: column; gap: 3px; min-width: 0">
+              <div style="font-family: 'Space Grotesk', sans-serif; font-weight: 700; font-size: 15px">{{ sel.store }}</div>
+              <div style="font-family: 'Geist Mono', monospace; font-size: 10.5px; color: #6b7280">{{ sel.meta }}</div>
+            </div>
+            <button onClick="{{ toggleExcluded }}" style="border: 1px solid {{ sel.exBorder }}; background: {{ sel.exBg }}; color: {{ sel.exFg }}; border-radius: 10px; height: 32px; padding: 0 10px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap">{{ sel.exLabel }}</button>
+          </div>
+          <sc-if value="{{ sel.excluded }}" hint-placeholder-val="{{ false }}">
+            <div style="padding: 9px 16px; background: #fff7ed; font-size: 12px; color: #9a3412; border-bottom: 1px solid #f3f4f6">Excluded from all totals and reports — paid privately, not from the shared account.</div>
+          </sc-if>
+          <sc-for list="{{ sel.items }}" as="it" hint-placeholder-count="10">
+            <div style="display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px 12px; padding: 9px 16px; border-top: 1px solid #f3f4f6; align-items: center; background: {{ it.bg }}; box-shadow: {{ it.cursorRing }}">
+              <div style="display: flex; flex-direction: column; gap: 2px; min-width: 0">
+                <div style="display: flex; align-items: center; gap: 7px; min-width: 0">
+                  <sc-if value="{{ it.isReceiptDiscount }}" hint-placeholder-val="{{ false }}">
+                    <span style="flex-shrink: 0; font-family: 'Geist Mono', monospace; font-size: 9.5px; letter-spacing: 0.04em; text-transform: uppercase; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 5px; padding: 0 5px; line-height: 15px; white-space: nowrap">receipt</span>
+                  </sc-if>
+                  <span style="font-size: 13px; color: #111827; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ it.name }}</span>
+                </div>
+                <div style="display: flex; align-items: center; gap: 6px; min-width: 0">
+                  <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: #9ca3af; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ it.meta }}</span>
+                  <sc-if value="{{ it.hasDiscount }}" hint-placeholder-val="{{ false }}">
+                    <span title="{{ it.discountTitle }}" style="flex-shrink: 0; font-family: 'Geist Mono', monospace; font-size: 9.5px; color: #047857; background: #ecfdf5; border: 1px solid #a7f3d0; border-radius: 5px; padding: 0 5px; line-height: 15px; white-space: nowrap">{{ it.discountChip }}</span>
+                  </sc-if>
+                </div>
+              </div>
+              <div style="display: flex; align-items: center; gap: 12px">
+                <sc-if value="{{ it.editable }}" hint-placeholder-val="{{ true }}">
+                  <div style="display: flex; gap: 2px; background: #f3f4f6; border-radius: 10px; padding: 2px">
+                    <sc-for list="{{ it.opts }}" as="o" hint-placeholder-count="3">
+                      <button onClick="{{ o.onClick }}" title="{{ o.title }}" style="border: 0; border-radius: 6px; width: 32px; height: 24px; cursor: pointer; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 500; background: {{ o.bg }}; color: {{ o.fg }}; box-shadow: {{ o.ring }}">{{ o.key }}</button>
+                    </sc-for>
+                  </div>
+                </sc-if>
+                <div style="display: flex; flex-direction: column; align-items: flex-end; gap: 1px; min-width: 68px">
+                  <span style="font-family: 'Geist Mono', monospace; font-size: 12.5px; text-align: right; white-space: nowrap; color: {{ it.amountColor }}">{{ it.amount }}</span>
+                  <sc-if value="{{ it.hasDiscount }}" hint-placeholder-val="{{ false }}">
+                    <span style="font-family: 'Geist Mono', monospace; font-size: 10px; color: #9ca3af; white-space: nowrap">{{ it.grossNote }}</span>
+                  </sc-if>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+          <div style="display: grid; grid-template-columns: repeat(auto-fit, minmax(96px, 1fr)); gap: 12px; padding: 14px 16px; border-top: 1px solid #e5e7eb; background: #f9fafb">
+            <sc-for list="{{ sel.splits }}" as="s" hint-placeholder-count="4">
+              <div style="display: flex; flex-direction: column; gap: 3px">
+                <div style="font-family: 'Geist Mono', monospace; font-size: 9.5px; letter-spacing: 0.07em; text-transform: uppercase; color: {{ s.color }}; white-space: nowrap">{{ s.label }}</div>
+                <div style="font-family: 'Geist Mono', monospace; font-size: 13.5px; white-space: nowrap">{{ s.amount }}</div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+      </div>
+    </div>
+  </sc-if>
+
+  <sc-if value="{{ isProducts }}" hint-placeholder-val="{{ true }}">
+    <div style="display: flex; flex-direction: column; gap: 14px">
+      <p style="margin: 0; font-size: 13px; color: #4b5563; max-width: 720px; text-wrap: pretty">Consumer resolves in order: the line's own value, then this product default, then the receipt's buyer. Changing a default here moves every line that has no value of its own; lines set by hand stay put. Not affected by the selected month.</p>
+      <div style="display: flex; flex-wrap: wrap; gap: 10px; align-items: center">
+        <input value="{{ prodQuery }}" onChange="{{ onProdQuery }}" placeholder="Search raw_name, display_name or category" style="flex: 1; min-width: 240px; height: 32px; border: 1px solid #e5e7eb; border-radius: 10px; padding: 0 10px; font-family: inherit; font-size: 14px; color: #111827; background: #ffffff; outline: none" style-focus="border-color: #9ca3af">
+        <button onClick="{{ toggleUnreviewed }}" style="border: 1px solid {{ unrevBorder }}; background: {{ unrevBg }}; color: {{ unrevFg }}; border-radius: 10px; height: 32px; padding: 0 10px; font-size: 14px; font-weight: 500; cursor: pointer; white-space: nowrap">{{ unrevLabel }}</button>
+      </div>
+      <section style="background: #ffffff; border: 1px solid #f3f4f6; border-radius: 16px; overflow: hidden; box-shadow: 0 1px 3px rgba(17,24,39,0.06)">
+        <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 104px 38px 84px 114px; gap: 12px; align-items: center; height: 40px; padding: 0 16px; font-size: 14px; font-weight: 500; color: #111827; border-bottom: 1px solid #e5e7eb">
+          <span>raw_name</span><span>display_name</span><span>category</span><span style="text-align: right">n</span><span style="text-align: right">total</span><span style="text-align: right">default</span>
+        </div>
+        <sc-for list="{{ productRows }}" as="p" hint-placeholder-count="12">
+          <div style="display: grid; grid-template-columns: minmax(0, 1.4fr) minmax(0, 1fr) 104px 38px 84px 114px; gap: 12px; align-items: center; padding: 8px 16px; border-bottom: 1px solid #e5e7eb; font-size: 14px" style-hover="background: #f9fafb">
+            <div style="font-family: 'Geist Mono', monospace; font-size: 12px; color: #374151; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ p.raw }}</div>
+            <div style="overflow: hidden; text-overflow: ellipsis; white-space: nowrap; color: {{ p.nameColor }}">{{ p.display }}</div>
+            <div style="font-size: 11.5px; color: #6b7280; overflow: hidden; text-overflow: ellipsis; white-space: nowrap">{{ p.category }}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 11px; color: #9ca3af; text-align: right">{{ p.count }}</div>
+            <div style="font-family: 'Geist Mono', monospace; font-size: 12px; text-align: right; white-space: nowrap">{{ p.total }}</div>
+            <div style="display: flex; gap: 2px; background: #f3f4f6; border-radius: 10px; padding: 2px; justify-self: end">
+              <sc-for list="{{ p.opts }}" as="o" hint-placeholder-count="3">
+                <button onClick="{{ o.onClick }}" title="{{ o.title }}" style="border: 0; border-radius: 8px; width: 32px; height: 24px; cursor: pointer; font-family: 'Geist Mono', monospace; font-size: 12px; font-weight: 500; background: {{ o.bg }}; color: {{ o.fg }}">{{ o.key }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </sc-for>
+        <sc-if value="{{ noProducts }}" hint-placeholder-val="{{ false }}">
+          <div style="padding: 18px 16px; font-size: 14px; color: #6b7280">No products match that search.</div>
+        </sc-if>
+      </section>
+    </div>
+  </sc-if>
+
+  <footer style="font-family: 'Geist Mono', monospace; font-size: 10px; color: #9ca3af; letter-spacing: 0.05em">Draft · mock data against schema ica · amounts net of discount lines</footer>
+</div>
+
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;monthlyBudget&quot;:{&quot;editor&quot;:&quot;int&quot;,&quot;default&quot;:6000,&quot;min&quot;:0,&quot;max&quot;:20000,&quot;step&quot;:500,&quot;unit&quot;:&quot;kr&quot;,&quot;tsType&quot;:&quot;number&quot;}}">
+class Component extends DCLogic {
+  state = { monthIdx: 0, tab: 'month', selId: null, cursor: 0, hoverIdx: null, prodHoverIdx: null, prodSel: null, scope: 'month', prodQuery: '', lineOv: {}, exOv: {}, prodOv: {}, unrevOnly: false };
+
+  colors() {
+    return {
+      Hugo: '#2563eb',
+      Benjamin: '#16a34a',
+      shared: '#9333ea',
+      open: '#d1d5db'
+    };
+  }
+
+  kr(n) {
+    const s = Math.abs(n).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < -0.004 ? '−' : '') + s + ' kr';
+  }
+
+  rng(seed) {
+    let a = seed >>> 0;
+    return () => { a += 0x6D2B79F5; let t = a; t = Math.imul(t ^ t >>> 15, t | 1); t ^= t + Math.imul(t ^ t >>> 7, t | 61); return ((t ^ t >>> 14) >>> 0) / 4294967296; };
+  }
+
+  componentDidMount() {
+    this.onKey = e => {
+      if (this.state.tab !== 'receipts') return;
+      if (e.metaKey || e.ctrlKey || e.altKey) return;
+      const tag = (e.target.tagName || '').toLowerCase();
+      if (tag === 'input' || tag === 'textarea') return;
+      const receipt = this.selReceipt();
+      const editable = receipt.lines.filter(l => !l.applies_to_line_id).sort((a, b) => (a.line_total < 0 ? 1 : 0) - (b.line_total < 0 ? 1 : 0));
+      const k = e.key.toLowerCase();
+      const move = d => {
+        e.preventDefault();
+        this.setState(s => ({ cursor: Math.max(0, Math.min(editable.length - 1, s.cursor + d)) }));
+      };
+      if (k === 'arrowdown' || k === 'j') return move(1);
+      if (k === 'arrowup' || k === 'k') return move(-1);
+      if (k === 'arrowright' || k === 'arrowleft' || k === '[' || k === ']') {
+        e.preventDefault();
+        const month = this.months[this.state.monthIdx];
+        const i = month.receipts.findIndex(r => r.id === this.selId());
+        const d = (k === 'arrowright' || k === ']') ? 1 : -1;
+        const next = month.receipts[Math.max(0, Math.min(month.receipts.length - 1, i + d))];
+        return this.setState({ selId: next.id, cursor: 0 });
+      }
+      if (k === 'e') { e.preventDefault(); return this.setState(s => ({ exOv: Object.assign({}, s.exOv, { [receipt.id]: !this.isExcluded(receipt) }) })); }
+      const map = { s: 'shared', h: 'Hugo', b: 'Benjamin' };
+      if (map[k] || k === 'backspace' || k === 'delete') {
+        e.preventDefault();
+        const line = editable[Math.min(this.state.cursor, editable.length - 1)];
+        if (!line) return;
+        const val = map[k] || null;
+        this.setState(s => ({
+          lineOv: Object.assign({}, s.lineOv, { [line.id]: val }),
+          cursor: val ? Math.min(editable.length - 1, s.cursor + 1) : s.cursor
+        }));
+      }
+    };
+    window.addEventListener('keydown', this.onKey);
+  }
+
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+
+  build() {
+    const P = (raw, display, category, def, price, weight) => ({ raw_name: raw, display_name: display, category, default_consumer: def, price, weight: !!weight });
+    this.products = [
+      P('ICA BASIC MJÖLK 1,5% 1L', 'Mjölk 1,5%', 'Mejeri', 'shared', 16.9),
+      P('HAVREDRYCK BARISTA 1L', 'Havredryck', 'Mejeri', 'Hugo', 24.5),
+      P('KAFFE MELLANROST 450G', 'Bryggkaffe', 'Kolonial', 'shared', 62),
+      P('BANAN EKO KG', 'Banan', 'Frukt & grönt', 'shared', 27, true),
+      P('KYCKLINGFILÉ 700G', 'Kycklingfilé', 'Kött', 'Benjamin', 89),
+      P('RÖDA LINSER 500G', 'Röda linser', 'Kolonial', 'Hugo', 21.9),
+      P('FALUKORV 800G', 'Falukorv', 'Kött', 'Benjamin', 44.9),
+      P('LANTBRÖD SKIVAT', 'Lantbröd', 'Bröd', 'shared', 32.9),
+      P('SMÖR NORMALSALTAT 500G', 'Smör', 'Mejeri', 'shared', 59.9),
+      P('ÄGG FRIGÅENDE 10P', 'Ägg 10-pack', 'Mejeri', 'shared', 41.9),
+      P('TOMAT KVIST KG', 'Kvisttomat', 'Frukt & grönt', 'shared', 39.9, true),
+      P('GURKA ST', 'Gurka', 'Frukt & grönt', 'shared', 14.9),
+      P('PASTA PENNE 1KG', 'Penne', 'Kolonial', 'shared', 24.9),
+      P('BASMATIRIS 1KG', 'Basmatiris', 'Kolonial', null, 34.9),
+      P('COLA ZERO 1,5L', 'Cola Zero', 'Dryck', 'Benjamin', 22.9),
+      P('CHIPS SOURCREAM 200G', 'Chips', 'Snacks', 'Benjamin', 29.9),
+      P('LAKRITSSKALLAR 120G', 'Lakrits', 'Snacks', 'Hugo', 18.9),
+      P('OST HERRGÅRD 700G', 'Herrgårdsost', 'Mejeri', 'shared', 84.9),
+      P('LAXFILÉ ASC 400G', 'Laxfilé', 'Fisk', 'shared', 109),
+      P('PROTEINPULVER VANILJ 1KG', 'Proteinpulver', 'Hälsa', 'Benjamin', 349),
+      P('TANDKRÄM 75ML', null, 'Hygien', null, 34.9),
+      P('DISKMEDEL CITRON 500ML', 'Diskmedel', 'Hem', 'shared', 27.9)
+    ];
+    this.byRaw = {};
+    this.products.forEach(p => { this.byRaw[p.raw_name] = p; });
+    this.discountNames = { 'KUPONG STAMKUND 10%': 'Stamkundskupong', 'PANT RETUR': 'Pant' };
+
+    const stores = ['ICA Maxi Lindhagen', 'ICA Kvantum Värtan', 'ICA Supermarket Söder', 'ICA Nära Hornstull'];
+    const MN = ['January', 'February', 'March', 'April', 'May', 'June', 'July', 'August', 'September', 'October', 'November', 'December'];
+    this.months = [];
+    let lineId = 1;
+    for (let m = 0; m < 8; m++) {
+      const anchor = new Date(2026, 8 - m, 1);
+      const rnd = this.rng(4711 + m * 97);
+      const receipts = [];
+      const n = 6 + Math.floor(rnd() * 5);
+      for (let i = 0; i < n; i++) {
+        const lines = [];
+        const k = 5 + Math.floor(rnd() * 7);
+        for (let j = 0; j < k; j++) {
+          const p = this.products[Math.floor(rnd() * this.products.length)];
+          const qty = p.weight ? Math.round((0.3 + rnd() * 1.3) * 1000) / 1000 : (rnd() < 0.18 ? 2 : 1);
+          const total = Math.round(p.price * (0.92 + rnd() * 0.16) * qty * 100) / 100;
+          let consumer = null;
+          if (rnd() < 0.3) consumer = ['shared', 'Hugo', 'Benjamin'][Math.floor(rnd() * 3)];
+          const line = { id: lineId++, line_no: lines.length + 1, raw_name: p.raw_name, quantity: qty, line_total: total, consumer, applies_to_line_id: null };
+          lines.push(line);
+          if (rnd() < 0.11) lines.push({ id: lineId++, line_no: lines.length + 1, raw_name: p.raw_name, quantity: null, line_total: -Math.round(total * 0.25 * 100) / 100, consumer, applies_to_line_id: line.id });
+        }
+        if (i % 3 === 0) {
+          const gross = lines.reduce((a, l) => a + l.line_total, 0);
+          lines.push({
+            id: lineId++, line_no: lines.length + 1,
+            raw_name: i % 6 === 0 ? 'KUPONG STAMKUND 10%' : 'PANT RETUR',
+            quantity: null,
+            line_total: -Math.round(gross * (0.03 + rnd() * 0.07) * 100) / 100,
+            consumer: null, applies_to_line_id: null
+          });
+        }
+        const total = Math.round(lines.reduce((s, l) => s + l.line_total, 0) * 100) / 100;
+        receipts.push({
+          id: 'r' + m + '_' + i,
+          kivra_id: 'kv_' + (830000 + m * 100 + i),
+          buyer: rnd() < 0.5 ? 'Hugo' : 'Benjamin',
+          store: stores[Math.floor(rnd() * stores.length)],
+          purchased_at: new Date(anchor.getFullYear(), anchor.getMonth(), 1 + Math.floor(rnd() * 27), 9 + Math.floor(rnd() * 11), Math.floor(rnd() * 60)),
+          total, excluded: rnd() < 0.07, lines
+        });
+      }
+      receipts.sort((a, b) => b.purchased_at - a.purchased_at);
+      this.months.push({ label: MN[anchor.getMonth()] + ' ' + anchor.getFullYear(), short: MN[anchor.getMonth()].slice(0, 3) + ' ' + anchor.getFullYear(), receipts });
+    }
+  }
+
+  resolve(l, receipt, map) {
+    if (l.applies_to_line_id && map) {
+      const parent = map[l.applies_to_line_id];
+      if (parent) return { c: this.resolve(parent, receipt, null).c, src: 'discount' };
+    }
+    const o = this.state.lineOv[l.id];
+    const explicit = o === undefined ? l.consumer : o;
+    if (explicit) return { c: explicit, src: 'line' };
+    const def = this.defaultConsumer(l.raw_name);
+    if (def) return { c: def, src: 'default' };
+    return { c: receipt.buyer, src: 'buyer' };
+  }
+
+  isExcluded(r) {
+    const o = this.state.exOv[r.id];
+    return o === undefined ? r.excluded : o;
+  }
+
+  defaultConsumer(raw) {
+    const o = this.state.prodOv[raw];
+    return o === undefined ? this.meta(raw).default_consumer : o;
+  }
+
+  meta(raw) { return this.byRaw[raw] || { raw_name: raw, display_name: this.discountNames[raw] || null, category: null, default_consumer: null }; }
+
+  displayName(raw) { return this.meta(raw).display_name || raw; }
+
+  tally(receipts) {
+    const t = { Hugo: 0, Benjamin: 0, shared: 0, total: 0, discount: 0, byCat: {}, byProd: {}, inherited: 0 };
+    receipts.forEach(r => {
+      if (this.isExcluded(r)) return;
+      const map = {}; r.lines.forEach(l => { map[l.id] = l; });
+      r.lines.forEach(l => {
+        const res = this.resolve(l, r, map);
+        const c = res.c;
+        t[c] += l.line_total;
+        t.total += l.line_total;
+        const receiptWide = !l.applies_to_line_id && l.line_total < 0;
+        if (l.applies_to_line_id || receiptWide) t.discount += -l.line_total;
+        if (!l.applies_to_line_id && !receiptWide && res.src !== 'line') t.inherited++;
+        if (receiptWide) return;
+        const cat = this.meta(l.raw_name).category || 'Övrigt';
+        if (!t.byCat[cat]) t.byCat[cat] = { name: cat, Hugo: 0, Benjamin: 0, shared: 0, open: 0, total: 0 };
+        t.byCat[cat][c] += l.line_total; t.byCat[cat].total += l.line_total;
+        const key = this.displayName(l.raw_name);
+        if (!t.byProd[key]) t.byProd[key] = { name: key, count: 0, total: 0 };
+        t.byProd[key].total += l.line_total;
+        if (!l.applies_to_line_id) t.byProd[key].count++;
+      });
+    });
+    return t;
+  }
+
+  pct(v, total) { return total > 0 ? (Math.max(0, v) / total * 100).toFixed(2) + '%' : '0%'; }
+
+  selId() {
+    const month = this.months[this.state.monthIdx];
+    if (this.state.selId && month.receipts.some(r => r.id === this.state.selId)) return this.state.selId;
+    return month.receipts[0].id;
+  }
+
+  selReceipt() {
+    const month = this.months[this.state.monthIdx];
+    const id = this.selId();
+    return month.receipts.find(r => r.id === id);
+  }
+
+  csv() {
+    const month = this.months[this.state.monthIdx];
+    const rows = [['purchased_at', 'store', 'buyer', 'kivra_id', 'excluded', 'line_no', 'raw_name', 'display_name', 'category', 'quantity', 'line_total', 'consumer_explicit', 'consumer_resolved', 'resolved_from', 'is_discount']];
+    month.receipts.forEach(r => {
+      const map = {}; r.lines.forEach(l => { map[l.id] = l; });
+      r.lines.forEach(l => {
+        const p = this.meta(l.raw_name);
+        rows.push([
+          r.purchased_at.toISOString(), r.store, r.buyer, r.kivra_id, this.isExcluded(r),
+          l.line_no, l.raw_name, p.display_name || '', p.category || '',
+          l.quantity === null ? '' : l.quantity, l.line_total.toFixed(2),
+          (this.state.lineOv[l.id] === undefined ? l.consumer : this.state.lineOv[l.id]) || '',
+          this.resolve(l, r, map).c, this.resolve(l, r, map).src, !!l.applies_to_line_id
+        ]);
+      });
+    });
+    const body = rows.map(r => r.map(c => {
+      const s = String(c);
+      return /[",;\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s;
+    }).join(',')).join('\n');
+    const url = URL.createObjectURL(new Blob(['\ufeff' + body], { type: 'text/csv;charset=utf-8' }));
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = 'food-expenses-' + month.short.replace(' ', '-').toLowerCase() + '.csv';
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  }
+
+  renderVals() {
+    if (!this.months) this.build();
+    const C = this.colors();
+    const month = this.months[this.state.monthIdx];
+    const t = this.tally(month.receipts);
+    const allUnreviewed = this.months.reduce((s, m) => s + this.tally(m.receipts).inherited, 0);
+
+    const tabDef = [['month', 'This month', null], ['trends', 'Trends', null], ['receipts', 'Receipts', allUnreviewed ? allUnreviewed + ' inherited' : null], ['products', 'Products', null]];
+    const tabs = tabDef.map(([id, label, badge]) => ({
+      label, badge,
+      color: this.state.tab === id ? '#111827' : '#6b7280',
+      underline: this.state.tab === id ? '#111827' : 'transparent',
+      onClick: () => this.setState({ tab: id, scope: id === 'trends' ? 'all' : (id === 'month' ? 'month' : this.state.scope) })
+    }));
+
+    const shareOf = v => t.total > 0 ? Math.round(v / t.total * 100) + '% of month' : '—';
+    const counted = month.receipts.filter(r => !this.isExcluded(r)).length;
+    const buckets = [
+      { label: 'month total', color: '#111827', amount: this.kr(t.total), sub: counted + ' of ' + month.receipts.length + ' receipts counted' },
+      { label: 'hugo', color: C.Hugo, amount: this.kr(t.Hugo), sub: shareOf(t.Hugo) },
+      { label: 'benjamin', color: C.Benjamin, amount: this.kr(t.Benjamin), sub: shareOf(t.Benjamin) },
+      { label: 'shared', color: C.shared, amount: this.kr(t.shared), sub: shareOf(t.shared) },
+      { label: 'discounts', color: '#059669', amount: this.kr(t.discount), sub: 'saved this month' }
+    ];
+
+    const monthDotLabel = month.label;
+    const budget = Number(this.props.monthlyBudget ?? 6000);
+    const over = t.total > budget;
+
+
+    const series = this.months.map((m, i) => ({ i, m, t: this.tally(m.receipts) })).reverse();
+    const peak = Math.max(budget, ...series.map(x => x.t.total));
+    const scale = Math.ceil(peak * 1.12 / 500) * 500;
+    const y = v => (100 - Math.max(0, v) / scale * 100);
+    const chartMonths = series.map(x => {
+      const cur = x.i === this.state.monthIdx;
+      return {
+        label: x.m.short.replace(' 20', ' \u2019'),
+        bars: [
+          { h: y(x.t.shared) === 100 ? '0%' : (100 - y(x.t.shared)).toFixed(2) + '%', color: C.shared },
+          { h: (100 - y(x.t.Hugo)).toFixed(2) + '%', color: C.Hugo },
+          { h: (100 - y(x.t.Benjamin)).toFixed(2) + '%', color: C.Benjamin }
+        ],
+        dotTop: y(x.t.total).toFixed(2) + '%',
+        bg: cur ? '#f3f4f6' : 'transparent',
+        labelColor: cur ? '#111827' : '#9ca3af',
+        onEnter: () => this.setState({ hoverIdx: series.findIndex(z => z.i === x.i) }),
+        onLeave: () => this.setState({ hoverIdx: null }),
+        onClick: () => this.setState({ monthIdx: x.i, selId: null, cursor: 0, tab: 'month', scope: 'month' })
+      };
+    });
+    const totalPoints = series.map((x, k) => ((k + 0.5) / series.length * 100).toFixed(2) + ',' + y(x.t.total).toFixed(2)).join(' ');
+    const yTicks = [scale, scale * 0.75, scale * 0.5, scale * 0.25, 0].map(v => Math.round(v).toLocaleString('sv-SE'));
+    const gridLines = ['0%', '25%', '50%', '75%'];
+    const hi = this.state.hoverIdx;
+    const hoverActive = hi !== null && hi !== undefined && series[hi];
+    const hv = hoverActive ? series[hi] : null;
+    const hover = {
+      left: hoverActive ? ((hi + 0.5) / series.length * 100).toFixed(2) + '%' : '0%',
+      top: hoverActive ? y(hv.t.total).toFixed(2) + '%' : '0%',
+      transform: hoverActive && y(hv.t.total) < 40 ? 'translate(-50%, 22%)' : 'translate(-50%, -118%)',
+      label: hoverActive ? hv.m.label : '',
+      rows: hoverActive ? [
+        { label: 'Total', color: '#111827', value: this.kr(hv.t.total) },
+        { label: 'Shared', color: C.shared, value: this.kr(hv.t.shared) },
+        { label: 'Hugo', color: C.Hugo, value: this.kr(hv.t.Hugo) },
+        { label: 'Benjamin', color: C.Benjamin, value: this.kr(hv.t.Benjamin) },
+        { label: 'vs budget', color: '#dc2626', value: this.kr(hv.t.total - budget) }
+      ] : []
+    };
+
+    const allReceipts = [].concat.apply([], this.months.map(m => m.receipts));
+    const rt = this.state.scope === 'all' ? this.tally(allReceipts) : t;
+    const scopeOpts = [['month', 'Active month'], ['all', 'All time']].map(([id, label]) => ({
+      label, bg: this.state.scope === id ? '#111827' : 'transparent',
+      fg: this.state.scope === id ? '#ffffff' : '#6b7280',
+      onClick: () => this.setState({ scope: id })
+    }));
+    const scopeCaption = (this.state.scope === 'all'
+      ? 'All ' + this.months.length + ' months · ' + this.kr(rt.total)
+      : monthDotLabel + ' · ' + this.kr(rt.total)) + ' · net of discounts, excluded receipts omitted';
+
+    const allT = this.tally(allReceipts);
+    const ranked = Object.values(allT.byProd).sort((a, b) => b.total - a.total);
+    const prodOptions = ranked.map(p => ({ value: p.name, label: p.name + ' · ' + this.kr(p.total) }));
+    const selKey = ranked.some(p => p.name === this.state.prodSel) ? this.state.prodSel : (ranked[0] ? ranked[0].name : '');
+    const pSeries = this.months.map(m => {
+      const cell = { Hugo: 0, Benjamin: 0, shared: 0, total: 0, count: 0, label: m.short.replace(' 20', ' \u2019'), full: m.label };
+      m.receipts.forEach(r => {
+        if (this.isExcluded(r)) return;
+        const map = {}; r.lines.forEach(l => { map[l.id] = l; });
+        r.lines.forEach(l => {
+          if (this.displayName(l.raw_name) !== selKey) return;
+          const res = this.resolve(l, r, map);
+          cell[res.c] += l.line_total;
+          cell.total += l.line_total;
+          if (!l.applies_to_line_id) cell.count++;
+        });
+      });
+      return cell;
+    }).reverse();
+    const pScale = Math.max(50, Math.ceil(Math.max(1, ...pSeries.map(c => c.total)) * 1.15 / 50) * 50);
+    const stackKeys = [['Benjamin', C.Benjamin], ['Hugo', C.Hugo], ['shared', C.shared]];
+    const prodMonths = pSeries.map((c, k) => {
+      let capped = false;
+      return {
+        label: c.label,
+        bg: this.state.prodHoverIdx === k ? '#f9fafb' : 'transparent',
+        segs: stackKeys.map(([key, color]) => {
+          const h = Math.max(0, c[key]) / pScale * 100;
+          const top = !capped && h > 0;
+          if (top) capped = true;
+          return { h: h.toFixed(2) + '%', color, radius: top ? '2px 2px 0 0' : '0' };
+        }),
+        onEnter: () => this.setState({ prodHoverIdx: k }),
+        onLeave: () => this.setState({ prodHoverIdx: null })
+      };
+    });
+    const prodTicks = [pScale, pScale * 0.75, pScale * 0.5, pScale * 0.25, 0].map(v => Math.round(v).toLocaleString('sv-SE'));
+    const ph = this.state.prodHoverIdx;
+    const phActive = ph !== null && ph !== undefined && !!pSeries[ph];
+    const phc = phActive ? pSeries[ph] : null;
+    const prodHover = {
+      left: phActive ? ((ph + 0.5) / pSeries.length * 100).toFixed(2) + '%' : '0%',
+      top: phActive ? (100 - phc.total / pScale * 100).toFixed(2) + '%' : '0%',
+      transform: phActive && (100 - phc.total / pScale * 100) < 40 ? 'translate(-50%, 22%)' : 'translate(-50%, -112%)',
+      label: phActive ? phc.full : '',
+      rows: phActive ? [
+        { label: 'Total', color: '#111827', value: this.kr(phc.total) },
+        { label: 'Shared', color: C.shared, value: this.kr(phc.shared) },
+        { label: 'Hugo', color: C.Hugo, value: this.kr(phc.Hugo) },
+        { label: 'Benjamin', color: C.Benjamin, value: this.kr(phc.Benjamin) },
+        { label: 'Bought', color: '#e5e7eb', value: phc.count + '\u00d7' }
+      ] : []
+    };
+    const pTotal = pSeries.reduce((a, c) => a + c.total, 0);
+    const pActive = pSeries.filter(c => c.count > 0).length;
+    const pLast = pSeries[pSeries.length - 1], pPrev = pSeries[pSeries.length - 2];
+    const pDelta = pLast && pPrev ? pLast.total - pPrev.total : 0;
+    const pTop = ['shared', 'Hugo', 'Benjamin'].map(k => ({ k, v: pSeries.reduce((a, c) => a + c[k], 0) })).sort((a, b) => b.v - a.v)[0];
+    const prodStats = [
+      { label: 'All ' + this.months.length + ' months', value: this.kr(pTotal), color: '#111827' },
+      { label: 'Average per month', value: this.kr(pTotal / this.months.length), color: '#111827' },
+      { label: 'Months bought in', value: pActive + ' of ' + this.months.length, color: '#111827' },
+      { label: 'Latest vs previous', value: (pDelta > 0 ? '+' : '') + this.kr(pDelta), color: pDelta > 0 ? '#dc2626' : '#059669' },
+      { label: 'Mostly', value: pTop && pTop.v > 0 ? (pTop.k === 'shared' ? 'Shared' : pTop.k) : '\u2014', color: pTop && pTop.v > 0 ? C[pTop.k] : '#6b7280' }
+    ];
+
+    const prodList = Object.values(rt.byProd).sort((a, b) => b.total - a.total).slice(0, 9);
+    const maxProd = prodList.length ? prodList[0].total : 1;
+    const topProducts = prodList.map((p, i) => ({
+      rank: i + 1, name: p.name, count: p.count, amount: this.kr(p.total), pct: this.pct(p.total, maxProd),
+      onClick: () => this.setState({ tab: 'trends', scope: 'all', prodSel: p.name, prodHoverIdx: null })
+    }));
+
+    const categories = Object.values(rt.byCat).sort((a, b) => b.total - a.total).map(c => ({
+      name: c.name, amount: this.kr(c.total),
+      hugoPct: this.pct(c.Hugo, c.total), benPct: this.pct(c.Benjamin, c.total),
+      sharedPct: this.pct(c.shared, c.total), openPct: '0%',
+      hugoColor: C.Hugo, benColor: C.Benjamin
+    }));
+
+    const fmtDate = d => d.toLocaleDateString('sv-SE') + ' ' + d.toTimeString().slice(0, 5);
+    const receiptRows = month.receipts.map(r => {
+      const ex = this.isExcluded(r);
+      const map = {}; r.lines.forEach(l => { map[l.id] = l; });
+      const open = r.lines.filter(l => !l.applies_to_line_id && this.resolve(l, r, map).src !== 'line').length;
+      const selected = this.selId() === r.id;
+      return {
+        store: r.store, total: this.kr(r.total),
+        meta: fmtDate(r.purchased_at) + ' · ' + r.buyer + ' paid',
+        buyerColor: C[r.buyer], opacity: ex ? 0.45 : 1, strike: ex ? 'line-through' : 'none',
+        flag: ex ? 'excluded' : (open ? open + ' inherited' : 'all set by hand'),
+        flagColor: ex ? '#c2410c' : '#9ca3af',
+        bg: selected ? '#f3f4f6' : 'transparent',
+        onClick: () => this.setState({ selId: r.id, cursor: 0 })
+      };
+    });
+
+    const sel = this.selReceipt();
+    const selMap = {}; sel.lines.forEach(l => { selMap[l.id] = l; });
+    const isReceiptDiscount = l => !l.applies_to_line_id && l.line_total < 0;
+    const editable = sel.lines.filter(l => !l.applies_to_line_id && !isReceiptDiscount(l));
+    const receiptDiscounts = sel.lines.filter(isReceiptDiscount);
+    const discountsFor = {};
+    sel.lines.forEach(l => {
+      if (!l.applies_to_line_id) return;
+      (discountsFor[l.applies_to_line_id] = discountsFor[l.applies_to_line_id] || []).push(l);
+    });
+    const cursorOrder = editable.concat(receiptDiscounts);
+    const cursorId = cursorOrder.length ? cursorOrder[Math.min(this.state.cursor, cursorOrder.length - 1)].id : null;
+    const selEx = this.isExcluded(sel);
+    const OPTS = [['S', 'shared'], ['H', 'Hugo'], ['B', 'Benjamin']];
+    const items = editable.map(l => {
+      const disc = discountsFor[l.id] || [];
+      const discTotal = disc.reduce((a, d) => a + d.line_total, 0);
+      const net = l.line_total + discTotal;
+      const res = this.resolve(l, sel, selMap);
+      const c = res.c;
+      const srcLabel = res.src === 'line' ? 'set on this line' : (res.src === 'default' ? 'from product default' : 'from buyer · ' + sel.buyer);
+      const p = this.meta(l.raw_name);
+      const qty = l.quantity === null ? '' : (p.weight ? l.quantity.toFixed(3) + ' kg' : l.quantity + ' st');
+      const isCursor = l.id === cursorId;
+      return {
+        name: this.displayName(l.raw_name),
+        meta: [qty, srcLabel].filter(Boolean).join(' · '),
+        amount: this.kr(net),
+        amountColor: '#111827',
+        isReceiptDiscount: false,
+        hasDiscount: disc.length > 0,
+        discountChip: this.kr(discTotal),
+        discountTitle: disc.length > 1 ? disc.length + ' discount lines, ' + this.kr(discTotal) + ' off ' + this.kr(l.line_total) : 'Discount line, ' + this.kr(discTotal) + ' off ' + this.kr(l.line_total),
+        grossNote: 'was ' + this.kr(l.line_total),
+        bg: isCursor ? '#f9fafb' : '#ffffff',
+        cursorRing: isCursor ? 'inset 3px 0 0 #111827' : 'none',
+        editable: true,
+        opts: OPTS.map(([key, val]) => ({
+          key,
+          title: c !== val ? 'Mark as ' + val : (res.src === 'line' ? 'Clear — fall back to ' + (this.defaultConsumer(l.raw_name) ? 'product default' : 'buyer') : srcLabel + ' — click to set explicitly'),
+          bg: c === val && res.src === 'line' ? C[val] : 'transparent',
+          fg: c === val ? (res.src === 'line' ? '#ffffff' : C[val]) : '#6b7280',
+          ring: c === val && res.src !== 'line' ? 'inset 0 0 0 1.5px ' + C[val] : 'none',
+          onClick: () => this.setState(s => ({
+            lineOv: Object.assign({}, s.lineOv, { [l.id]: c === val && res.src === 'line' ? null : val }),
+            cursor: Math.max(0, editable.findIndex(x => x.id === l.id))
+          }))
+        }))
+      };
+    });
+    receiptDiscounts.forEach(l => {
+      const res = this.resolve(l, sel, selMap);
+      const c = res.c;
+      const srcLabel = res.src === 'line' ? 'set on this line' : (res.src === 'default' ? 'from product default' : 'from buyer · ' + sel.buyer);
+      const isCursor = l.id === cursorId;
+      items.push({
+        name: this.displayName(l.raw_name),
+        meta: 'applies to whole receipt · ' + srcLabel,
+        amount: this.kr(l.line_total),
+        amountColor: '#047857',
+        isReceiptDiscount: true,
+        hasDiscount: false, discountChip: '', discountTitle: '', grossNote: '',
+        bg: isCursor ? '#f9fafb' : '#fcfdfc',
+        cursorRing: isCursor ? 'inset 3px 0 0 #111827' : 'none',
+        editable: true,
+        opts: OPTS.map(([key, val]) => ({
+          key,
+          title: c !== val ? 'Mark as ' + val : (res.src === 'line' ? 'Clear — fall back to ' + (this.defaultConsumer(l.raw_name) ? 'product default' : 'buyer') : srcLabel + ' — click to set explicitly'),
+          bg: c === val && res.src === 'line' ? C[val] : 'transparent',
+          fg: c === val ? (res.src === 'line' ? '#ffffff' : C[val]) : '#6b7280',
+          ring: c === val && res.src !== 'line' ? 'inset 0 0 0 1.5px ' + C[val] : 'none',
+          onClick: () => this.setState(s2 => ({
+            lineOv: Object.assign({}, s2.lineOv, { [l.id]: c === val && res.src === 'line' ? null : val })
+          }))
+        }))
+      });
+    });
+
+    const st = { Hugo: 0, Benjamin: 0, shared: 0 };
+    sel.lines.forEach(l => { st[this.resolve(l, sel, selMap).c] += l.line_total; });
+    const splits = [
+      { label: 'hugo', color: C.Hugo, amount: this.kr(st.Hugo) },
+      { label: 'benjamin', color: C.Benjamin, amount: this.kr(st.Benjamin) },
+      { label: 'shared', color: C.shared, amount: this.kr(st.shared) },
+      { label: 'receipt total', color: '#4b5563', amount: this.kr(sel.total) }
+    ];
+
+    const pstats = {};
+    this.months.forEach(m => m.receipts.forEach(r => {
+      if (this.isExcluded(r)) return;
+      r.lines.forEach(l => {
+        if (!l.applies_to_line_id && l.line_total < 0) return;
+        if (!pstats[l.raw_name]) pstats[l.raw_name] = { count: 0, total: 0 };
+        pstats[l.raw_name].total += l.line_total;
+        if (!l.applies_to_line_id) pstats[l.raw_name].count++;
+      });
+    }));
+    let productRows = this.products.map(p => {
+      const s = pstats[p.raw_name] || { count: 0, total: 0 };
+      const def = this.defaultConsumer(p.raw_name);
+      return {
+        raw: p.raw_name, display: p.display_name || 'not reviewed',
+        nameColor: p.display_name ? '#111827' : '#9ca3af',
+        category: p.category || '—', count: s.count, total: this.kr(s.total), _def: def, _sort: s.total,
+        opts: OPTS.map(([key, val]) => ({
+          key, title: def === val ? 'Clear default' : 'Default to ' + val,
+          bg: def === val ? C[val] : 'transparent',
+          fg: def === val ? '#ffffff' : '#6b7280',
+          onClick: () => this.setState(s2 => ({ prodOv: Object.assign({}, s2.prodOv, { [p.raw_name]: def === val ? null : val }) }))
+        }))
+      };
+    }).sort((a, b) => b._sort - a._sort);
+    if (this.state.unrevOnly) productRows = productRows.filter(p => !p._def);
+    const q = this.state.prodQuery.trim().toLowerCase();
+    if (q) productRows = productRows.filter(p => (p.raw + ' ' + p.display + ' ' + p.category).toLowerCase().includes(q));
+
+    return {
+      monthLabel: month.label, monthShort: month.short,
+      prevMonth: () => this.setState(s => ({ monthIdx: Math.min(this.months.length - 1, s.monthIdx + 1), selId: null, cursor: 0 })),
+      nextMonth: () => this.setState(s => ({ monthIdx: Math.max(0, s.monthIdx - 1), selId: null, cursor: 0 })),
+      exportCsv: () => this.csv(),
+      tabs,
+      isMonth: this.state.tab === 'month',
+      isTrends: this.state.tab === 'trends',
+      showReports: this.state.tab === 'month' || this.state.tab === 'trends',
+      showMonthNav: this.state.tab === 'month' || this.state.tab === 'receipts',
+      isReceipts: this.state.tab === 'receipts',
+      isProducts: this.state.tab === 'products',
+      scopeOpts, scopeCaption, buckets, chartMonths,
+      prodOptions, prodSel: selKey, onProdSel: e => this.setState({ prodSel: e.target.value, prodHoverIdx: null }),
+      prodMonths, prodTicks, prodStats, prodHover, prodHoverActive: !!phActive,
+      stackLegend: [{ label: 'Shared', color: C.shared }, { label: 'Hugo', color: C.Hugo }, { label: 'Benjamin', color: C.Benjamin }], totalPoints, yTicks, gridLines, hover, hoverActive: !!hoverActive,
+      budgetTop: (100 - Math.min(100, budget / scale * 100)).toFixed(2) + '%',
+      topProducts, categories,
+      legend: [
+        { label: 'Shared', color: C.shared, h: '9px', dash: '0' },
+        { label: 'Hugo', color: C.Hugo, h: '9px', dash: '0' },
+        { label: 'Benjamin', color: C.Benjamin, h: '9px', dash: '0' },
+        { label: 'Total', color: '#111827', h: '2px', dash: '0' },
+        { label: 'Budget', color: 'transparent', h: '2px', dash: '2px dashed #dc2626' }
+      ],
+      showBudget: budget > 0,
+      budgetTarget: this.kr(budget),
+      budgetPct: Math.min(100, t.total / budget * 100).toFixed(1) + '%',
+      budgetColor: over ? '#dc2626' : '#111827',
+      budgetNote: over ? this.kr(t.total - budget) + ' over' : this.kr(budget - t.total) + ' left',
+      keyHints: [
+        { key: '↑ ↓', label: 'line' }, { key: '← →', label: 'receipt' },
+        { key: 'S', label: 'shared' }, { key: 'H', label: 'Hugo' }, { key: 'B', label: 'Benjamin' },
+        { key: '⌫', label: 'revert to inherited' }, { key: 'E', label: 'exclude receipt' }
+      ],
+      receiptCount: month.receipts.length,
+      receiptRows,
+      sel: {
+        store: sel.store, excluded: selEx,
+        meta: fmtDate(sel.purchased_at) + ' · ' + sel.buyer + ' paid · ' + sel.kivra_id,
+        exLabel: selEx ? 'Excluded — include again' : 'Exclude receipt',
+        exBg: selEx ? '#fff7ed' : '#ffffff',
+        exBorder: selEx ? '#fed7aa' : '#e5e7eb',
+        exFg: selEx ? '#9a3412' : '#374151',
+        items, splits
+      },
+      toggleExcluded: () => this.setState(s => ({ exOv: Object.assign({}, s.exOv, { [sel.id]: !this.isExcluded(sel) }) })),
+      productRows,
+      prodQuery: this.state.prodQuery,
+      noProducts: productRows.length === 0,
+      onProdQuery: e => this.setState({ prodQuery: e.target.value }),
+      toggleUnreviewed: () => this.setState(s => ({ unrevOnly: !s.unrevOnly })),
+      unrevLabel: this.state.unrevOnly ? 'Showing: no default' : 'Only without default',
+      unrevBg: this.state.unrevOnly ? '#f3f4f6' : '#ffffff',
+      unrevBorder: this.state.unrevOnly ? '#d1d5db' : '#e5e7eb',
+      unrevFg: '#374151'
+    };
+  }
+}
+
+</script>
+</body>
+</html>

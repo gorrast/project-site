@@ -1,0 +1,199 @@
+{
+  "data": {
+    "receiptV2": {
+      "key": "26096d0781faaa123f4bb715132551c30a49366f5163",
+      "content": {
+        "header": {
+          "totalPurchaseAmount": "265,46 kr",
+          "subAmounts": [
+            "Poänggrundande belopp 265,46 kr"
+          ],
+          "isoDate": "2026-09-11T17:37:55Z",
+          "formattedDate": "2026-09-11, 19:37",
+          "text": [
+            "ICA Nära Bergshamra",
+            "Odlingsvägen 4",
+            "170 77 SOLNA",
+            "Telefonnummer: 08-850 860",
+            "Öppettider: Alla Dagar 8-22"
+          ],
+          "labels": [],
+          "logo": {
+            "publicUrl": "https://static.kivra.com/receipt/1579618096bac60a57676c4f78be1c6af5025d513a"
+          }
+        },
+        "footer": {
+          "text": [
+            "Organisationsnummer: 556657-8398",
+            "Välkommen åter!",
+            "Kvitto och vara skall alltid medtagas",
+            "vid reklamation och återköp.",
+            "Vid reklamation av färskvaror vänligen",
+            "kontakta butiken snarast.",
+            "Felfria färsk/frysvaror återköpes ej!",
+            "E-presentkort bytes EJ.",
+            "E-presentkort reklameras hos utgivaren.",
+            "Byte/Återköp gäller endast obruten förp."
+          ]
+        },
+        "items": {
+          "allItems": {
+            "text": "Produkter",
+            "items": [
+              {
+                "text": [],
+                "type": "product",
+                "name": "Blandfärs 70/30",
+                "money": {
+                  "formatted": "72,37 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Frisco Hamb.bröd",
+                "money": {
+                  "formatted": "23,23 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Hamburgerost chedd",
+                "money": {
+                  "formatted": "26,56 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "HAND SOAP ORIG. SV",
+                "money": {
+                  "formatted": "18,90 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "HAND SOAP ORIG. SV",
+                "money": {
+                  "formatted": "18,90 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Kycklingklubba",
+                "money": {
+                  "formatted": "44,99 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Lök röd",
+                "money": {
+                  "formatted": "5,23 kr"
+                },
+                "quantityCost": {
+                  "formatted": "0,175 kg * 29,90 kr/kg"
+                },
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Nappar Cola",
+                "money": {
+                  "formatted": "11,26 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Nappar Fruit",
+                "money": {
+                  "formatted": "11,26 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Nappar Liqourice",
+                "money": {
+                  "formatted": "11,26 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Peppar Röd ICA",
+                "money": {
+                  "formatted": "21,50 kr"
+                },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              }
+            ]
+          },
+          "noBonusItems": {
+            "text": "Ej poänggrundande varor",
+            "items": []
+          },
+          "returnedItems": {
+            "text": "Returnerade varor",
+            "items": []
+          }
+        }
+      },
+      
+      "sender": {
+        "name": "ICA",
+        "key": "15765665678a499fdd66139b23016615a978111111"
+      },
+      "attributes": {
+        "isUpdatedWithReturns": false
+      }
+    }
+  }
+}

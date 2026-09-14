@@ -1,0 +1,153 @@
+{
+  "data": {
+    "receiptV2": {
+      "key": "2609befb07e63cbcc84f258d287e3d56bcb3abe5504d",
+      "content": {
+        "header": {
+          "totalPurchaseAmount": "327,04 kr",
+          "subAmounts": [
+            "Totalrabatt 91,34 kr",
+            "Poänggrundande belopp 327,04 kr",
+            "Stammisrabatt 10,08 kr"
+          ],
+          "isoDate": "2026-09-07T15:16:04Z",
+          "formattedDate": "2026-09-07, 17:16",
+          "text": [
+            "ICA Nära Bergshamra",
+            "Odlingsvägen 4",
+            "170 77 SOLNA",
+            "Telefonnummer: 08-850 860",
+            "Öppettider: Alla Dagar 8-22"
+          ],
+          "labels": [],
+          "logo": {
+            "publicUrl": "https://static.kivra.com/receipt/1579618096bac60a57676c4f78be1c6af5025d513a"
+          }
+        },
+        "items": {
+          "allItems": {
+            "text": "Produkter",
+            "items": [
+              {
+                "text": [],
+                "type": "product",
+                "name": "Banan Eko",
+                "money": { "formatted": "28,09 kr" },
+                "quantityCost": { "formatted": "1,06 kg * 26,50 kr/kg" },
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Bärkasse papper",
+                "money": { "formatted": "3,50 kr" },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Hönö Skärgårdskaka",
+                "money": { "formatted": "34,92 kr" },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "*Kycklingfärs",
+                "money": { "formatted": "223,72 kr" },
+                "quantityCost": { "formatted": "4 st * 55,93 kr/st" },
+                "deposits": [],
+                "costModifiers": [
+                  {
+                    "description": "Kycklingfär 40kr/st",
+                    "money": { "formatted": "−63,72 kr" },
+                    "isRefund": true
+                  }
+                ],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "*Lätt Creme fraich",
+                "money": { "formatted": "30,08 kr" },
+                "quantityCost": { "formatted": "2 st * 15,04 kr/st" },
+                "deposits": [],
+                "costModifiers": [
+                  {
+                    "description": "Crème Fraic 10kr/st",
+                    "money": { "formatted": "−10,08 kr" },
+                    "isRefund": true
+                  }
+                ],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Morötter nyskördad",
+                "money": { "formatted": "19,90 kr" },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "*Pasta Spirali",
+                "money": { "formatted": "42,54 kr" },
+                "quantityCost": { "formatted": "3 st * 14,18 kr/st" },
+                "deposits": [],
+                "costModifiers": [
+                  {
+                    "description": "Pasta 3f25kr",
+                    "money": { "formatted": "−17,54 kr" },
+                    "isRefund": true
+                  }
+                ],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Skinka rökt tsk",
+                "money": { "formatted": "27,07 kr" },
+                "quantityCost": null,
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              },
+              {
+                "text": [],
+                "type": "product",
+                "name": "Äpple Royal Gala",
+                "money": { "formatted": "8,56 kr" },
+                "quantityCost": { "formatted": "0,29 kg * 29,50 kr/kg" },
+                "deposits": [],
+                "costModifiers": [],
+                "identifiers": []
+              }
+            ]
+          },
+          "noBonusItems": { "text": "Ej poänggrundande varor", "items": [] },
+          "returnedItems": { "text": "Returnerade varor", "items": [] }
+        }
+      },
+      "campaigns": [],
+      "sender": {
+        "name": "ICA",
+        "key": "15765665678a499fdd66139b23016615a978111111"
+      },
+      "attributes": { "isUpdatedWithReturns": false }
+    }
+  }
+}

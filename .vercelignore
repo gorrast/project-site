@@ -1,0 +1,5 @@
+# The ICA Kivra importer holds the Supabase service_role key and personal
+# identity numbers, and must never be deployed as part of the Vercel app
+# (docs/ica-kivra-importer-handoff.md §3.4). It runs locally only.
+scripts/kivra/
+.env.local

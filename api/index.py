@@ -1,9 +1,3 @@
-import base64
-import hashlib
-import hmac
-import json
-import secrets
-import time
 from typing import List, Literal, Optional
 
 import requests
@@ -11,12 +5,13 @@ from fastapi import Depends, FastAPI, HTTPException, Request
 from fastapi.responses import JSONResponse
 from pydantic import BaseModel
 
+from .admin_auth import LoginBody, authenticate_admin, require_admin_cookie, set_admin_cookie
 from .clients import admin_client, anon_client
 
 app = FastAPI()
 
 ADMIN_COOKIE = "admin_session"
-SESSION_DURATION_MS = 24 * 60 * 60 * 1000
+require_admin = require_admin_cookie(ADMIN_COOKIE)
 
 
 @app.exception_handler(HTTPException)
@@ -30,76 +25,8 @@ async def unhandled_exception_handler(request: Request, exc: Exception):
 
 
 # ---------------------------------------------------------------------------
-# Admin auth (mirrors lib/admin-auth.ts byte-for-byte so existing sessions
-# and password hashes stay valid)
-# ---------------------------------------------------------------------------
-
-
-def get_secret() -> str:
-    secret = os.environ.get("ADMIN_SESSION_SECRET")
-    if not secret:
-        raise RuntimeError("ADMIN_SESSION_SECRET is not set")
-    return secret
-
-
-def b64url_encode(data: bytes) -> str:
-    return base64.urlsafe_b64encode(data).rstrip(b"=").decode()
-
-
-def b64url_decode(s: str) -> bytes:
-    padding = "=" * (-len(s) % 4)
-    return base64.urlsafe_b64decode(s + padding)
-
-
-def hash_password(password: str, salt: str) -> str:
-    return hashlib.sha256((salt + password).encode()).hexdigest()
-
-
-def sign_session_token(username: str) -> str:
-    exp = int(time.time() * 1000) + SESSION_DURATION_MS
-    payload = b64url_encode(json.dumps({"username": username, "exp": exp}, separators=(",", ":")).encode())
-    sig = b64url_encode(hmac.new(get_secret().encode(), payload.encode(), hashlib.sha256).digest())
-    return f"{payload}.{sig}"
-
-
-def verify_session_token(token: str) -> Optional[str]:
-    try:
-        dot_idx = token.rfind(".")
-        if dot_idx == -1:
-            return None
-        payload = token[:dot_idx]
-        sig = token[dot_idx + 1:]
-
-        expected_sig = b64url_encode(hmac.new(get_secret().encode(), payload.encode(), hashlib.sha256).digest())
-        if not hmac.compare_digest(sig, expected_sig):
-            return None
-
-        data = json.loads(b64url_decode(payload))
-        if time.time() * 1000 > data["exp"]:
-            return None
-        return data["username"]
-    except Exception:
-        return None
-
-
-def require_admin(request: Request) -> str:
-    token = request.cookies.get(ADMIN_COOKIE)
-    if not token:
-        raise HTTPException(status_code=401, detail="Unauthorized")
-    username = verify_session_token(token)
-    if not username:
-        raise HTTPException(status_code=401, detail="Invalid or expired session")
-    return username
-
-
-# ---------------------------------------------------------------------------
 # Request bodies
 # ---------------------------------------------------------------------------
-
-
-class LoginBody(BaseModel):
-    username: str
-    password: str
 
 
 class PlayerCreateBody(BaseModel):
@@ -722,38 +649,11 @@ def admin_login(body: LoginBody):
     if not body.username or not body.password:
         raise HTTPException(status_code=400, detail="Username and password are required")
 
-    client = admin_client()
-    try:
-        result = (
-            client.table("admin_credentials")
-            .select("username, password_hash, salt")
-            .eq("username", body.username)
-            .single()
-            .execute()
-        )
-        data = result.data
-    except Exception:
-        data = None
-
-    if not data:
-        hash_password(body.password, secrets.token_hex(16))
+    if not authenticate_admin(body.username, body.password):
         raise HTTPException(status_code=401, detail="Invalid credentials")
 
-    input_hash = hash_password(body.password, data["salt"])
-    if not hmac.compare_digest(input_hash, data["password_hash"]):
-        raise HTTPException(status_code=401, detail="Invalid credentials")
-
-    token = sign_session_token(body.username)
     response = JSONResponse({"success": True})
-    response.set_cookie(
-        ADMIN_COOKIE,
-        token,
-        httponly=True,
-        secure=True,
-        samesite="strict",
-        max_age=24 * 60 * 60,
-        path="/",
-    )
+    set_admin_cookie(response, ADMIN_COOKIE, body.username)
     return response
 
 
@@ -1161,3 +1061,7 @@ def update_team(team_id: int, body: TeamUpdateBody, username: str = Depends(requ
 from .fpl import router as fpl_router  # noqa: E402
 
 app.include_router(fpl_router)
+
+from .ica_tracking import router as ica_tracking_router  # noqa: E402
+
+app.include_router(ica_tracking_router)

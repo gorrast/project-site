@@ -2,6 +2,7 @@
   "rewrites": [
     { "source": "/api/todos", "destination": "/api/index" },
     { "source": "/api/bluebaycup/:path*", "destination": "/api/index" },
-    { "source": "/api/fpl/:path*", "destination": "/api/index" }
+    { "source": "/api/fpl/:path*", "destination": "/api/index" },
+    { "source": "/api/ica-tracking/:path*", "destination": "/api/index" }
   ]
 }
