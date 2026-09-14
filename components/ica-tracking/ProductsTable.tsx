@@ -6,7 +6,7 @@ import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SHBControl } from './SHBControl'
 import { useProducts } from './hooks/useProducts'
-import { kr } from './colors'
+import { formatQuantity, kr } from './colors'
 
 export function ProductsTable() {
   const { data, loading, setDefaultConsumer } = useProducts()
@@ -54,6 +54,7 @@ export function ProductsTable() {
                 <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400">display_name</TableHead>
                 <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400">category</TableHead>
                 <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">n</TableHead>
+                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">qty</TableHead>
                 <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">total</TableHead>
                 <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">default</TableHead>
               </TableRow>
@@ -67,6 +68,9 @@ export function ProductsTable() {
                   </TableCell>
                   <TableCell className="text-[11.5px] text-gray-500 dark:text-gray-400">{p.category ?? '—'}</TableCell>
                   <TableCell className="font-mono text-right">{p.count}</TableCell>
+                  <TableCell className="font-mono text-right text-gray-500 dark:text-gray-400">
+                    {formatQuantity(p.quantityKg, p.quantitySt)}
+                  </TableCell>
                   <TableCell className="font-mono text-right">{kr(p.total)}</TableCell>
                   <TableCell className="text-right">
                     <div className="flex justify-end">
@@ -81,7 +85,7 @@ export function ProductsTable() {
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={6} className="text-center text-gray-400 py-6">
+                  <TableCell colSpan={7} className="text-center text-gray-400 py-6">
                     No products match.
                   </TableCell>
                 </TableRow>

@@ -3,7 +3,7 @@
 import { useState } from 'react'
 import { cn } from '@/lib/utils'
 import { useReports } from './hooks/useReports'
-import { CONSUMER_COLORS, kr, pct } from './colors'
+import { CONSUMER_COLORS, formatQuantity, kr, pct } from './colors'
 import type { CategoryReport, PersonFilter, Scope } from './types'
 
 interface ReportsSectionProps {
@@ -99,7 +99,14 @@ export function ReportsSection({ scope, onScopeChange, monthKey }: ReportsSectio
                   style={{ gridTemplateColumns: '16px minmax(0,1fr) 56px 40px 82px' }}
                 >
                   <span className="font-mono text-[10.5px] text-gray-400">{p.rank}</span>
-                  <span className="text-[13px] text-gray-900 dark:text-gray-100 truncate">{p.name}</span>
+                  <span className="min-w-0">
+                    <span className="block text-[13px] text-gray-900 dark:text-gray-100 truncate">{p.name}</span>
+                    {(p.quantityKg > 0 || p.quantitySt > 0) && (
+                      <span className="block font-mono text-[10px] text-gray-400">
+                        {formatQuantity(p.quantityKg, p.quantitySt)}
+                      </span>
+                    )}
+                  </span>
                   <span
                     className={cn('h-[5px] rounded-full', person === 'total' && 'bg-gray-600 dark:bg-gray-400')}
                     style={{ width: pct(p.total, maxTotal), backgroundColor: person === 'total' ? undefined : CONSUMER_COLORS[person] }}

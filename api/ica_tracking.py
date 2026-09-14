@@ -75,6 +75,26 @@ def is_receipt_discount(line: dict) -> bool:
     return line["applies_to_line_id"] is None and line["line_total"] < 0
 
 
+def add_quantity(bucket: dict, line: dict) -> None:
+    """Accumulates one article line's quantity into `bucket` (a dict with
+    "kg" and "st" float keys), split by an inferred unit — the schema has no
+    unit column, only a bare `numeric(10,3)`, so a whole-number quantity is
+    treated as a count ("st") and a fractional one as a weight ("kg"), same
+    heuristic the Receipts tab uses to format a single line's own quantity.
+    Kept as two separate running sums rather than one blended number: a
+    product bought both as fixed packages and by weight (or two raw_names
+    sharing a display_name with different units) would otherwise produce a
+    meaningless total. Discount lines and lines with no quantity contribute
+    nothing — callers only pass article lines here."""
+    q = line["quantity"]
+    if q is None:
+        return
+    if q == int(q):
+        bucket["st"] += q
+    else:
+        bucket["kg"] += q
+
+
 def product_meta(raw_name: str, products_by_raw: dict) -> dict:
     return products_by_raw.get(raw_name) or {
         "raw_name": raw_name,
@@ -132,12 +152,18 @@ def tally(receipts: list[dict], lines_by_receipt: dict, products_by_raw: dict) -
                 "name": key, "count": 0, "total": 0.0,
                 "Hugo": 0.0, "Benjamin": 0.0, "shared": 0.0,
                 "count_Hugo": 0, "count_Benjamin": 0, "count_shared": 0,
+                "quantity": {"kg": 0.0, "st": 0.0},
+                "quantity_Hugo": {"kg": 0.0, "st": 0.0},
+                "quantity_Benjamin": {"kg": 0.0, "st": 0.0},
+                "quantity_shared": {"kg": 0.0, "st": 0.0},
             })
             prod_row["total"] += line["line_total"]
             prod_row[consumer] += line["line_total"]
             if line["applies_to_line_id"] is None:
                 prod_row["count"] += 1
                 prod_row[f"count_{consumer}"] += 1
+                add_quantity(prod_row["quantity"], line)
+                add_quantity(prod_row[f"quantity_{consumer}"], line)
     return t
 
 
@@ -491,7 +517,10 @@ def get_reports(
         total = t["total"]
         prod_list = sorted(t["byProd"].values(), key=lambda p: p["total"], reverse=True)[:9]
         top_products = [
-            {"rank": i + 1, "name": p["name"], "count": p["count"], "total": p["total"]}
+            {
+                "rank": i + 1, "name": p["name"], "count": p["count"], "total": p["total"],
+                "quantityKg": p["quantity"]["kg"], "quantitySt": p["quantity"]["st"],
+            }
             for i, p in enumerate(prod_list)
         ]
         categories = sorted(t["byCat"].values(), key=lambda c: c["total"], reverse=True)
@@ -500,7 +529,10 @@ def get_reports(
         candidates = [p for p in t["byProd"].values() if p[f"count_{person}"] > 0]
         prod_list = sorted(candidates, key=lambda p: p[person], reverse=True)[:9]
         top_products = [
-            {"rank": i + 1, "name": p["name"], "count": p[f"count_{person}"], "total": p[person]}
+            {
+                "rank": i + 1, "name": p["name"], "count": p[f"count_{person}"], "total": p[person],
+                "quantityKg": p[f"quantity_{person}"]["kg"], "quantitySt": p[f"quantity_{person}"]["st"],
+            }
             for i, p in enumerate(prod_list)
         ]
         categories = sorted(t["byCat"].values(), key=lambda c: c[person], reverse=True)
@@ -531,20 +563,25 @@ def get_products(username: str = Depends(require_ica_admin)):
         for line in lines_by_receipt.get(r["id"], []):
             if is_receipt_discount(line):
                 continue
-            row = stats.setdefault(line["raw_name"], {"count": 0, "total": 0.0})
+            row = stats.setdefault(
+                line["raw_name"], {"count": 0, "total": 0.0, "quantity": {"kg": 0.0, "st": 0.0}}
+            )
             row["total"] += line["line_total"]
             if line["applies_to_line_id"] is None:
                 row["count"] += 1
+                add_quantity(row["quantity"], line)
 
     rows = []
     for raw_name, p in products_by_raw.items():
-        s = stats.get(raw_name, {"count": 0, "total": 0.0})
+        s = stats.get(raw_name, {"count": 0, "total": 0.0, "quantity": {"kg": 0.0, "st": 0.0}})
         rows.append({
             "rawName": raw_name,
             "displayName": p["display_name"],
             "category": p["category"],
             "count": s["count"],
             "total": s["total"],
+            "quantityKg": s["quantity"]["kg"],
+            "quantitySt": s["quantity"]["st"],
             "defaultConsumer": p["default_consumer"],
         })
     rows.sort(key=lambda r: r["total"], reverse=True)

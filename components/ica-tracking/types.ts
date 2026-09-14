@@ -81,6 +81,8 @@ export interface TopProduct {
   name: string
   count: number
   total: number
+  quantityKg: number
+  quantitySt: number
 }
 
 export interface CategoryReport {
@@ -109,6 +111,8 @@ export interface ProductRow {
   category: string | null
   count: number
   total: number
+  quantityKg: number
+  quantitySt: number
   defaultConsumer: Consumer | null
 }
 
