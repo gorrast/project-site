@@ -122,6 +122,7 @@ export interface ProductsResponse {
 
 export interface ProductOption {
   name: string
+  category: string
   total: number
 }
 
@@ -141,7 +142,6 @@ export interface ProductMonthlyCell {
 }
 
 export interface ProductMonthlyResponse {
-  name: string
   months: ProductMonthlyCell[]
 }
 

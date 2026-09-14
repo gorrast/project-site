@@ -29,7 +29,7 @@ const projects: Project[] = [
   {
     title: 'Playpilot Compare',
     description:
-      'Evaluate and compare data for Playpilot profiles',
+      'Evaluate and compare data for Playpilot profiles. Early prototype...',
     href: '/playpilot',
     tags: ['Selenium', 'Statistics', 'Movies & TV'],
     /* image: (
@@ -45,16 +45,34 @@ const projects: Project[] = [
   {
     title: 'FPL Points Predictions',
     description:
-      'Model-predicted Fantasy Premier League points, with a live Draft league roster viewer and optimized starting XI.',
+      'Model-predicted Fantasy Premier League points, based on historical data and current form. Fetches data from FPL api, and live odds to train model every week.',
     href: '/fpl-pred',
     tags: ['Machine Learning', 'Fantasy Football'],
+    /* image: (
+      <Image
+        src="/bluebaycup_project.png"
+        alt="Blue Bay Cup"
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="object-cover"
+      />
+    ), */
   },
   {
     title: 'Food Expenses',
     description:
-      'Private household grocery expense tracker for Hugo & Benjamin — who consumed how much, on what, per month.',
+      'Expense tracking tool. Fetches receipts from Kivra',
     href: '/ica-tracking',
-    tags: ['Supabase', 'Household'],
+    tags: ['Household', 'Kivra'],
+    /* image: (
+      <Image
+        src="/bluebaycup_project.png"
+        alt="Blue Bay Cup"
+        fill
+        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
+        className="object-cover"
+      />
+    ), */
   },
 ]
 

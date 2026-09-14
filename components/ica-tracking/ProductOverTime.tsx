@@ -1,10 +1,12 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useTheme } from 'next-themes'
 import { cn } from '@/lib/utils'
 import { useProductMonthly, useProductOptions } from './hooks/useProductMonthly'
-import { BUDGET_COLOR, CONSUMER_COLORS, inkColor, kr } from './colors'
+import { useMonths } from './hooks/useMonths'
+import { ProductSelector } from './ProductSelector'
+import { BUDGET_COLOR, CONSUMER_COLORS, inkColor, kr, mutedColor } from './colors'
 import type { Consumer, ProductMonthlyCell } from './types'
 
 const GRID_LINES = [0, 25, 50, 75]
@@ -18,7 +20,7 @@ interface Stat {
   color: string
 }
 
-function computeStats(months: ProductMonthlyCell[]): Stat[] {
+function computeStats(months: ProductMonthlyCell[], ink: string, muted: string): Stat[] {
   const total = months.reduce((a, m) => a + m.total, 0)
   const active = months.filter(m => m.count > 0).length
   const last = months[months.length - 1]
@@ -33,9 +35,9 @@ function computeStats(months: ProductMonthlyCell[]): Stat[] {
   const top = (Object.entries(sums) as [Consumer, number][]).sort((a, b) => b[1] - a[1])[0]
 
   return [
-    { label: `All ${months.length} months`, value: kr(total), color: '#111827' },
-    { label: 'Average per month', value: kr(months.length ? total / months.length : 0), color: '#111827' },
-    { label: 'Months bought in', value: `${active} of ${months.length}`, color: '#111827' },
+    { label: `All ${months.length} months`, value: kr(total), color: ink },
+    { label: 'Average per month', value: kr(months.length ? total / months.length : 0), color: ink },
+    { label: 'Months bought in', value: `${active} of ${months.length}`, color: ink },
     {
       label: 'Latest vs previous',
       value: `${delta > 0 ? '+' : ''}${kr(delta)}`,
@@ -44,46 +46,61 @@ function computeStats(months: ProductMonthlyCell[]): Stat[] {
     {
       label: 'Mostly',
       value: top && top[1] > 0 ? (top[0] === 'shared' ? 'Shared' : top[0]) : '—',
-      color: top && top[1] > 0 ? CONSUMER_COLORS[top[0]] : '#6b7280',
+      color: top && top[1] > 0 ? CONSUMER_COLORS[top[0]] : muted,
     },
   ]
 }
 
 export function ProductOverTime() {
   const { data: options } = useProductOptions()
-  const [selectedOverride, setSelectedOverride] = useState<string | null>(null)
-  const selected = selectedOverride ?? options?.options[0]?.name ?? null
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [initialized, setInitialized] = useState(false)
   const { resolvedTheme } = useTheme()
   const ink = inkColor(resolvedTheme)
+  const muted = mutedColor(resolvedTheme)
   const [hoverIndex, setHoverIndex] = useState<number | null>(null)
 
-  const { data } = useProductMonthly(selected)
+  // Defaults to everything selected — a sensible starting point ("total
+  // household spend over time") — the first time options load.
+  useEffect(() => {
+    function run() {
+      if (options && !initialized) {
+        setSelected(new Set(options.options.map(o => o.name)))
+        setInitialized(true)
+      }
+    }
+    run()
+  }, [options, initialized])
+
+  const { data } = useProductMonthly([...selected])
+  const { data: monthsList } = useMonths()
 
   if (!options || options.options.length === 0) return null
 
-  const months = data?.months ?? []
+  // Keeps the chart/stats shell mounted at a fixed shape even with nothing
+  // selected — an all-zero series over the real month range, rather than
+  // the section disappearing and reappearing every time the selection is
+  // cleared. The canonical month range comes from useMonths() (independent
+  // of any product selection), not from the product-monthly response,
+  // which is simply absent when there's nothing to fetch for.
+  const months =
+    data?.months ??
+    (monthsList?.months ?? []).map(m => ({
+      key: m.key, label: m.label, short: m.short,
+      Hugo: 0, Benjamin: 0, shared: 0, total: 0, count: 0,
+    }))
   const maxTotal = Math.max(1, ...months.map(m => m.total))
   const scale = Math.max(50, Math.ceil((maxTotal * 1.15) / 50) * 50)
   const yTicks = [scale, scale * 0.75, scale * 0.5, scale * 0.25, 0]
   const hoverMonth = hoverIndex !== null ? months[hoverIndex] : null
   const hoverTop = hoverMonth ? 100 - (hoverMonth.total / scale) * 100 : 0
-  const stats = computeStats(months)
+  const stats = computeStats(months, ink, muted)
 
   return (
     <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-[18px] pt-5 pb-3.5 shadow-[0_10px_15px_-3px_rgba(17,24,39,0.08),0_4px_6px_-4px_rgba(17,24,39,0.05)] flex flex-col">
       <div className="flex flex-wrap gap-2.5 items-center justify-between mb-4">
-        <h3 className="font-heading text-base font-semibold text-gray-900 dark:text-gray-100">One product over time</h3>
-        <select
-          value={selected ?? ''}
-          onChange={e => setSelectedOverride(e.target.value)}
-          className="h-8 min-w-[220px] max-w-full border border-gray-200 dark:border-gray-600 rounded-[10px] px-2 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900 cursor-pointer outline-none"
-        >
-          {options.options.map(o => (
-            <option key={o.name} value={o.name}>
-              {o.name} · {kr(o.total)}
-            </option>
-          ))}
-        </select>
+        <h3 className="font-heading text-base font-semibold text-gray-900 dark:text-gray-100">Products over time</h3>
+        <ProductSelector options={options.options} selected={selected} onChange={setSelected} />
       </div>
 
       {months.length > 0 && (

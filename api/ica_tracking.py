@@ -149,7 +149,7 @@ def tally(receipts: list[dict], lines_by_receipt: dict, products_by_raw: dict) -
             cat_row["total"] += line["line_total"]
             key = display_name(line["raw_name"], products_by_raw)
             prod_row = t["byProd"].setdefault(key, {
-                "name": key, "count": 0, "total": 0.0,
+                "name": key, "category": cat, "count": 0, "total": 0.0,
                 "Hugo": 0.0, "Benjamin": 0.0, "shared": 0.0,
                 "count_Hugo": 0, "count_Benjamin": 0, "count_shared": 0,
                 "quantity": {"kg": 0.0, "st": 0.0},
@@ -157,6 +157,10 @@ def tally(receipts: list[dict], lines_by_receipt: dict, products_by_raw: dict) -
                 "quantity_Benjamin": {"kg": 0.0, "st": 0.0},
                 "quantity_shared": {"kg": 0.0, "st": 0.0},
             })
+            # A display_name group could in principle span raw_names with
+            # inconsistent categories (a data-hygiene issue, not something
+            # this code tries to reconcile) — last line processed wins.
+            prod_row["category"] = cat
             prod_row["total"] += line["line_total"]
             prod_row[consumer] += line["line_total"]
             if line["applies_to_line_id"] is None:
@@ -593,18 +597,30 @@ def get_product_options(username: str = Depends(require_ica_admin)):
     receipts, lines_by_receipt, products_by_raw = load_all()
     t = tally(receipts, lines_by_receipt, products_by_raw)
     options = sorted(
-        ({"name": p["name"], "total": p["total"]} for p in t["byProd"].values()),
+        (
+            {"name": p["name"], "category": p["category"], "total": p["total"]}
+            for p in t["byProd"].values()
+        ),
         key=lambda p: p["total"],
         reverse=True,
     )
     return {"options": options}
 
 
-@router.get("/products/monthly")
-def get_product_monthly(name: str, username: str = Depends(require_ica_admin)):
+class ProductMonthlyBody(BaseModel):
+    names: list[str]
+
+
+@router.post("/products/monthly")
+def get_product_monthly(body: ProductMonthlyBody, username: str = Depends(require_ica_admin)):
+    """Sums every selected product (by display_name) into one combined
+    monthly series — a body rather than query params since a "select all
+    in a category" or global "select all" pick can include far more names
+    than comfortably fits in a URL."""
     receipts, lines_by_receipt, products_by_raw = load_all()
     keys = all_month_keys(receipts)
     by_month = group_receipts_by_month(receipts)
+    names = set(body.names)
 
     months = []
     for key in keys:
@@ -614,7 +630,7 @@ def get_product_monthly(name: str, username: str = Depends(require_ica_admin)):
                 continue
             lines = lines_by_receipt.get(r["id"], [])
             for line in lines:
-                if display_name(line["raw_name"], products_by_raw) != name:
+                if display_name(line["raw_name"], products_by_raw) not in names:
                     continue
                 consumer = line_consumer(line, r)
                 cell[consumer] += line["line_total"]
@@ -625,7 +641,7 @@ def get_product_monthly(name: str, username: str = Depends(require_ica_admin)):
             "key": key, "label": month_label(key), "short": month_label(key, short=True), **cell,
         })
 
-    return {"name": name, "months": months}
+    return {"months": months}
 
 
 @router.patch("/lines/{line_id}")

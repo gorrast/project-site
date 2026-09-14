@@ -43,3 +43,7 @@ export function fmtDate(iso: string): string {
 export function inkColor(resolvedTheme: string | undefined): string {
   return resolvedTheme === 'dark' ? '#f3f4f6' : '#111827'
 }
+
+export function mutedColor(resolvedTheme: string | undefined): string {
+  return resolvedTheme === 'dark' ? '#9ca3af' : '#6b7280'
+}
