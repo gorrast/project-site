@@ -32,15 +32,15 @@ const projects: Project[] = [
       'Evaluate and compare data for Playpilot profiles. Early prototype...',
     href: '/playpilot',
     tags: ['Selenium', 'Statistics', 'Movies & TV'],
-    /* image: (
+    image: (
       <Image
-        src="/bluebaycup_project.png"
-        alt="Blue Bay Cup"
+        src="/playpilot_raw.png"
+        alt="Playpilot Compare"
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         className="object-cover"
       />
-    ), */
+    ),
   },
   {
     title: 'FPL Points Predictions',
@@ -48,15 +48,15 @@ const projects: Project[] = [
       'Model-predicted Fantasy Premier League points, based on historical data and current form. Fetches data from FPL api, and live odds to train model every week.',
     href: '/fpl-pred',
     tags: ['Machine Learning', 'Fantasy Football'],
-    /* image: (
+    image: (
       <Image
-        src="/bluebaycup_project.png"
-        alt="Blue Bay Cup"
+        src="/fpl-pred.png"
+        alt="FPL Points Predictions"
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         className="object-cover"
       />
-    ), */
+    ),
   },
   {
     title: 'Food Expenses',
@@ -64,15 +64,15 @@ const projects: Project[] = [
       'Expense tracking tool. Fetches receipts from Kivra',
     href: '/ica-tracking',
     tags: ['Household', 'Kivra'],
-    /* image: (
+    image: (
       <Image
-        src="/bluebaycup_project.png"
-        alt="Blue Bay Cup"
+        src="/kivra-sync.png"
+        alt="Food Expenses"
         fill
         sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
         className="object-cover"
       />
-    ), */
+    ),
   },
 ]
 
