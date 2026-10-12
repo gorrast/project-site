@@ -7,7 +7,7 @@ import { AuthGate } from './AuthGate'
 import { MonthStepper } from './MonthStepper'
 import { TabBar } from './TabBar'
 import { BucketCards } from './BucketCards'
-import { BudgetBar } from './BudgetBar'
+import { FairShareBudgetBar } from './FairShareBudgetBar'
 import { ReportsSection } from './ReportsSection'
 import { MonthChart } from './MonthChart'
 import { ProductOverTime } from './ProductOverTime'
@@ -126,7 +126,7 @@ function IcaTrackingInner() {
             {monthData.data && (
               <>
                 <BucketCards tally={monthData.data.tally} />
-                <BudgetBar total={monthData.data.tally.total} />
+                <FairShareBudgetBar tally={monthData.data.tally} />
               </>
             )}
             <ReportsSection scope={scope} onScopeChange={s => setParams({ scope: s })} monthKey={monthKey} />
@@ -145,7 +145,10 @@ function IcaTrackingInner() {
           <div className="flex flex-col gap-3">
             <KeyboardHints />
             {monthData.saveError && <p className="text-sm text-red-600">{monthData.saveError}</p>}
-            <div className="grid gap-3.5" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))' }}>
+            <div
+              className="grid gap-3.5 items-stretch"
+              style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', height: 'calc(100vh - 230px)' }}
+            >
               <ReceiptList
                 receipts={receipts}
                 selectedId={effectiveSelectedId}

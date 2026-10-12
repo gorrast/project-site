@@ -38,8 +38,8 @@ export function ReceiptDetail({ receipt, cursor, onCursorChange, onSetLineConsum
   }
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden flex flex-col">
-      <div className="flex items-center justify-between gap-3 px-4 pt-4 pb-3">
+    <div className="h-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden flex flex-col">
+      <div className="shrink-0 flex items-center justify-between gap-3 px-4 pt-4 pb-3">
         <div>
           <div className="font-heading text-[15px] font-bold text-gray-900 dark:text-gray-100">
             {receipt.store ?? 'Unknown store'}
@@ -58,12 +58,12 @@ export function ReceiptDetail({ receipt, cursor, onCursorChange, onSetLineConsum
       </div>
 
       {receipt.excluded && (
-        <div className="mx-4 mb-3 px-3 py-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs">
+        <div className="shrink-0 mx-4 mb-3 px-3 py-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs">
           Excluded from all totals and reports — paid privately, not from the shared account.
         </div>
       )}
 
-      <div className="flex-1">
+      <div className="flex-1 min-h-0 overflow-y-auto">
         {receipt.lines.map(line => {
           const isCursor = line.id === cursorId
           return (
@@ -127,7 +127,7 @@ export function ReceiptDetail({ receipt, cursor, onCursorChange, onSetLineConsum
         })}
       </div>
 
-      <div className="grid gap-2 px-4 py-3.5 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-gray-700" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
+      <div className="shrink-0 grid gap-2 px-4 py-3.5 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-gray-700" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
         {[
           { label: 'hugo', color: CONSUMER_COLORS.Hugo, amount: kr(st.Hugo) },
           { label: 'benjamin', color: CONSUMER_COLORS.Benjamin, amount: kr(st.Benjamin) },

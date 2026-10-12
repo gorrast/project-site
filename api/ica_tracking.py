@@ -291,6 +291,12 @@ class ProductDefaultBody(BaseModel):
     defaultConsumer: Optional[Consumer] = None
 
 
+class ProductDetailsBody(BaseModel):
+    rawName: str
+    displayName: Optional[str] = None
+    category: Optional[str] = None
+
+
 # ---------------------------------------------------------------------------
 # Serialization helpers
 # ---------------------------------------------------------------------------
@@ -706,6 +712,24 @@ def set_product_default(body: ProductDefaultBody, username: str = Depends(requir
             client.schema("ica")
             .table("products")
             .update({"default_consumer": body.defaultConsumer})
+            .eq("raw_name", body.rawName)
+            .execute()
+        )
+    except Exception:
+        raise HTTPException(status_code=500, detail="Failed to update product")
+    if not result.data:
+        raise HTTPException(status_code=404, detail="Product not found")
+    return {"success": True}
+
+
+@router.patch("/products/details")
+def set_product_details(body: ProductDetailsBody, username: str = Depends(require_ica_admin)):
+    client = admin_client()
+    try:
+        result = (
+            client.schema("ica")
+            .table("products")
+            .update({"display_name": body.displayName, "category": body.category})
             .eq("raw_name", body.rawName)
             .execute()
         )

@@ -46,5 +46,29 @@ export function useProducts() {
     }
   }, [refetch])
 
-  return { data, loading, error, saveError, refetch, setDefaultConsumer }
+  const setProductDetails = useCallback(async (
+    rawName: string,
+    displayName: string | null,
+    category: string | null
+  ) => {
+    setSaveError(null)
+    setData(prev =>
+      prev
+        ? { products: prev.products.map(p => (p.rawName === rawName ? { ...p, displayName, category } : p)) }
+        : prev
+    )
+    try {
+      const res = await fetch('/api/ica-tracking/products/details', {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ rawName, displayName, category }),
+      })
+      if (!res.ok) throw new Error()
+    } catch {
+      setSaveError('Failed to save — reverted')
+      refetch()
+    }
+  }, [refetch])
+
+  return { data, loading, error, saveError, refetch, setDefaultConsumer, setProductDetails }
 }
