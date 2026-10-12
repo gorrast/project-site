@@ -27,15 +27,23 @@ Usage (from the repo root):
     --since YYYY-MM-DD         stop at receipts purchased before this date;
                                 defaults to config.get_import_cutoff_date()
                                 (env var ICA_IMPORT_CUTOFF_DATE) when omitted
+    --full-scan                check every receipt even after a duplicate is
+                                found, instead of stopping at the first one
+                                (default: stop there — see below)
     --dry-run                  fetch and parse, print summary, write nothing
     --dump-raw DIR             also write each fetched receipt's raw JSON to DIR
 
-Both --since and its config default assume the receipt list comes back
-newest-first (true in every run observed so far, but not something the
-GraphQL query guarantees) — once a receipt older than the cutoff is hit, the
-scan stops entirely rather than skipping past it, since everything after it
-is expected to be older still. A log line always announces this so it's
-never a silent assumption.
+--since (and its config default), and the default duplicate handling, both
+assume the receipt list comes back newest-first (true in every run observed
+so far, but not something the GraphQL query guarantees): once a receipt
+older than the --since cutoff is hit, or (by default, unless --full-scan is
+passed) once a receipt that's already in the database is hit, the scan
+stops entirely rather than skipping past it and checking the rest of the
+list — on the assumption that everything after that point is either older
+still, or already imported too. A log line always announces this so it's
+never a silent assumption. --full-scan disables only the duplicate early
+exit (for a full backfill, or if you suspect a gap in what's already been
+imported); the --since cutoff still applies on top of it either way.
 """
 
 from __future__ import annotations
@@ -138,6 +146,12 @@ def build_arg_parser() -> argparse.ArgumentParser:
     p.add_argument("--person", required=True, choices=sorted(config.PERSON_PNR_ENV))
     p.add_argument("--max-receipts", type=int, default=0, help="0 = unlimited")
     p.add_argument("--since", type=str, default=None, metavar="YYYY-MM-DD")
+    p.add_argument(
+        "--full-scan",
+        action="store_true",
+        help="check every receipt even after a duplicate is found, instead of "
+        "stopping at the first one",
+    )
     p.add_argument("--dry-run", action="store_true", help="fetch and parse only, write nothing")
     p.add_argument("--dump-raw", type=Path, default=None, metavar="DIR")
     return p
@@ -195,6 +209,14 @@ def main(argv: list[str] | None = None) -> None:
                 if supabase_io.receipt_exists(client, kivra_id):
                     stats["skipped_duplicate"] += 1
                     pbar.set_postfix(_postfix(stats), refresh=False)
+                    if not args.full_scan:
+                        log(
+                            f"Receipt {kivra_id} already exists — stopping here "
+                            "(assumes the receipt list is newest-first, so everything "
+                            "after this point is expected to already be imported too; "
+                            "pass --full-scan to check the rest of the list anyway)."
+                        )
+                        break
                     continue
 
                 detail = api_client.graphql_query(
