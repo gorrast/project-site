@@ -17,6 +17,14 @@ cd "$ROOT" || exit 1
 PERSONS=(Hugo Benjamin)
 declare -A RESULT
 
+FULL_SCAN_ARGS=()
+read -r -p "Full genomsökning? Kontrollerar alla kvitton även efter en dubblett, istället för att stanna vid den första (normalt onödigt). [y/N] " full_scan_answer
+case "$full_scan_answer" in
+    [yY] | [yY][eE][sS])
+        FULL_SCAN_ARGS=(--full-scan)
+        ;;
+esac
+
 run_for() {
     local person="$1"
     shift
@@ -25,7 +33,7 @@ run_for() {
     echo "Ha BankID-appen öppen och redo. QR-koden hinner gå ut annars."
     echo
 
-    if uv run python -m scripts.kivra.cli --person "$person" "$@"; then
+    if uv run python -m scripts.kivra.cli --person "$person" "${FULL_SCAN_ARGS[@]}" "$@"; then
         RESULT[$person]="OK"
     else
         RESULT[$person]="MISSLYCKADES (exit $?)"

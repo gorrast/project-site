@@ -108,6 +108,14 @@ spec had when it was written:
   applied discounts). The Products tab's "exclude negative totals" filter (on by default)
   is the only practical way to hide the already-leaked rows; they remain in the table
   harmlessly.
+- **`cli.py` now stops at the first duplicate receipt by default**, instead of checking every
+  receipt in the list regardless of how many turn out to already be imported. This relies on
+  the receipt list consistently coming back newest-first (confirmed in every run so far, not
+  guaranteed by the GraphQL query) — once one duplicate is found, everything after it is
+  assumed to be older and already imported too, so the scan stops rather than burning a
+  `ReceiptDetails` fetch per remaining receipt on every routine sync. `--full-scan` restores
+  the old "check everything" behavior, for a backfill or if a gap in what's already imported
+  is suspected. `scripts/kivra/sync.sh` asks interactively whether to pass it.
 
 ## Upgrade path
 

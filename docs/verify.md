@@ -75,8 +75,13 @@ Unchanged from step 2.
 ### 4. Full run (item 12)
 
 ```bash
-uv run python -m scripts.kivra.cli --person Hugo
+uv run python -m scripts.kivra.cli --person Hugo --full-scan
 ```
+
+By default the CLI now stops the moment it hits a receipt already in the database (it assumes
+the list comes back newest-first, so everything older is assumed already imported too) —
+`--full-scan` disables that for this check, so it actually walks the entire inbox rather than
+stopping after the first few new receipts.
 
 Expect: completes, and the final report's `reconciliation_failures` count is printed (there is
 deliberately no SQL view for this — the check is computed in Python from the parsed totals at
