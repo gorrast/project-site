@@ -115,18 +115,14 @@ def import_receipt(client, parsed: ParsedReceipt, buyer: str, *, excluded: bool 
 
     Returns {"lines": int, "new_products": int}.
     """
-    # Only genuine article lines ever get a row in ica.products — discount
-    # raw_names (both product-level, applies_to_line_no set, and
-    # receipt-level, line_total < 0 with no parent) are deliberately kept
-    # out of the catalog table (docs/ica-schema.sql's own documented
-    # intent; see scripts/kivra/NOTICE.md for the leak this fixes). This
-    # only affects which raw_names get a catalog row — the discount
-    # receipt_lines themselves are inserted exactly as before, further down.
-    raw_names = {
-        line.raw_name
-        for line in parsed.lines
-        if line.applies_to_line_no is None and line.line_total >= 0
-    }
+    # Every raw_name needs a products row regardless of line type:
+    # receipt_lines.raw_name has a hard FK to ica.products(raw_name), so a
+    # brand-new discount/deposit description (e.g. "Knatter 10kr/st") fails
+    # that FK on insert if it's skipped here. A prior fix tried excluding
+    # discount raw_names to stop catalog pollution but broke this — the UI's
+    # "exclude negative totals" filter (NOTICE.md) is what actually hides
+    # them from the Products tab; this set must stay "every line".
+    raw_names = {line.raw_name for line in parsed.lines}
     existing_consumers = get_default_consumers(client, raw_names)
     new_names = raw_names - set(existing_consumers)
     if new_names:

@@ -91,23 +91,16 @@ spec had when it was written:
   already-imported NULL row the same way. A product's default now only affects raw_names
   not yet seen in a future import; correcting a product's classification on receipts
   already imported means editing the affected lines directly in the Receipts tab.
-- **Discount raw_names were leaking into `ica.products`, contradicting that table's own
-  documented intent** ("Discount raw_names must be kept out of ica.products — they are not
-  purchasable articles," docs/ica-schema.sql). `import_receipt`'s `raw_names` set used to
-  collect every line's raw_name, discounts included, so coupons/`PANT RETUR`/etc. each got
-  their own catalog row — showing up as negative-total noise in the Products tab, with
-  nothing sensible to curate (no real display_name/category applies to a discount). Fixed
-  by only collecting raw_names from genuine article lines (`applies_to_line_no is None and
-  line_total >= 0`) before upserting into `ica.products`, which also means a receipt-level
-  discount's own `default_consumer` is no longer consulted (there's nothing to consult) —
-  it always resolves to the buyer, same as before this leak existed. **This only prevents
-  new leaks going forward.** Rows already leaked in can't be deleted:
-  `receipt_lines.raw_name` has a foreign-key reference to `ica.products(raw_name)` with no
-  `ON DELETE CASCADE`, and those rows are still referenced by the real discount
-  `receipt_lines` rows they belong to (which must stay — they're what shows a receipt's
-  applied discounts). The Products tab's "exclude negative totals" filter (on by default)
-  is the only practical way to hide the already-leaked rows; they remain in the table
-  harmlessly.
+- **Discount/deposit raw_names do appear in `ica.products`**, each getting its own catalog row
+  (coupons/`PANT RETUR`/etc. included) — not purchasable articles, but `receipt_lines.raw_name`
+  has a hard FK to `ica.products(raw_name)` with no way around it, so every raw_name that ends
+  up in `receipt_lines` must have a row there regardless of line type. A prior revision tried
+  skipping the upsert for discount raw_names to stop this catalog "pollution," but that broke
+  inserts outright: any brand-new discount/deposit description with no matching row yet (nearly
+  all of them, since costModifier text embeds transaction-specific numbers) now fails
+  `receipt_lines_raw_name_fkey` instead of importing. Reverted — `import_receipt` upserts every
+  line's raw_name again. The Products tab's "exclude negative totals" filter is the real fix for
+  the noise this creates; don't try to solve it by narrowing the upsert again.
 - **`cli.py` now stops at the first duplicate receipt by default**, instead of checking every
   receipt in the list regardless of how many turn out to already be imported. This relies on
   the receipt list consistently coming back newest-first (confirmed in every run so far, not
