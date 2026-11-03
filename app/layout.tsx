@@ -1,5 +1,6 @@
 import type { Metadata } from "next";
 import { Analytics } from "@vercel/analytics/next"
+import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Space_Grotesk, IBM_Plex_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
 import { GlobalNavIcons } from "@/components/GlobalNavIcons";
@@ -42,7 +43,9 @@ export default function RootLayout({
             {children}
           </main>
         </ThemeProvider>
+        
         <Analytics />
+        <SpeedInsights/>
       </body>
     </html>
   );
