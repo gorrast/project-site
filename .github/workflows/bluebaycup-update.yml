@@ -2,8 +2,9 @@ name: BlueBayCup weekly update
 
 on:
   schedule:
-    # Daily at 06:00 UTC = 07:00 Swedish winter time (CET, UTC+1) or 08:00 Swedish summer time. 
-    - cron: '0 6 * * *'
+    # Daily at 06:17 UTC = 07:17 Swedish winter time (CET, UTC+1) or 08:17 Swedish summer time.
+    # Off the top of the hour on purpose: GitHub's scheduler is overloaded at :00 and delays/drops those runs.
+    - cron: '17 6 * * *'
   workflow_dispatch: {}
 
 concurrency:
@@ -27,8 +28,13 @@ jobs:
           enable-cache: true
 
       - name: Run BlueBayCup update
+        id: update
         env:
           NEXT_PUBLIC_SUPABASE_URL: ${{ secrets.NEXT_PUBLIC_SUPABASE_URL }}
           NEXT_PUBLIC_SUPABASE_ANON_KEY: ${{ secrets.NEXT_PUBLIC_SUPABASE_ANON_KEY }}
           SUPABASE_SERVICE_ROLE_KEY: ${{ secrets.SUPABASE_SERVICE_ROLE_KEY }}
         run: uv run scripts/bluebaycup_update.py
+
+      - name: Push notification on new gameweek
+        if: steps.update.outputs.updated == 'true'
+        run: curl -sf -d "BlueBayCup updated to gameweek ${{ steps.update.outputs.gameweek }}" "https://ntfy.sh/${{ secrets.NTFY_TOPIC }}"

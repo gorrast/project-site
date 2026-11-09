@@ -76,6 +76,15 @@ def write_summary(lines: list) -> None:
         f.write("\n".join(lines) + "\n\n")
 
 
+def set_output(name: str, value) -> None:
+    """Expose a value to later workflow steps as steps.<id>.outputs.<name>."""
+    output_path = os.environ.get("GITHUB_OUTPUT")
+    if not output_path:
+        return
+    with open(output_path, "a") as f:
+        f.write(f"{name}={value}\n")
+
+
 def api_request(league_id: int) -> dict:
     url = f"https://draft.premierleague.com/api/league/{league_id}/details"
     try:
@@ -293,3 +302,5 @@ if __name__ == "__main__":
     log.info(msg)
     gha_notice(msg)
     write_summary(["### BlueBayCup update", f"- {msg}"])
+    set_output("updated", "true")
+    set_output("gameweek", gameweek)

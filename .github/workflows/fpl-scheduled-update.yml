@@ -5,9 +5,10 @@ name: FPL scheduled update
 # in the same run -- separate cron schedules can't guarantee that ordering.
 on:
   schedule:
-    # Daily at 07:00 UTC (offset an hour from the BlueBayCup update to avoid runner
-    # contention). Also serves as the Supabase keep-alive ping regardless of matchday.
-    - cron: '0 7 * * *'
+    # Daily at 07:23 UTC (offset an hour from the BlueBayCup update to avoid runner
+    # contention, and off the top of the hour, where GitHub delays/drops scheduled runs).
+    # Also serves as the Supabase keep-alive ping regardless of matchday.
+    - cron: '23 7 * * *'
   workflow_dispatch: {}
 
 concurrency:
