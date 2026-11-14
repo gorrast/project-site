@@ -8,60 +8,52 @@ import {
   YAxis,
   CartesianGrid,
 } from 'recharts'
-import {
-  ChartContainer,
-  ChartTooltip,
-  type ChartConfig,
-} from '@/components/ui/chart'
-import { PlayerProgressData } from './types'
+import { useReducedMotion } from 'motion/react'
+import { ChartContainer, ChartTooltip } from '@/components/ui/chart'
+import { cn } from '@/lib/utils'
+import { PlayerProgressData, TOTAL_GAMEWEEKS } from './types'
 
 interface MultiPlayerLineChartProps {
   playersData: PlayerProgressData[]
-  title: string
   dataKey: 'rank' | 'totalPoints' | 'pointsFor' | 'pointsAgainst'
   invertYAxis?: boolean
 }
 
-// Fixed palette spread evenly across the full hue wheel (red, orange, amber,
-// yellow, lime, green, teal, cyan, blue, violet, magenta, pink) for maximum
-// visual variety. Assigned by player_id below, never by array position, so a
-// given player always gets the same color everywhere.
-const PLAYER_COLORS = [
-  '#cc2538', // red
-  '#d46000', // orange
-  '#c48400', // amber
-  '#bda500', // yellow
-  '#4b9600', // lime
-  '#008d41', // green
-  '#009284', // teal
-  '#0091b9', // cyan
-  '#0067db', // blue
-  '#6744c5', // violet
-  '#9b2ba3', // magenta
-  '#ca488f', // pink
-]
+// The manager palette (--p1…--p12 in globals.css): one fixed colour per
+// manager, assigned by player_id, never by array position, so a manager has
+// the same colour in every chart and season. This is the one chart that draws
+// every manager at once (DESIGN.md › Principles 4).
+const PALETTE_SIZE = 12
 
 function colorForPlayerId(playerId: string): string {
   const id = parseInt(playerId, 10)
-  if (!Number.isFinite(id)) return PLAYER_COLORS[0]
-  const idx = ((id - 1) % PLAYER_COLORS.length + PLAYER_COLORS.length) % PLAYER_COLORS.length
-  return PLAYER_COLORS[idx]
+  const idx = Number.isFinite(id) ? (((id - 1) % PALETTE_SIZE) + PALETTE_SIZE) % PALETTE_SIZE : 0
+  return `var(--p${idx + 1})`
 }
+
+const ordinal = (k: number) => k + (k % 100 >= 11 && k % 100 <= 13 ? 'th' : (['th', 'st', 'nd', 'rd'][k % 10] ?? 'th'))
 
 export default function MultiPlayerLineChart({
   playersData,
-  title,
   dataKey,
   invertYAxis = false,
 }: MultiPlayerLineChartProps) {
   const [hoveredPlayer, setHoveredPlayer] = useState<string | null>(null)
+  // Legend pick: one manager forward, the rest faded.
+  const [highlightedId, setHighlightedId] = useState<string | null>(null)
+  const reduced = useReducedMotion()
 
   if (playersData.length === 0) return null
 
   const isAverageMetric = dataKey === 'pointsFor' || dataKey === 'pointsAgainst'
+  const highlighted = playersData.some(p => p.playerId === highlightedId) ? highlightedId : null
+  const isLit = (playerId: string) => highlighted == null || highlighted === playerId
+  const idByName = new Map(playersData.map(p => [p.playerName, p.playerId]))
 
   const gwStart = isAverageMetric ? 1 : 0
-  const chartData = Array.from({ length: 39 - gwStart }, (_, idx) => {
+  // The axis ends at the last gameweek played, so a live season fills the chart.
+  const lastGw = Math.min(TOTAL_GAMEWEEKS, Math.max(...playersData.flatMap(p => p.gameweeks.map(g => g.gameweek))))
+  const chartData = Array.from({ length: lastGw + 1 - gwStart }, (_, idx) => {
     const i = idx + gwStart
     const row: Record<string, number | null | string> = { gameweek: `GW${i}` }
     playersData.forEach(player => {
@@ -77,27 +69,30 @@ export default function MultiPlayerLineChart({
     return row
   })
 
-  const chartConfig: ChartConfig = Object.fromEntries(
-    playersData.map(player => [
-      player.playerName,
-      { label: player.playerName, color: colorForPlayerId(player.playerId) },
-    ])
-  )
+  const formatValue = (value: unknown) =>
+    typeof value !== 'number' ? String(value) : dataKey === 'rank' ? ordinal(value) : isAverageMetric ? value.toFixed(1) : value
+
+  // Draw the highlighted manager last so the line sits on top.
+  const drawOrder = [...playersData].sort((a, b) => Number(a.playerId === highlighted) - Number(b.playerId === highlighted))
 
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-3 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-shadow duration-300">
-      <h3 className="text-base font-semibold mb-4 text-gray-900 dark:text-gray-100">{title}</h3>
-      <ChartContainer config={chartConfig} className="block h-[320px] sm:h-[400px] w-full aspect-auto">
-        <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-          <XAxis dataKey="gameweek" tick={{ fontSize: 11 }} interval="preserveStartEnd" />
+    <div className="rounded-2xl border border-line bg-surface py-5 pr-4 pl-1 sm:pt-6 sm:pr-6 sm:pl-3">
+      <ChartContainer config={{}} className="block h-[clamp(300px,42vw,400px)] w-full aspect-auto">
+        <LineChart data={chartData} margin={{ top: 8, right: 8, bottom: 0, left: 0 }}>
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--line)" />
+          <XAxis dataKey="gameweek" tickLine={false} axisLine={false} tickMargin={8} interval="preserveStartEnd" />
           <YAxis
             reversed={invertYAxis}
-            domain={isAverageMetric ? ['auto', 'auto'] : undefined}
-            tick={{ fontSize: 11 }}
-            width={40}
+            domain={dataKey === 'rank' ? [1, playersData.length] : isAverageMetric ? ['auto', 'auto'] : undefined}
+            ticks={dataKey === 'rank' ? playersData.map((_, i) => i + 1) : undefined}
+            interval={0}
+            allowDecimals={false}
+            tickLine={false}
+            axisLine={false}
+            width={36}
           />
           <ChartTooltip
+            cursor={{ stroke: 'var(--line-strong)' }}
             content={({ active, payload, label }) => {
               if (!active || !payload?.length) return null
 
@@ -114,60 +109,83 @@ export default function MultiPlayerLineChart({
               }
 
               return (
-                <div className="rounded-lg border border-border/50 bg-background px-2.5 py-1.5 text-xs shadow-xl">
-                  <p className="font-medium mb-1.5">{label}</p>
+                <div className="flex min-w-[190px] flex-col gap-1 rounded-xl border border-line-strong bg-surface px-3 py-2.5 text-xs shadow-(--shadow-pop)">
+                  <p className="mb-0.5 text-[13px] font-medium">{String(label).replace('GW', 'GW ')}</p>
                   {items.map(entry => (
-                    <div key={entry.dataKey as string} className="flex items-center gap-2 py-0.5">
-                      <div className="h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color }} />
-                      <span className="text-muted-foreground">{entry.name}</span>
-                      <span className="font-mono font-medium tabular-nums ml-auto pl-4">
-                        {isAverageMetric && typeof entry.value === 'number'
-                          ? entry.value.toFixed(1)
-                          : entry.value}
-                      </span>
+                    <div
+                      key={entry.dataKey as string}
+                      className={cn('flex items-center gap-2', !isLit(idByName.get(entry.dataKey as string) ?? '') && 'opacity-40')}
+                    >
+                      <span className="size-2 shrink-0 rounded-[2px]" style={{ backgroundColor: entry.color }} />
+                      <span className="flex-1 whitespace-nowrap text-ink-2">{entry.name}</span>
+                      <span className="pl-3 font-mono tabular-nums">{formatValue(entry.value)}</span>
                     </div>
                   ))}
                 </div>
               )
             }}
           />
-          {playersData.map(player => (
-            <Line
-              key={player.playerName}
-              type="monotone"
-              dataKey={player.playerName}
-              stroke={colorForPlayerId(player.playerId)}
-              strokeWidth={2}
-              dot={{ r: 3 }}
-              activeDot={(dotProps) => {
-                const { cx, cy, fill } = dotProps as { cx?: number; cy?: number; fill?: string }
-                return (
-                  <circle
-                    key={player.playerName}
-                    cx={cx ?? 0}
-                    cy={cy ?? 0}
-                    r={5}
-                    fill={fill ?? colorForPlayerId(player.playerId)}
-                    stroke="white"
-                    strokeWidth={2}
-                    style={{ cursor: 'pointer' }}
-                    onMouseEnter={() => setHoveredPlayer(player.playerName)}
-                    onMouseLeave={() => setHoveredPlayer(null)}
-                  />
-                )
-              }}
-              connectNulls
-            />
-          ))}
+          {drawOrder.map(player => {
+            const color = colorForPlayerId(player.playerId)
+            const lit = isLit(player.playerId)
+            return (
+              <Line
+                key={player.playerId}
+                type="monotone"
+                dataKey={player.playerName}
+                stroke={color}
+                strokeWidth={highlighted === player.playerId ? 3 : 2}
+                strokeOpacity={lit ? 1 : 0.15}
+                dot={{ r: 3, fill: color, fillOpacity: lit ? 1 : 0.15, stroke: 'var(--surface)', strokeWidth: 1, strokeOpacity: lit ? 1 : 0 }}
+                activeDot={
+                  lit &&
+                  (dotProps => {
+                    const { cx, cy } = dotProps as { cx?: number; cy?: number }
+                    return (
+                      <circle
+                        key={player.playerId}
+                        cx={cx ?? 0}
+                        cy={cy ?? 0}
+                        r={5}
+                        fill={color}
+                        stroke="var(--surface)"
+                        strokeWidth={2}
+                        style={{ cursor: 'pointer' }}
+                        onMouseEnter={() => setHoveredPlayer(player.playerName)}
+                        onMouseLeave={() => setHoveredPlayer(null)}
+                      />
+                    )
+                  })
+                }
+                connectNulls
+                isAnimationActive={!reduced}
+                animationDuration={1200}
+                animationEasing="ease-out"
+              />
+            )
+          })}
         </LineChart>
       </ChartContainer>
-      <div className="flex flex-wrap justify-center gap-x-4 gap-y-1.5 pt-3 text-xs">
-        {playersData.map(player => (
-          <span key={player.playerName} className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: colorForPlayerId(player.playerId) }} />
-            <span className="text-muted-foreground">{player.playerName}</span>
-          </span>
-        ))}
+      <div className="mt-3.5 flex flex-wrap justify-center gap-x-1.5 gap-y-1 pl-3 sm:pl-0">
+        {playersData.map(player => {
+          const pressed = highlighted === player.playerId
+          return (
+            <button
+              key={player.playerId}
+              type="button"
+              aria-pressed={pressed}
+              onClick={() => setHighlightedId(pressed ? null : player.playerId)}
+              className={cn(
+                'inline-flex h-7 cursor-pointer items-center gap-1.5 rounded-full border px-2.5 text-xs',
+                pressed ? 'border-line-strong' : 'border-transparent',
+                isLit(player.playerId) ? 'text-ink' : 'text-ink-3'
+              )}
+            >
+              <span className="size-2 shrink-0 rounded-[2px]" style={{ backgroundColor: colorForPlayerId(player.playerId) }} />
+              {player.playerName}
+            </button>
+          )
+        })}
       </div>
     </div>
   )

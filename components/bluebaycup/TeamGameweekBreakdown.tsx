@@ -1,50 +1,63 @@
 'use client'
 
-import React, { useState } from 'react'
+import React from 'react'
+import { SectionHeading } from '@/components/SectionHeading'
+import { cn } from '@/lib/utils'
 import ClusteredColumnChart from './ClusteredColumnChart'
-import { PlayerProgressData } from './types'
+import { PlayerProgressData, PlayerSeasonStats } from './types'
 
 interface TeamGameweekBreakdownProps {
   playersData: PlayerProgressData[]
+  standings: PlayerSeasonStats[]
+  /** Shared with the standings table: one selected manager for the whole view. */
+  focusId: string
+  onFocus: (playerId: string) => void
 }
 
-export default function TeamGameweekBreakdown({ playersData }: TeamGameweekBreakdownProps) {
-  const [selectedTeamId, setSelectedTeamId] = useState<string>('')
-
-  if (playersData.length === 0) return null
-
-  const effectiveTeamId = playersData.some(p => p.teamId === selectedTeamId) ? selectedTeamId : playersData[0].teamId
-  const selected = playersData.find(p => p.teamId === effectiveTeamId)
+/** Match by match: points for and against per gameweek for one manager. */
+export default function TeamGameweekBreakdown({ playersData, standings, focusId, onFocus }: TeamGameweekBreakdownProps) {
+  const selected = playersData.find(p => p.playerId === focusId) ?? playersData[0]
+  if (!selected) return null
+  const row = standings.find(p => p.playerId === selected.playerId)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        {playersData.map(p => (
-          <button
-            key={p.teamId}
-            type="button"
-            onClick={() => setSelectedTeamId(p.teamId)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-              effectiveTeamId === p.teamId
-                ? 'bg-linear-to-r from-blue-600 to-purple-600 text-white shadow'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            {p.playerName}
-          </button>
-        ))}
+    <>
+      <SectionHeading
+        title={`${selected.playerName}, match by match`}
+        caption={
+          (row ? `${row.wins}W ${row.draws}D ${row.losses}L · ${row.pointsFor} points for, ${row.pointsAgainst} against. ` : '') +
+          'Pick a manager, then hover a gameweek for the score.'
+        }
+      />
+      <div className="mb-4 flex flex-wrap gap-1.5">
+        {/* Chips follow the standings order so they line up with the table above. */}
+        {(standings.length ? standings : playersData).map(p => {
+          const pressed = p.playerId === selected.playerId
+          return (
+            <button
+              key={p.playerId}
+              type="button"
+              aria-pressed={pressed}
+              onClick={() => onFocus(p.playerId)}
+              className={cn(
+                'h-8 cursor-pointer rounded-full border px-3.5 text-[13px] whitespace-nowrap',
+                pressed ? 'border-accent bg-accent-soft text-ink' : 'border-line-strong text-ink-2'
+              )}
+            >
+              {p.playerName}
+            </button>
+          )
+        })}
       </div>
-      {selected && (
-        <ClusteredColumnChart
-          data={selected.gameweeks.filter(g => g.gameweek > 0).map(g => ({
-            gameweek: g.gameweek,
-            pointsFor: g.pointsFor,
-            pointsAgainst: g.pointsAgainst,
-            opponentName: g.opponentName,
-          }))}
-          teamName={selected.playerName}
-        />
-      )}
-    </div>
+      <ClusteredColumnChart
+        data={selected.gameweeks.filter(g => g.gameweek > 0).map(g => ({
+          gameweek: g.gameweek,
+          pointsFor: g.pointsFor,
+          pointsAgainst: g.pointsAgainst,
+          opponentName: g.opponentName,
+        }))}
+        teamName={selected.playerName}
+      />
+    </>
   )
 }

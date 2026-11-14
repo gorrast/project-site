@@ -1,6 +1,6 @@
 'use client'
 
-import React from 'react'
+import React, { useState } from 'react'
 import {
   BarChart,
   Bar,
@@ -9,10 +9,9 @@ import {
   CartesianGrid,
   Tooltip,
 } from 'recharts'
-import {
-  ChartContainer,
-  type ChartConfig,
-} from '@/components/ui/chart'
+import { useReducedMotion } from 'motion/react'
+import { ChartContainer } from '@/components/ui/chart'
+import { FormChip } from './FormChip'
 import { TeamGameweekData } from './types'
 
 interface ClusteredColumnChartProps {
@@ -20,69 +19,94 @@ interface ClusteredColumnChartProps {
   teamName: string
 }
 
-const chartConfig: ChartConfig = {
-  pointsFor: { label: 'Points For', color: '#3b82f6' },
-  pointsAgainst: { label: 'Points Against', color: '#ef4444' },
-}
-
-function GwTooltip({ active, payload, label, teamName }: {
-  active?: boolean
-  payload?: { dataKey: string; value: number; fill: string; payload: { opponentName: string } }[]
-  label?: string
-  teamName: string
-}) {
-  if (!active || !payload?.length) return null
-  const opponentName = payload[0]?.payload?.opponentName
-  return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-600 rounded-lg shadow-lg px-3 py-2 text-sm">
-      <p className="font-bold text-gray-600 dark:text-gray-400 mb-1.5">{label}</p>
-      {payload.map(entry => (
-        <div key={entry.dataKey} className="flex items-center gap-2 py-0.5">
-          <span className="inline-block w-2.5 h-2.5 rounded-sm shrink-0" style={{ backgroundColor: entry.fill }} />
-          <span className="text-gray-500 dark:text-gray-400">
-            {entry.dataKey === 'pointsFor' ? teamName : (opponentName || 'Opponent')}
-          </span>
-          <span className="ml-auto pl-4 font-semibold text-gray-900 dark:text-gray-100">{entry.value}</span>
-        </div>
-      ))}
-    </div>
-  )
-}
+const Y_AXIS_WIDTH = 36
 
 export default function ClusteredColumnChart({ data, teamName }: ClusteredColumnChartProps) {
+  // The readout above the chart follows the hovered gameweek and falls back to the latest one.
+  const [hovered, setHovered] = useState<number | null>(null)
+  const reduced = useReducedMotion()
+
   const sorted = [...data].sort((a, b) => a.gameweek - b.gameweek)
   const chartData = sorted.map((d, idx) => {
     const prev = sorted[idx - 1]
     return {
-      gameweek: `GW${d.gameweek}`,
+      gameweek: d.gameweek,
       pointsFor: prev ? d.pointsFor - prev.pointsFor : d.pointsFor,
       pointsAgainst: prev ? d.pointsAgainst - prev.pointsAgainst : d.pointsAgainst,
       opponentName: d.opponentName ?? '',
     }
   })
 
+  if (chartData.length === 0) return null
+
+  const shown = chartData[hovered != null && hovered < chartData.length ? hovered : chartData.length - 1]
+  const result = shown.pointsFor > shown.pointsAgainst ? 'W' : shown.pointsFor < shown.pointsAgainst ? 'L' : 'D'
+
+  const follow = (state: { isTooltipActive: boolean; activeTooltipIndex?: number | string | null }) =>
+    setHovered(state.isTooltipActive && state.activeTooltipIndex != null ? Number(state.activeTooltipIndex) : null)
+
   return (
-    <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-3 sm:p-6 border border-gray-100 dark:border-gray-700 hover:shadow-2xl transition-shadow duration-300">
-      <h3 className="text-base font-semibold mb-4 text-gray-900 dark:text-gray-100">
-        {teamName} — Points For vs Against by Gameweek
-      </h3>
-      <ChartContainer config={chartConfig} className="block h-[280px] sm:h-[400px] w-full aspect-auto">
-        <BarChart data={chartData} margin={{ top: 8, right: 8, bottom: 8, left: 0 }}>
-          <CartesianGrid strokeDasharray="3 3" stroke="#ccc" />
-          <XAxis dataKey="gameweek" tick={{ fontSize: 10 }} interval={1} />
-          <YAxis tick={{ fontSize: 11 }} width={40} />
-          <Tooltip content={<GwTooltip teamName={teamName} />} cursor={{ fill: 'transparent' }} />
-          <Bar dataKey="pointsFor" fill="var(--color-pointsFor)" radius={[2, 2, 0, 0]} />
-          <Bar dataKey="pointsAgainst" fill="var(--color-pointsAgainst)" radius={[2, 2, 0, 0]} />
+    <div className="rounded-2xl border border-line bg-surface py-5 pr-4 pl-1 sm:pr-6 sm:pl-3">
+      <div
+        className="mb-3.5 flex min-h-8 flex-wrap items-center gap-x-3.5 gap-y-2 text-sm"
+        style={{ marginLeft: Y_AXIS_WIDTH + 10 }}
+        aria-live="polite"
+      >
+        <span className="font-mono text-xs text-ink-3">GW {shown.gameweek}</span>
+        <FormChip result={result} />
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap">
+          <span className="size-2 rounded-[2px] bg-accent" />
+          {teamName} <span className="font-mono font-medium tabular-nums">{shown.pointsFor}</span>
+        </span>
+        <span className="inline-flex items-center gap-1.5 whitespace-nowrap text-ink-2">
+          <span className="size-2 rounded-[2px] bg-neg" />
+          {shown.opponentName || 'Opponent'} <span className="font-mono font-medium text-ink tabular-nums">{shown.pointsAgainst}</span>
+        </span>
+      </div>
+      <ChartContainer config={{}} className="block h-[clamp(240px,32vw,320px)] w-full aspect-auto">
+        <BarChart
+          data={chartData}
+          margin={{ top: 8, right: 8, bottom: 0, left: 0 }}
+          barGap={1}
+          onMouseMove={follow}
+          onTouchMove={follow}
+          onClick={follow}
+          onMouseLeave={() => setHovered(null)}
+        >
+          <CartesianGrid vertical={false} strokeDasharray="3 3" stroke="var(--line)" />
+          <XAxis dataKey="gameweek" tickLine={false} axisLine={false} tickMargin={8} />
+          <YAxis tickLine={false} axisLine={false} width={Y_AXIS_WIDTH} />
+          {/* No floating panel: the tooltip only draws the column highlight. */}
+          <Tooltip content={() => null} cursor={{ fill: 'var(--surface-2)' }} />
+          <Bar
+            dataKey="pointsFor"
+            fill="var(--accent)"
+            radius={[2, 2, 0, 0]}
+            maxBarSize={12}
+            isAnimationActive={!reduced}
+            animationDuration={600}
+            animationEasing="ease-out"
+          />
+          <Bar
+            dataKey="pointsAgainst"
+            fill="var(--neg)"
+            radius={[2, 2, 0, 0]}
+            maxBarSize={12}
+            isAnimationActive={!reduced}
+            animationDuration={600}
+            animationEasing="ease-out"
+          />
         </BarChart>
       </ChartContainer>
-      <div className="flex justify-center gap-6 pt-3 text-xs">
-        {Object.entries(chartConfig).map(([key, cfg]) => (
-          <span key={key} className="flex items-center gap-1.5">
-            <span className="inline-block h-2 w-2 shrink-0 rounded-[2px]" style={{ backgroundColor: cfg.color }} />
-            <span className="text-muted-foreground">{String(cfg.label)}</span>
-          </span>
-        ))}
+      <div className="mt-3 flex justify-center gap-[18px] text-xs text-ink-3">
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-[9px] rounded-[2px] bg-accent" />
+          Points for
+        </span>
+        <span className="inline-flex items-center gap-1.5">
+          <span className="size-[9px] rounded-[2px] bg-neg" />
+          Points against
+        </span>
       </div>
     </div>
   )

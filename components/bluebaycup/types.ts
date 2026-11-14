@@ -7,6 +7,11 @@ declare module '@tanstack/react-table' {
   interface ColumnMeta<TData extends RowData, TValue> {
     className?: string
   }
+  // eslint-disable-next-line @typescript-eslint/no-unused-vars
+  interface TableMeta<TData extends RowData> {
+    /** The manager the season charts follow. */
+    focusId?: string
+  }
 }
 
 export interface PlayerOverallStats {
@@ -85,6 +90,15 @@ export interface HighScoreData {
   score: number;
   gameweek: number;
 }
+
+export interface SeasonStats {
+  standings: PlayerSeasonStats[];
+  progressData: PlayerProgressData[];
+  maxGameweek: number;
+  highScoreData: HighScoreData | null;
+}
+
+export const TOTAL_GAMEWEEKS = 38
 
 export interface HeadToHeadFormEntry {
   gameweek: number;

@@ -7,14 +7,15 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table'
+import { motion } from 'motion/react'
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { MetricGroup, quietItemProps } from '@/components/ui/Motion'
 import { cn } from '@/lib/utils'
 import { PlayerOverallStats } from './types'
 import MedalBadge from './MedalBadge'
@@ -23,35 +24,35 @@ interface OverallTableProps {
   data: PlayerOverallStats[]
 }
 
+const NUM = 'text-right font-mono text-[13px] text-ink-2 tabular-nums'
+// A missing value shows as –, never 0.
+const kr = (v: number) => (v ? `${v.toLocaleString('sv-SE')} kr` : '–')
+
+const MotionRow = motion.create(TableRow)
+
 const columns: ColumnDef<PlayerOverallStats>[] = [
   {
     accessorKey: 'rank',
     header: 'Rank',
+    meta: { className: 'w-10' },
     cell: ({ getValue }) => (
-      <span className="font-heading font-bold text-xl text-blue-600">{getValue<number>()}</span>
+      <span className={cn('font-mono text-[13px]', getValue<number>() <= 3 ? 'text-ink' : 'text-ink-3')}>
+        {getValue<number>()}
+      </span>
     ),
   },
   {
     accessorKey: 'playerName',
-    header: 'Player',
-    cell: ({ getValue }) => (
-      <span className="font-bold text-lg text-gray-900 dark:text-gray-100">{getValue<string>()}</span>
-    ),
+    header: 'Manager',
+    meta: { className: 'w-full' },
+    cell: ({ getValue }) => <span className="font-medium">{getValue<string>()}</span>,
   },
-  {
-    accessorKey: 'appearances',
-    header: 'App\'s',
-    meta: { className: 'text-center' },
-    cell: ({ getValue }) => (
-      <span className="font-semibold text-gray-700 dark:text-gray-300">{getValue<number>()}</span>
-    ),
-  },
+  { accessorKey: 'appearances', header: 'Apps', meta: { className: `min-w-[60px] ${NUM}` } },
   {
     id: 'medals',
     header: 'Medals',
-    meta: { className: 'text-center' },
     cell: ({ row }) => (
-      <div className="flex items-center justify-center gap-1.5">
+      <div className="flex gap-3.5">
         <MedalBadge type="gold" count={row.original.goldMedals} />
         <MedalBadge type="silver" count={row.original.silverMedals} />
         <MedalBadge type="bronze" count={row.original.bronzeMedals} />
@@ -60,34 +61,30 @@ const columns: ColumnDef<PlayerOverallStats>[] = [
   },
   {
     accessorKey: 'avgPointsTotal',
-    header: 'Avg. Pts',
-    meta: { className: 'text-center' },
-    cell: ({ getValue }) => (
-      <span className="font-bold text-lg text-gray-900 dark:text-gray-100">{getValue<number>().toFixed(1)}</span>
-    ),
+    header: 'Avg pts',
+    meta: { className: 'min-w-[84px] text-right' },
+    cell: ({ getValue }) => <span className="font-mono font-medium tabular-nums">{getValue<number>().toFixed(1)}</span>,
   },
   {
     accessorKey: 'avgPointsFor',
-    header: 'Avg. PF',
-    meta: { className: 'text-center' },
-    cell: ({ getValue }) => (
-      <span className="text-gray-700 dark:text-gray-300">{getValue<number>().toFixed(1)}</span>
-    ),
+    header: 'Avg PF',
+    meta: { className: `min-w-[92px] ${NUM}` },
+    cell: ({ getValue }) => getValue<number>().toFixed(1),
   },
   {
     accessorKey: 'avgPointsAgainst',
-    header: 'Avg. PA',
-    meta: { className: 'text-center' },
-    cell: ({ getValue }) => (
-      <span className="text-gray-700 dark:text-gray-300">{getValue<number>().toFixed(1)}</span>
-    ),
+    header: 'Avg PA',
+    meta: { className: `min-w-[92px] ${NUM}` },
+    cell: ({ getValue }) => getValue<number>().toFixed(1),
   },
   {
     accessorKey: 'totPrizeMoney',
     header: 'Prize',
-    meta: { className: 'text-center' },
+    meta: { className: 'min-w-[128px] text-right' },
     cell: ({ getValue }) => (
-      <span className="font-bold text-green-600">{getValue<number>().toLocaleString()} kr</span>
+      <span className={cn('font-mono text-[13px] tabular-nums', getValue<number>() ? 'text-ink' : 'text-ink-3')}>
+        {kr(getValue<number>())}
+      </span>
     ),
   },
 ]
@@ -102,18 +99,15 @@ export default function OverallTable({ data }: OverallTableProps) {
   return (
     <div className="w-full">
       {/* Desktop: full table, >=680px */}
-      <div className="hidden bbc:block rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-linear-to-r from-blue-600 to-purple-600">
+      <div className="hidden overflow-hidden rounded-2xl border border-line bg-surface bbc:block">
+        <Table className="min-w-[760px]">
+          <TableHeader>
             {table.getHeaderGroups().map(hg => (
-              <TableRow key={hg.id} className="border-0 hover:bg-transparent has-aria-expanded:bg-transparent">
+              <TableRow key={hg.id}>
                 {hg.headers.map(header => (
                   <TableHead
                     key={header.id}
-                    className={cn(
-                      'py-4 px-6 text-white font-bold text-sm uppercase tracking-wider whitespace-nowrap',
-                      header.column.columnDef.meta?.className
-                    )}
+                    className={cn('px-1.5 first:pl-5 last:pr-5', header.column.columnDef.meta?.className, 'text-[11px] text-ink-3')}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
@@ -121,63 +115,45 @@ export default function OverallTable({ data }: OverallTableProps) {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row, index) => (
-              <TableRow
-                key={row.id}
-                className={cn(
-                  'transition-all duration-150 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:shadow-md',
-                  index % 2 === 0
-                    ? 'bg-gray-50 dark:bg-gray-800'
-                    : 'bg-white dark:bg-gray-900',
-                  row.original.rank <= 3 && 'border-l-[3px] border-l-blue-600'
-                )}
-              >
+          <MetricGroup as="tbody" stagger={0.04}>
+            {table.getRowModel().rows.map(row => (
+              <MotionRow key={row.id} {...quietItemProps}>
                 {row.getVisibleCells().map(cell => (
                   <TableCell
                     key={cell.id}
-                    className={cn(
-                      'py-4 px-6',
-                      cell.column.columnDef.meta?.className
-                    )}
+                    className={cn('h-[52px] px-1.5 first:pl-5 last:pr-5', cell.column.columnDef.meta?.className)}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
-              </TableRow>
+              </MotionRow>
             ))}
-          </TableBody>
+          </MetricGroup>
         </Table>
       </div>
 
       {/* Mobile: stacked cards, <680px */}
       <div className="flex flex-col gap-2.5 bbc:hidden">
         {data.map(p => (
-          <div
-            key={p.playerId}
-            className={cn(
-              'rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow p-3',
-              p.rank <= 3 && 'border-l-[3px] border-l-blue-600'
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <span className="font-heading font-bold text-xl w-7 text-center shrink-0 text-blue-600">{p.rank}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-[15px] text-gray-900 dark:text-gray-100 truncate">{p.playerName}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5 flex items-center gap-1.5 flex-wrap">
-                  <span>{p.appearances} apps</span>
-                  <MedalBadge type="gold" count={p.goldMedals} />
-                  <MedalBadge type="silver" count={p.silverMedals} />
-                  <MedalBadge type="bronze" count={p.bronzeMedals} />
-                </div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-1">
-                  Avg PF {p.avgPointsFor.toFixed(1)} · Avg PA {p.avgPointsAgainst.toFixed(1)}
-                </div>
+          <div key={p.playerId} className="flex items-center gap-3 rounded-2xl border border-line bg-surface p-3.5">
+            <span className={cn('w-6 shrink-0 text-center font-mono text-[13px]', p.rank <= 3 ? 'text-ink' : 'text-ink-3')}>
+              {p.rank}
+            </span>
+            <div className="min-w-0 flex-1">
+              <div className="truncate text-[15px] font-medium">{p.playerName}</div>
+              <div className="mt-1 flex flex-wrap items-center gap-x-2.5 gap-y-1 text-xs text-ink-3">
+                <span>{p.appearances} apps</span>
+                <MedalBadge type="gold" count={p.goldMedals} />
+                <MedalBadge type="silver" count={p.silverMedals} />
+                <MedalBadge type="bronze" count={p.bronzeMedals} />
               </div>
-              <div className="text-right shrink-0">
-                <div className="font-heading font-bold text-lg text-gray-900 dark:text-gray-100">{p.avgPointsTotal.toFixed(1)}</div>
-                <div className="text-[11px] font-semibold text-green-600">{p.totPrizeMoney.toLocaleString()} kr</div>
+              <div className="mt-1 font-mono text-xs text-ink-3">
+                PF {p.avgPointsFor.toFixed(1)} · PA {p.avgPointsAgainst.toFixed(1)}
               </div>
+            </div>
+            <div className="shrink-0 text-right">
+              <div className="font-mono text-lg font-medium tabular-nums">{p.avgPointsTotal.toFixed(1)}</div>
+              <div className={cn('font-mono text-xs', p.totPrizeMoney ? 'text-ink-2' : 'text-ink-3')}>{kr(p.totPrizeMoney)}</div>
             </div>
           </div>
         ))}

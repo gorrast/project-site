@@ -2,7 +2,8 @@
 
 // Ported as-is from gorrast/DH2465 components/ui/Motion.tsx. Local changes only:
 // data-reveal / data-stagger attributes (so the print rule in globals.css can
-// un-hide waiting sections) and two lint suppressions.
+// un-hide waiting sections), two lint suppressions, and MetricGroup's
+// as / className / stagger props.
 
 import {
   useEffect,
@@ -143,12 +144,22 @@ export const quietGroup = {
   closed: { transition: { delayChildren: 0 } },
 };
 
+/** Spread onto each motion child of a MetricGroup. */
+export const quietItemProps = { variants: quietItem, transition: calmTransition };
+
+/** Local change from DH2465: `as`, `className` and `stagger` so tables and grids can use it. */
 export function MetricGroup({
   children,
-  paused,
+  paused = false,
+  as = "div",
+  className,
+  stagger: gap = 0.11,
 }: {
   children: ReactNode;
-  paused: boolean;
+  paused?: boolean;
+  as?: "div" | "tbody";
+  className?: string;
+  stagger?: number;
 }) {
   const reduced = useReducedMotion();
   const ref = useRef<HTMLDivElement>(null);
@@ -160,17 +171,23 @@ export function MetricGroup({
       !!ref.current && ref.current.getBoundingClientRect().top > innerHeight,
     );
   }, []);
+  // Same props either way; the cast only quiets the ref's element type.
+  const Group = (as === "tbody" ? motion.tbody : motion.div) as typeof motion.div;
   return (
-    <motion.div
+    <Group
       ref={ref}
       data-stagger=""
-      className="ah-metric-grid"
+      className={className}
       initial={false}
       animate={!waiting || entered || reduced || paused ? "open" : "closed"}
-      variants={reduced || paused ? undefined : quietGroup}
+      variants={
+        reduced || paused
+          ? undefined
+          : { ...quietGroup, open: { transition: { delayChildren: stagger(gap) } } }
+      }
     >
       {children}
-    </motion.div>
+    </Group>
   );
 }
 

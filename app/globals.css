@@ -161,6 +161,15 @@
   h1, h2, h3, h4, h5, h6 {
     @apply font-display;
   }
+  /* Every button presses in (DESIGN.md › Principles 5); only the primary grows, in ui/button. */
+  button {
+    transition: scale 260ms var(--ease-calm), background-color 160ms, color 160ms, border-color 160ms;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    button:not(:disabled):active {
+      scale: 0.965;
+    }
+  }
   :focus-visible {
     outline: 2px solid var(--accent, var(--ink));
     outline-offset: 2px;
