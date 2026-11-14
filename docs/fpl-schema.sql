@@ -172,7 +172,7 @@ create table fpl.predictions (
 -- needs simulation from full posterior draws — future Bayesian-phase
 -- work, not now.
 -- ============================================================
-create view fpl.gameweek_predictions as
+create view fpl.gameweek_predictions with (security_invoker = true) as
 select
   player_id,
   season,
@@ -194,3 +194,18 @@ group by player_id, season, gw;
 grant usage on schema fpl to anon, authenticated, service_role;
 grant select on all tables in schema fpl to anon;
 alter default privileges in schema fpl grant select on tables to anon;
+
+-- ============================================================
+-- RLS — on for every table. service_role (pipeline) bypasses it.
+-- anon (api/fpl.py) may read only what the site shows; with RLS on
+-- and no policy, fixture_odds and raw_gameweek_stats are closed to anon.
+-- ============================================================
+alter table fpl.players            enable row level security;
+alter table fpl.features           enable row level security;
+alter table fpl.predictions        enable row level security;
+alter table fpl.fixture_odds       enable row level security;
+alter table fpl.raw_gameweek_stats enable row level security;
+
+create policy "public read" on fpl.players     for select to anon using (true);
+create policy "public read" on fpl.features    for select to anon using (true);
+create policy "public read" on fpl.predictions for select to anon using (true);
