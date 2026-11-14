@@ -1,10 +1,10 @@
 'use client'
 
-import { useTheme } from 'next-themes'
+import { useEffect, useRef } from 'react'
 import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { SHBControl } from './SHBControl'
-import { CONSUMER_COLORS, fmtDate, inkColor, kr } from './colors'
+import { CONSUMER_COLORS, fmtDate, kr } from './colors'
 import type { Consumer, Receipt, ReceiptLine } from './types'
 
 interface ReceiptDetailProps {
@@ -17,7 +17,7 @@ interface ReceiptDetailProps {
 
 function qtyLabel(quantity: number | null): string {
   if (quantity === null) return ''
-  return Number.isInteger(quantity) ? `${quantity} st` : `${quantity.toFixed(3)} kg`
+  return Number.isInteger(quantity) ? `${quantity} st` : `${quantity.toLocaleString('sv-SE', { maximumFractionDigits: 3 })} kg`
 }
 
 function discountTitle(line: ReceiptLine): string {
@@ -27,10 +27,18 @@ function discountTitle(line: ReceiptLine): string {
   return n > 1 ? `${n} discount lines, ${off} off ${of}` : `Discount line, ${off} off ${of}`
 }
 
+const washPos = 'rounded-md bg-[color-mix(in_srgb,var(--pos)_18%,transparent)] px-1.5 py-px font-mono text-pos'
+
 export function ReceiptDetail({ receipt, cursor, onCursorChange, onSetLineConsumer, onToggleExcluded }: ReceiptDetailProps) {
-  const { resolvedTheme } = useTheme()
-  const ink = inkColor(resolvedTheme)
   const cursorId = receipt.lines.length ? receipt.lines[Math.min(cursor, receipt.lines.length - 1)].id : null
+  const cursorRef = useRef<HTMLDivElement>(null)
+  // ↑ ↓ can move the cursor off-screen inside the scrolling pane.
+  // Only when it actually moves, so opening the tab doesn't scroll the page.
+  const last = useRef(cursorId)
+  useEffect(() => {
+    if (last.current !== cursorId) cursorRef.current?.scrollIntoView({ block: 'nearest' })
+    last.current = cursorId
+  }, [cursorId])
 
   const st = { Hugo: 0, Benjamin: 0, shared: 0 }
   for (const l of receipt.lines) {
@@ -38,105 +46,90 @@ export function ReceiptDetail({ receipt, cursor, onCursorChange, onSetLineConsum
   }
 
   return (
-    <div className="h-full bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden flex flex-col">
-      <div className="shrink-0 flex items-center justify-between gap-3 px-4 pt-4 pb-3">
-        <div>
-          <div className="font-heading text-[15px] font-bold text-gray-900 dark:text-gray-100">
-            {receipt.store ?? 'Unknown store'}
-          </div>
-          <div className="font-mono text-[10.5px] text-gray-500 dark:text-gray-400">
+    <div className="flex min-w-0 flex-[999_1_460px] flex-col overflow-hidden rounded-2xl border border-line bg-surface lg:h-full">
+      <div className="flex shrink-0 flex-wrap items-start justify-between gap-3 px-[18px] py-4">
+        <div className="flex min-w-0 flex-col gap-1">
+          <span className="font-display text-lg font-semibold tracking-[-0.01em]">{receipt.store ?? 'Unknown store'}</span>
+          <span className="font-mono text-[11px] text-ink-3">
             {fmtDate(receipt.purchasedAt)} · {receipt.buyer} paid · {receipt.kivraId}
-          </div>
+          </span>
         </div>
         <Button
           variant="outline"
+          size="sm"
+          aria-pressed={receipt.excluded}
           onClick={onToggleExcluded}
-          className={receipt.excluded ? '!bg-orange-50 !border-orange-200 !text-orange-800 dark:!bg-orange-900/30 dark:!border-orange-800 dark:!text-orange-300' : ''}
+          className={receipt.excluded ? 'border-warn bg-[color-mix(in_srgb,var(--warn)_14%,transparent)] text-ink' : undefined}
         >
-          {receipt.excluded ? 'Excluded — include again' : 'Exclude receipt'}
+          {receipt.excluded ? 'Excluded · include again' : 'Exclude receipt'}
         </Button>
       </div>
 
       {receipt.excluded && (
-        <div className="shrink-0 mx-4 mb-3 px-3 py-2 rounded-lg bg-orange-50 dark:bg-orange-900/20 text-orange-800 dark:text-orange-300 text-xs">
-          Excluded from all totals and reports — paid privately, not from the shared account.
+        <div className="mx-[18px] mb-3 shrink-0 rounded-[10px] bg-[color-mix(in_srgb,var(--warn)_14%,transparent)] px-3 py-2.5 text-[13px]">
+          Excluded from every total and report. Paid privately, not from the shared account.
         </div>
       )}
 
-      <div className="flex-1 min-h-0 overflow-y-auto">
+      <div className="min-h-0 flex-1 overflow-y-auto">
         {receipt.lines.map(line => {
           const isCursor = line.id === cursorId
+          const amount = line.isReceiptDiscount ? line.grossTotal : line.netTotal
           return (
             <div
               key={line.id}
+              ref={isCursor ? cursorRef : undefined}
               className={cn(
-                'grid items-center gap-2 px-4 py-[9px] border-t border-gray-100 dark:border-gray-700',
-                !isCursor && line.isReceiptDiscount && 'bg-gray-50/60 dark:bg-white/[0.03]'
+                'grid grid-cols-[minmax(0,1fr)_auto_auto] items-center gap-3 border-t border-line px-[18px] py-2.5',
+                // The cursor is a wash plus an accent edge: a full wash alone was unreadable in dark mode.
+                isCursor && 'bg-surface-2 shadow-[inset_3px_0_0_var(--accent)]'
               )}
-              style={{
-                gridTemplateColumns: 'minmax(0,1fr) auto',
-                // Only the left border marks the keyboard cursor — a full
-                // background wash was nearly unreadable in dark mode (light
-                // text on what became a near-white fill).
-                boxShadow: isCursor ? `inset 3px 0 0 ${ink}` : 'none',
-              }}
             >
-              <div className="min-w-0">
-                <div className="flex items-center gap-1.5 flex-wrap">
-                  {line.isReceiptDiscount && (
-                    <span className="font-mono text-[9.5px] uppercase rounded-[5px] px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300">
-                      receipt
-                    </span>
-                  )}
-                  <span className="text-[13px] text-gray-900 dark:text-gray-100 truncate">{line.displayName}</span>
+              <span className="flex min-w-0 flex-col gap-[3px]">
+                <span className="flex min-w-0 items-center gap-2">
+                  {line.isReceiptDiscount && <span className={`${washPos} text-[10px] tracking-[0.06em] uppercase`}>receipt</span>}
+                  {/* Wraps rather than truncates: the name is what's being assigned. */}
+                  <span className="text-sm leading-[1.3]">{line.displayName}</span>
+                </span>
+                <span className="flex flex-wrap items-center gap-2 font-mono text-[11px] text-ink-3">
+                  {line.isReceiptDiscount ? 'applies to the whole receipt' : [qtyLabel(line.quantity), line.category].filter(Boolean).join(' · ')}
                   {line.discountLines.length > 0 && (
-                    <span
-                      title={discountTitle(line)}
-                      className="font-mono text-[9.5px] rounded-[5px] px-1.5 py-0.5 bg-emerald-50 border border-emerald-200 text-emerald-700 dark:bg-emerald-900/20 dark:border-emerald-700 dark:text-emerald-300"
-                    >
+                    <span title={discountTitle(line)} className={washPos}>
                       {kr(line.discountTotal)}
                     </span>
                   )}
-                </div>
-                <div className="font-mono text-[10px] text-gray-400 mt-0.5">
-                  {line.isReceiptDiscount ? 'applies to whole receipt' : qtyLabel(line.quantity)}
-                </div>
-              </div>
-              <div className="flex items-center gap-3">
-                <SHBControl
-                  activeValue={line.consumer}
-                  onSelect={val => {
-                    onSetLineConsumer(line.id, val)
-                    onCursorChange(receipt.lines.findIndex(x => x.id === line.id))
-                  }}
-                />
-                <div className="min-w-[68px] text-right">
-                  <div
-                    className="font-mono text-[12.5px]"
-                    style={{ color: line.isReceiptDiscount ? '#047857' : undefined }}
-                  >
-                    {kr(line.isReceiptDiscount ? line.grossTotal : line.netTotal)}
-                  </div>
-                  {line.discountLines.length > 0 && (
-                    <div className="font-mono text-[10px] text-gray-400">was {kr(line.grossTotal)}</div>
-                  )}
-                </div>
-              </div>
+                </span>
+              </span>
+              <SHBControl
+                label={`Who is ${line.displayName} for`}
+                activeValue={line.consumer}
+                onSelect={val => {
+                  onSetLineConsumer(line.id, val)
+                  onCursorChange(receipt.lines.findIndex(x => x.id === line.id))
+                }}
+              />
+              <span className="flex min-w-[84px] flex-col items-end">
+                <span className={cn('font-mono text-[13px]', amount < 0 && 'text-pos')}>{kr(amount)}</span>
+                {line.discountLines.length > 0 && <span className="font-mono text-[10px] text-ink-3">was {kr(line.grossTotal)}</span>}
+              </span>
             </div>
           )
         })}
       </div>
 
-      <div className="shrink-0 grid gap-2 px-4 py-3.5 bg-gray-50 dark:bg-white/5 border-t border-gray-200 dark:border-gray-700" style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(96px, 1fr))' }}>
+      <div className="grid shrink-0 grid-cols-[repeat(auto-fit,minmax(100px,1fr))] gap-3 border-t border-line bg-surface-2 px-[18px] py-3.5">
         {[
-          { label: 'hugo', color: CONSUMER_COLORS.Hugo, amount: kr(st.Hugo) },
-          { label: 'benjamin', color: CONSUMER_COLORS.Benjamin, amount: kr(st.Benjamin) },
-          { label: 'shared', color: CONSUMER_COLORS.shared, amount: kr(st.shared) },
-          { label: 'receipt total', color: '#4b5563', amount: kr(receipt.total) },
+          { label: 'Hugo', color: CONSUMER_COLORS.Hugo, amount: st.Hugo },
+          { label: 'Benjamin', color: CONSUMER_COLORS.Benjamin, amount: st.Benjamin },
+          { label: 'Shared', color: CONSUMER_COLORS.shared, amount: st.shared },
+          { label: 'Receipt', color: 'var(--ink)', amount: receipt.total },
         ].map(s => (
-          <div key={s.label}>
-            <div className="font-mono text-[9.5px] uppercase" style={{ color: s.color }}>{s.label}</div>
-            <div className="font-mono text-[13.5px] text-gray-900 dark:text-gray-100">{s.amount}</div>
+          <div key={s.label} className="flex flex-col gap-[3px]">
+            <span className="flex items-center gap-1.5 font-mono text-[10px] tracking-[0.06em] text-ink-3 uppercase">
+              <span className="size-[7px] rounded-full" style={{ backgroundColor: s.color }} />
+              {s.label}
+            </span>
+            <span className="font-mono text-sm">{kr(s.amount)}</span>
           </div>
         ))}
       </div>

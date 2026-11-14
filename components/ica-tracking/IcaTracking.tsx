@@ -2,7 +2,9 @@
 
 import { useCallback, useEffect, useState } from 'react'
 import { usePathname, useRouter, useSearchParams } from 'next/navigation'
-import { Button } from '@/components/ui/button'
+import { AnimatePresence, motion, useReducedMotion } from 'motion/react'
+import { buttonVariants } from '@/components/ui/button'
+import { RevealHeading, RevealSection, calmTransition } from '@/components/ui/Motion'
 import { AuthGate } from './AuthGate'
 import { MonthStepper } from './MonthStepper'
 import { TabBar } from './TabBar'
@@ -23,6 +25,7 @@ import type { Scope, Tab } from './types'
 
 function IcaTrackingInner() {
   const router = useRouter()
+  const reduced = useReducedMotion()
   const pathname = usePathname()
   const searchParams = useSearchParams()
 
@@ -98,78 +101,89 @@ function IcaTrackingInner() {
   const showMonthNav = tab === 'month' || tab === 'receipts'
 
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900">
-      <div className="max-w-[1180px] mx-auto px-[18px] pb-[90px] pt-[26px] flex flex-col gap-[18px]">
-        <div className="flex items-start justify-between gap-4 flex-wrap">
-          <div>
-            <div className="font-mono text-[11px] uppercase tracking-[0.1em] text-gray-500 dark:text-gray-400">
-              ICA · HUGO &amp; BENJAMIN
-            </div>
-            <h1 className="font-heading text-[34px] font-bold tracking-[-0.02em] leading-[1.05] text-gray-900 dark:text-gray-100">
-              Food expenses
-            </h1>
+    <div className="mx-auto max-w-[1200px] px-[clamp(16px,5vw,40px)] pb-[120px]">
+      <section className="flex flex-wrap items-end justify-between gap-x-6 gap-y-5 pt-[clamp(40px,8vw,72px)] pb-7">
+        <div className="flex min-w-0 flex-col gap-3.5">
+          <div className="font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">ICA · Hugo &amp; Benjamin</div>
+          <RevealHeading as="h1" className="text-[clamp(40px,9vw,60px)] leading-none font-semibold tracking-[-0.035em]">
+            Food expenses
+          </RevealHeading>
+        </div>
+        {/* Project navigation lives in the hero, never in the shell. */}
+        {showMonthNav && months.data && monthKey && (
+          <div className="flex flex-wrap items-center gap-2">
+            <MonthStepper months={months.data.months} currentKey={monthKey} onChange={handleMonthChange} />
+            <a href={`/api/ica-tracking/month/${monthKey}/csv`} className={buttonVariants()}>
+              Export CSV
+            </a>
           </div>
-          {showMonthNav && months.data && monthKey && (
-            <div className="flex items-center gap-2">
-              <MonthStepper months={months.data.months} currentKey={monthKey} onChange={handleMonthChange} />
-              <a href={`/api/ica-tracking/month/${monthKey}/csv`}>
-                <Button variant="outline">Export CSV</Button>
-              </a>
+        )}
+      </section>
+
+      <TabBar tab={tab} onChange={handleTabChange} />
+
+      <AnimatePresence mode="wait" initial={false}>
+        <motion.div
+          key={tab}
+          initial={{ opacity: 0, y: 12 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0 }}
+          transition={{ ...calmTransition, duration: reduced ? 0 : 0.5 }}
+        >
+          {tab === 'month' && (
+            <div className="flex flex-col gap-20">
+              {monthData.data && (
+                <section className="flex flex-col gap-3">
+                  <BucketCards tally={monthData.data.tally} />
+                  <FairShareBudgetBar tally={monthData.data.tally} />
+                </section>
+              )}
+              <RevealSection>
+                <ReportsSection scope={scope} onScopeChange={s => setParams({ scope: s })} monthKey={monthKey} />
+              </RevealSection>
             </div>
           )}
-        </div>
 
-        <TabBar tab={tab} onChange={handleTabChange} />
-
-        {tab === 'month' && (
-          <div className="flex flex-col gap-[18px]">
-            {monthData.data && (
-              <>
-                <BucketCards tally={monthData.data.tally} />
-                <FairShareBudgetBar tally={monthData.data.tally} />
-              </>
-            )}
-            <ReportsSection scope={scope} onScopeChange={s => setParams({ scope: s })} monthKey={monthKey} />
-          </div>
-        )}
-
-        {tab === 'trends' && (
-          <div className="flex flex-col gap-[18px]">
-            {trends.data && <MonthChart months={trends.data.months} onMonthClick={handleMonthChartClick} />}
-            <ProductOverTime />
-            <ReportsSection scope={scope} onScopeChange={s => setParams({ scope: s })} monthKey={monthKey} />
-          </div>
-        )}
-
-        {tab === 'receipts' && (
-          <div className="flex flex-col gap-3">
-            <KeyboardHints />
-            {monthData.saveError && <p className="text-sm text-red-600">{monthData.saveError}</p>}
-            <div
-              className="grid gap-3.5 items-stretch"
-              style={{ gridTemplateColumns: 'repeat(auto-fit, minmax(290px, 1fr))', height: 'calc(100vh - 230px)' }}
-            >
-              <ReceiptList
-                receipts={receipts}
-                selectedId={effectiveSelectedId}
-                onSelect={selectReceipt}
-                monthLabel={monthData.data?.label ?? ''}
-              />
-              {selectedReceipt && (
-                <ReceiptDetail
-                  receipt={selectedReceipt}
-                  cursor={cursor}
-                  onCursorChange={setCursor}
-                  onSetLineConsumer={(lineId, consumer) => monthData.setLineConsumer(lineId, consumer)}
-                  onToggleExcluded={() => monthData.setReceiptExcluded(selectedReceipt.id, !selectedReceipt.excluded)}
-                />
-              )}
+          {tab === 'trends' && (
+            <div className="flex flex-col gap-20">
+              {trends.data && <MonthChart months={trends.data.months} activeKey={monthKey} onMonthClick={handleMonthChartClick} />}
+              <RevealSection>
+                <ProductOverTime />
+              </RevealSection>
+              <RevealSection>
+                <ReportsSection scope={scope} onScopeChange={s => setParams({ scope: s })} monthKey={monthKey} />
+              </RevealSection>
             </div>
-          </div>
-        )}
+          )}
 
-        {tab === 'products' && <ProductsTable />}
-      </div>
+          {tab === 'receipts' && (
+            <div className="flex flex-col gap-4">
+              <KeyboardHints />
+              {monthData.saveError && <p role="alert" className="text-[13px] text-neg">{monthData.saveError}</p>}
+              {/* Both panes scroll on their own on wide screens so the open receipt stays beside the list. */}
+              <div className="flex flex-wrap items-start gap-4 lg:h-[calc(100dvh-140px)] lg:min-h-[480px] lg:items-stretch">
+                <ReceiptList
+                  receipts={receipts}
+                  selectedId={effectiveSelectedId}
+                  onSelect={selectReceipt}
+                  monthLabel={monthData.data?.label ?? ''}
+                />
+                {selectedReceipt && (
+                  <ReceiptDetail
+                    receipt={selectedReceipt}
+                    cursor={cursor}
+                    onCursorChange={setCursor}
+                    onSetLineConsumer={(lineId, consumer) => monthData.setLineConsumer(lineId, consumer)}
+                    onToggleExcluded={() => monthData.setReceiptExcluded(selectedReceipt.id, !selectedReceipt.excluded)}
+                  />
+                )}
+              </div>
+            </div>
+          )}
+
+          {tab === 'products' && <ProductsTable />}
+        </motion.div>
+      </AnimatePresence>
     </div>
   )
 }

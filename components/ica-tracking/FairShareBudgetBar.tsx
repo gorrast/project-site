@@ -1,6 +1,6 @@
 'use client'
 
-import { BUDGET_COLOR, CONSUMER_COLORS, kr, MONTHLY_BUDGET_KR } from './colors'
+import { CONSUMER_COLORS, kr, MONTHLY_BUDGET_KR } from './colors'
 import type { Tally } from './types'
 
 const HALF = MONTHLY_BUDGET_KR / 2
@@ -29,65 +29,60 @@ function buildSide(personAmount: number, sharedAmount: number): SideSegments {
   return { own, shared, fair }
 }
 
-function statusText(fair: number): string {
+function Side({ name, color, fair }: { name: string; color: string; fair: number }) {
   const over = fair > HALF
-  return over ? `${kr(fair - HALF)} over fair share` : `${kr(HALF - fair)} left of fair share`
+  return (
+    <span>
+      <span style={{ color }}>{name}</span> {kr(fair, false)} kr ·{' '}
+      <span className={over ? 'text-neg' : 'text-ink-2'}>
+        {over ? `${kr(fair - HALF)} over fair share` : `${kr(HALF - fair)} left of fair share`}
+      </span>
+    </span>
+  )
 }
 
 export function FairShareBudgetBar({ tally }: { tally: Tally }) {
   const hugo = buildSide(tally.Hugo, tally.shared)
   const ben = buildSide(tally.Benjamin, tally.shared)
   const householdOver = tally.total > MONTHLY_BUDGET_KR
-  const householdNote = householdOver
-    ? `${kr(tally.total - MONTHLY_BUDGET_KR)} over`
-    : `${kr(MONTHLY_BUDGET_KR - tally.total)} left`
 
   return (
-    <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl px-[18px] py-4 shadow-[0_1px_3px_rgba(17,24,39,0.06)]">
-      <div className="flex items-center justify-between">
-        <span className="font-heading text-sm font-medium text-gray-900 dark:text-gray-100">
-          Monthly target {kr(MONTHLY_BUDGET_KR)}
+    <div className="flex flex-col gap-3 rounded-2xl border border-line bg-surface px-[22px] py-5">
+      <div className="flex flex-wrap items-baseline justify-between gap-3">
+        <span className="font-display text-lg font-semibold tracking-[-0.01em]">
+          Fair share of a {MONTHLY_BUDGET_KR.toLocaleString('sv-SE')} kr month
         </span>
-        <span className="font-mono text-[12.5px]" style={{ color: householdOver ? BUDGET_COLOR : undefined }}>
-          {householdNote}
+        <span className={householdOver ? 'font-mono text-[13px] text-neg' : 'font-mono text-[13px] text-ink'}>
+          {householdOver ? `${kr(tally.total - MONTHLY_BUDGET_KR)} over` : `${kr(MONTHLY_BUDGET_KR - tally.total)} left`}
         </span>
       </div>
 
-      {/* Outer wrapper is NOT overflow-hidden, so the threshold line below
-          can extend taller than the bar itself and stay visible even once
-          a fill has grown past it and would otherwise swallow it. */}
-      <div className="relative mt-3 py-1">
-        <div className="relative h-3.5 rounded-full bg-gray-100 dark:bg-white/10 overflow-hidden">
-          {/* Hugo, growing rightward from the left edge: own, then half-shared */}
-          <div className="absolute inset-y-0 left-0" style={{ width: `${hugo.own}%`, backgroundColor: CONSUMER_COLORS.Hugo }} />
-          <div
-            className="absolute inset-y-0"
-            style={{ left: `${hugo.own}%`, width: `${hugo.shared}%`, backgroundColor: CONSUMER_COLORS.shared }}
-          />
-
-          {/* Benjamin, mirrored: growing leftward from the right edge */}
-          <div className="absolute inset-y-0 right-0" style={{ width: `${ben.own}%`, backgroundColor: CONSUMER_COLORS.Benjamin }} />
-          <div
-            className="absolute inset-y-0"
-            style={{ right: `${ben.own}%`, width: `${ben.shared}%`, backgroundColor: CONSUMER_COLORS.shared }}
-          />
-        </div>
-
-        {/* Fair-share threshold — the center of the bar is exactly half the
-            target. Sits outside the bar's own overflow-hidden box and
-            extends a few px above/below it, so it stays visible against
-            the card background regardless of what color is filled behind
-            it inside the bar. */}
+      {/* Outer wrapper is NOT overflow-hidden, so the threshold line can
+          extend past the bar and stay visible once a fill has crossed it. */}
+      <div className="relative py-[5px]">
         <div
-          className="absolute left-1/2 w-0 border-l-2 border-dashed"
-          style={{ borderColor: BUDGET_COLOR, top: 0, bottom: 0 }}
-        />
+          role="img"
+          aria-label={`Hugo ${kr(hugo.fair)}, Benjamin ${kr(ben.fair)}, against ${kr(HALF)} each`}
+          className="relative h-3.5 overflow-hidden rounded-[7px] bg-surface-3"
+        >
+          {/* Hugo grows rightward from the left edge: own, then half of shared */}
+          <span className="absolute inset-y-0 left-0" style={{ width: `${hugo.own}%`, backgroundColor: CONSUMER_COLORS.Hugo }} />
+          <span className="absolute inset-y-0" style={{ left: `${hugo.own}%`, width: `${hugo.shared}%`, backgroundColor: CONSUMER_COLORS.shared }} />
+          {/* Benjamin mirrors it from the right edge */}
+          <span className="absolute inset-y-0 right-0" style={{ width: `${ben.own}%`, backgroundColor: CONSUMER_COLORS.Benjamin }} />
+          <span className="absolute inset-y-0" style={{ right: `${ben.own}%`, width: `${ben.shared}%`, backgroundColor: CONSUMER_COLORS.shared }} />
+        </div>
+        {/* The centre of the bar is exactly half the target. */}
+        <span aria-hidden="true" className="absolute inset-y-0 left-1/2 border-l-2 border-dashed border-neg" />
       </div>
 
-      <div className="mt-1 flex items-center justify-between font-mono text-[10.5px] text-gray-500 dark:text-gray-400">
-        <span>Hugo {kr(hugo.fair)} — {statusText(hugo.fair)}</span>
-        <span>Benjamin {kr(ben.fair)} — {statusText(ben.fair)}</span>
+      <div className="flex flex-wrap justify-between gap-4 font-mono text-xs">
+        <Side name="Hugo" color={CONSUMER_COLORS.Hugo} fair={hugo.fair} />
+        <Side name="Benjamin" color={CONSUMER_COLORS.Benjamin} fair={ben.fair} />
       </div>
+      <span className="text-xs text-ink-3">
+        Each side fills with that person&apos;s own food, then half of the shared food. The dashed line is half the target.
+      </span>
     </div>
   )
 }

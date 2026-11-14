@@ -7,6 +7,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { NativeSelect as Select } from '@/components/ui/native-select'
 import { Segmented } from '@/components/ui/segmented'
+import { LoginCard } from '@/components/LoginCard'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
 
@@ -78,48 +79,6 @@ function BackLink({ onClick }: { onClick: () => void }) {
 }
 
 const muted = <p className="text-sm text-ink-3">Loading…</p>
-
-// ─── Login ────────────────────────────────────────────────────────────────────
-
-function LoginForm({ onLogin }: { onLogin: () => void }) {
-  const [username, setUsername] = useState('')
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState('')
-  const [loading, setLoading] = useState(false)
-
-  const handleSubmit = async (e: React.FormEvent) => {
-    e.preventDefault()
-    setLoading(true)
-    setError('')
-    try {
-      const res = await fetch('/api/bluebaycup/admin/login', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ username, password }),
-      })
-      if (res.ok) { onLogin() }
-      else { const d = await res.json(); setError(d.error ?? 'Login failed') }
-    } catch { setError('Network error') }
-    finally { setLoading(false) }
-  }
-
-  return (
-    <div className="flex min-h-[calc(100dvh-64px)] items-center justify-center px-4 py-12">
-      <Card className="w-full max-w-[400px]">
-        <div className="mb-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">Blue Bay Cup</div>
-        <h1 className="mb-6 text-[26px] leading-tight font-semibold tracking-[-0.02em]">Admin sign-in</h1>
-        <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Field label="Username" type="text" value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" required />
-          <Field label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
-          {error && <StatusMsg msg={error} type="error" />}
-          <Button type="submit" disabled={loading} className="mt-2">
-            {loading ? 'Signing in…' : 'Sign in'}
-          </Button>
-        </form>
-      </Card>
-    </div>
-  )
-}
 
 // ─── Seasons Tab ──────────────────────────────────────────────────────────────
 
@@ -1054,7 +1013,10 @@ export default function AdminPage() {
 
   if (!isAuthenticated) {
     return (
-      <LoginForm
+      <LoginCard
+        eyebrow="Blue Bay Cup"
+        title="Admin sign-in"
+        endpoint="/api/bluebaycup/admin/login"
         onLogin={() => {
           fetch('/api/bluebaycup/admin/check')
             .then(r => r.json())

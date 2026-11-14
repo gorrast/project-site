@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import { ChevronDown, ChevronRight } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
@@ -117,45 +118,47 @@ export function ProductSelector({ options, selected, onChange }: ProductSelector
       <button
         type="button"
         onClick={() => setOpen(o => !o)}
-        className="h-8 w-full min-w-[220px] flex items-center justify-between gap-2 border border-gray-200 dark:border-gray-600 rounded-[10px] px-2.5 text-sm font-medium text-gray-900 dark:text-gray-100 bg-white dark:bg-gray-900"
+        aria-expanded={open}
+        className="flex h-10 w-full min-w-[220px] cursor-pointer items-center justify-between gap-2 rounded-full border border-line-strong bg-surface pr-3 pl-4 text-sm font-medium text-ink"
       >
         <span className="truncate">{summary}</span>
-        <span className="text-gray-400 text-xs shrink-0">▾</span>
+        <ChevronDown className="size-3.5 shrink-0 text-ink-3" />
       </button>
 
       {open && (
-        <div className="absolute right-0 left-0 z-20 mt-1 w-[320px] max-w-[90vw] rounded-[10px] border border-gray-200 dark:border-gray-600 bg-white dark:bg-gray-900 shadow-[0_10px_15px_-3px_rgba(17,24,39,0.14)] flex flex-col">
-          <div className="p-2 border-b border-gray-100 dark:border-gray-700">
+        <div className="absolute right-0 z-20 mt-1.5 flex w-[320px] max-w-[calc(100vw-32px)] flex-col rounded-xl border border-line-strong bg-surface shadow-(--shadow-pop)">
+          <div className="border-b border-line p-2">
             <Input
               autoFocus
               value={query}
               onChange={e => setQuery(e.target.value)}
+              aria-label="Search products or categories"
               placeholder="Search products or categories…"
-              className="h-8"
+              className="h-9"
             />
           </div>
 
-          <div className="flex items-center justify-between gap-2 px-3 py-2 border-b border-gray-100 dark:border-gray-700">
-            <label className="flex items-center gap-2 cursor-pointer text-sm font-medium text-gray-900 dark:text-gray-100">
+          <div className="flex items-center justify-between gap-2 border-b border-line px-3 py-2">
+            <label className="flex cursor-pointer items-center gap-2 text-sm font-medium">
               <input
                 type="checkbox"
                 checked={allSelected}
                 onChange={toggleAll}
-                className="accent-gray-900 dark:accent-gray-100"
+                className="size-4 accent-(--accent)"
               />
               Select all
             </label>
             <button
               type="button"
               onClick={toggleExpandAll}
-              className="text-xs text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+              className="cursor-pointer text-xs text-ink-3 hover:text-ink"
             >
               {allExpanded ? 'Collapse all' : 'Expand all'}
             </button>
           </div>
 
           <div className="max-h-72 overflow-y-auto py-1">
-            {visibleGroups.length === 0 && <div className="px-3 py-4 text-sm text-gray-400">No matches</div>}
+            {visibleGroups.length === 0 && <div className="px-3 py-4 text-sm text-ink-3">No products or categories match.</div>}
             {visibleGroups.map(group => {
               const names = group.products.map(p => p.name)
               const catAllSelected = names.every(n => selected.has(n))
@@ -166,7 +169,7 @@ export function ProductSelector({ options, selected, onChange }: ProductSelector
               const isOpen = q !== '' || expanded.has(group.name)
               return (
                 <div key={group.name}>
-                  <div className="flex items-center gap-2 px-3 py-1.5 bg-gray-50 dark:bg-white/5">
+                  <div className="flex items-center gap-2 bg-surface-2 px-3 py-1.5">
                     <input
                       type="checkbox"
                       checked={catAllSelected}
@@ -174,40 +177,35 @@ export function ProductSelector({ options, selected, onChange }: ProductSelector
                         if (el) el.indeterminate = catSomeSelected
                       }}
                       onChange={() => toggleCategory(group)}
-                      className="accent-gray-900 dark:accent-gray-100 shrink-0"
+                      aria-label={`All of ${group.name}`}
+                      className="size-4 shrink-0 accent-(--accent)"
                     />
                     <button
                       type="button"
                       onClick={() => toggleExpand(group.name)}
-                      className="flex items-center gap-1.5 flex-1 min-w-0 text-left cursor-pointer"
+                      aria-expanded={isOpen}
+                      className="flex min-w-0 flex-1 cursor-pointer items-center gap-1.5 text-left"
                     >
-                      <span
-                        className={cn(
-                          'text-gray-400 text-[9px] transition-transform shrink-0',
-                          isOpen && 'rotate-90'
-                        )}
-                      >
-                        ▶
-                      </span>
-                      <span className="text-xs font-mono uppercase tracking-[0.05em] text-gray-500 dark:text-gray-400 truncate">
+                      <ChevronRight className={cn('size-3 shrink-0 text-ink-3 transition-transform', isOpen && 'rotate-90')} />
+                      <span className="truncate font-mono text-[11px] tracking-[0.06em] text-ink-2 uppercase">
                         {group.name}
                       </span>
                     </button>
-                    <span className="font-mono text-[11px] text-gray-400 shrink-0">{kr(group.total)}</span>
+                    <span className="shrink-0 font-mono text-[11px] text-ink-3">{kr(group.total)}</span>
                   </div>
                   {isOpen && group.products.map(p => (
                     <label
                       key={p.name}
-                      className="flex items-center gap-2 pl-7 pr-3 py-1.5 cursor-pointer hover:bg-gray-50 dark:hover:bg-white/5 text-sm text-gray-700 dark:text-gray-300"
+                      className="flex cursor-pointer items-center gap-2 py-1.5 pr-3 pl-7 text-sm text-ink-2 hover:bg-surface-2 hover:text-ink"
                     >
                       <input
                         type="checkbox"
                         checked={selected.has(p.name)}
                         onChange={() => toggleProduct(p.name)}
-                        className="accent-gray-900 dark:accent-gray-100"
+                        className="size-4 accent-(--accent)"
                       />
                       <span className="flex-1 truncate">{p.name}</span>
-                      <span className="font-mono text-[11px] text-gray-400">{kr(p.total)}</span>
+                      <span className="font-mono text-[11px] text-ink-3">{kr(p.total)}</span>
                     </label>
                   ))}
                 </div>
@@ -215,8 +213,8 @@ export function ProductSelector({ options, selected, onChange }: ProductSelector
             })}
           </div>
 
-          <div className="flex justify-end p-2 border-t border-gray-100 dark:border-gray-700">
-            <Button size="sm" variant="outline" onClick={() => setOpen(false)}>
+          <div className="flex justify-end border-t border-line p-2">
+            <Button size="sm" variant="secondary" onClick={() => setOpen(false)}>
               Done
             </Button>
           </div>

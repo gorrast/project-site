@@ -17,19 +17,19 @@ interface TabBarProps {
 
 export function TabBar({ tab, onChange }: TabBarProps) {
   return (
-    <div className="flex border-b border-gray-200 dark:border-gray-700">
+    <div role="tablist" aria-label="Views" className="mb-10 flex overflow-x-auto border-b border-line">
       {TABS.map(t => {
         const active = t.id === tab
         return (
           <button
             key={t.id}
             type="button"
+            role="tab"
+            aria-selected={active}
             onClick={() => onChange(t.id)}
             className={cn(
-              'flex items-center gap-1.5 px-3.5 py-2.5 font-heading text-sm font-medium -mb-px border-b-2 transition-colors',
-              active
-                ? 'text-gray-900 dark:text-gray-100 border-gray-900 dark:border-gray-100'
-                : 'text-gray-500 dark:text-gray-400 border-transparent'
+              '-mb-px flex-none cursor-pointer border-b-2 px-3.5 py-2.5 text-sm font-medium whitespace-nowrap',
+              active ? 'border-accent text-ink' : 'border-transparent text-ink-3 hover:text-ink-2'
             )}
           >
             {t.label}

@@ -5,6 +5,7 @@ import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { SHBControl } from './SHBControl'
+import { cn } from '@/lib/utils'
 import { useProducts } from './hooks/useProducts'
 import { formatQuantity, kr } from './colors'
 import type { Consumer, ProductRow } from './types'
@@ -49,50 +50,69 @@ function ProductTableRowView({ product, onSaveDetails, onSelectDefault, onClearD
 
   return (
     <TableRow>
-      <TableCell className="font-mono text-[11px] text-gray-700 dark:text-gray-300">{product.rawName}</TableCell>
+      <TableCell className="truncate pl-5 font-mono text-xs text-ink-2" title={product.rawName}>{product.rawName}</TableCell>
       <TableCell>
         <Input
+          aria-label={`Display name for ${product.rawName}`}
           value={displayName}
           onChange={e => setDisplayName(e.target.value)}
           placeholder="not reviewed"
-          className="h-7 text-[13px]"
+          className="h-8 text-[13px]"
         />
       </TableCell>
       <TableCell>
         <Input
+          aria-label={`Category for ${product.rawName}`}
           value={category}
           onChange={e => setCategory(e.target.value)}
-          placeholder="—"
-          className="h-7 text-[11.5px]"
+          placeholder="–"
+          className="h-8 text-[13px]"
         />
       </TableCell>
-      <TableCell className="font-mono text-right">{product.count}</TableCell>
-      <TableCell className="font-mono text-right text-gray-500 dark:text-gray-400">
+      <TableCell className="text-right font-mono text-[13px] text-ink-2">{product.count || '–'}</TableCell>
+      <TableCell className="truncate text-right font-mono text-xs text-ink-3">
         {formatQuantity(product.quantityKg, product.quantitySt)}
       </TableCell>
-      <TableCell className="font-mono text-right">{kr(product.total)}</TableCell>
-      <TableCell className="text-right">
+      <TableCell className="text-right font-mono text-[13px]">{product.count ? kr(product.total) : '–'}</TableCell>
+      <TableCell>
         <div className="flex justify-end">
           <SHBControl
+            label={`Default for ${product.displayName ?? product.rawName}`}
             activeValue={product.defaultConsumer}
             onSelect={val => onSelectDefault(product.rawName, val)}
             onClear={() => onClearDefault(product.rawName)}
           />
         </div>
       </TableCell>
-      <TableCell className="text-right">
+      <TableCell className="pr-5">
         {dirty && (
           <div className="flex justify-end gap-1.5">
-            <Button size="xs" variant="outline" onClick={handleDiscard} disabled={saving}>
+            <Button size="xs" variant="ghost" onClick={handleDiscard} disabled={saving}>
               Discard
             </Button>
-            <Button size="xs" variant="outline" onClick={handleSave} disabled={saving}>
+            <Button size="xs" onClick={handleSave} disabled={saving}>
               {saving ? 'Saving…' : 'Save'}
             </Button>
           </div>
         )}
       </TableCell>
     </TableRow>
+  )
+}
+
+function Chip({ pressed, onClick, children }: { pressed: boolean; onClick: () => void; children: React.ReactNode }) {
+  return (
+    <button
+      type="button"
+      aria-pressed={pressed}
+      onClick={onClick}
+      className={cn(
+        'h-10 cursor-pointer rounded-full border px-4 text-[13px] whitespace-nowrap',
+        pressed ? 'border-accent bg-accent-soft text-ink' : 'border-line-strong text-ink-2'
+      )}
+    >
+      {children}
+    </button>
   )
 }
 
@@ -117,45 +137,51 @@ export function ProductsTable() {
     return rows
   }, [data, query, unrevOnly, missingDisplayName, excludeNegative])
 
+  const all = data?.products ?? []
+  const withoutDefault = all.filter(p => !p.defaultConsumer).length
+
   return (
     <div className="flex flex-col gap-4">
-      <p className="text-[13px] text-gray-600 dark:text-gray-400 max-w-[720px]">
-        A default only seeds new receipt lines the next time this product is imported from
-        Kivra — it never changes anything already on the site. To fix a product&apos;s consumer on
-        past receipts, edit the affected lines directly in the Receipts tab.
+      <p className="max-w-[720px] text-sm leading-relaxed text-ink-2">
+        A product&apos;s default decides who new lines of it belong to in future imports from Kivra. It doesn&apos;t
+        change receipts already on the site; fix those line by line under Receipts. Totals cover every month and
+        leave out excluded receipts.
       </p>
 
-      <div className="flex items-center gap-2 flex-wrap">
-        <Input
-          value={query}
-          onChange={e => setQuery(e.target.value)}
-          placeholder="Search raw_name, display_name or category"
-          className="flex-1 min-w-[220px]"
-        />
-        <Button variant="outline" onClick={() => setUnrevOnly(v => !v)}>
-          {unrevOnly ? 'Showing: no default' : 'Only without default'}
-        </Button>
-        <Button variant="outline" onClick={() => setMissingDisplayName(v => !v)}>
-          {missingDisplayName ? 'Showing: no display name' : 'Only without display name'}
-        </Button>
-        <Button variant="outline" onClick={() => setExcludeNegative(v => !v)}>
-          {excludeNegative ? 'Hiding negative totals' : 'Showing all (incl. negative)'}
-        </Button>
+      <div className="flex flex-wrap items-end gap-2.5">
+        <label className="flex flex-[1_1_260px] flex-col gap-1.5">
+          <span className="text-[13px] font-medium">Search products</span>
+          <Input type="search" value={query} onChange={e => setQuery(e.target.value)} placeholder="Raw name, display name or category" />
+        </label>
+        <Chip pressed={unrevOnly} onClick={() => setUnrevOnly(v => !v)}>Only without a default</Chip>
+        <Chip pressed={missingDisplayName} onClick={() => setMissingDisplayName(v => !v)}>Only without a display name</Chip>
+        <Chip pressed={!excludeNegative} onClick={() => setExcludeNegative(v => !v)}>Include negative totals</Chip>
       </div>
 
+      {loading && <p className="text-sm text-ink-3">Loading products…</p>}
       {!loading && (
-        <div className="bg-white dark:bg-gray-800 border border-gray-100 dark:border-gray-700 rounded-2xl overflow-hidden">
-          <Table>
+        <div className="overflow-hidden rounded-2xl border border-line bg-surface">
+          <Table className="min-w-[980px] table-fixed">
+            <colgroup>
+              <col />
+              <col className="w-[200px]" />
+              <col className="w-[150px]" />
+              <col className="w-12" />
+              <col className="w-[110px]" />
+              <col className="w-[110px]" />
+              <col className="w-[120px]" />
+              <col className="w-[150px]" />
+            </colgroup>
             <TableHeader>
               <TableRow>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400">raw_name</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400">display_name</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400">category</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">n</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">qty</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">total</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right">default</TableHead>
-                <TableHead className="font-mono text-[9.5px] uppercase tracking-[0.07em] text-gray-400 text-right"></TableHead>
+                <TableHead className="pl-5">Raw name</TableHead>
+                <TableHead>Display name</TableHead>
+                <TableHead>Category</TableHead>
+                <TableHead className="text-right">n</TableHead>
+                <TableHead className="text-right">Qty</TableHead>
+                <TableHead className="text-right">Total</TableHead>
+                <TableHead className="text-right">Default</TableHead>
+                <TableHead className="pr-5"><span className="sr-only">Save</span></TableHead>
               </TableRow>
             </TableHeader>
             <TableBody>
@@ -170,13 +196,16 @@ export function ProductsTable() {
               ))}
               {rows.length === 0 && (
                 <TableRow>
-                  <TableCell colSpan={8} className="text-center text-gray-400 py-6">
-                    No products match.
+                  <TableCell colSpan={8} className="py-6 text-center text-ink-3">
+                    No products match. Clear the search or a filter.
                   </TableCell>
                 </TableRow>
               )}
             </TableBody>
           </Table>
+          <div className="border-t border-line px-5 py-3 text-xs text-ink-3">
+            {rows.length} of {all.length} products · {withoutDefault} without a default
+          </div>
         </div>
       )}
     </div>
