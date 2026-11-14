@@ -1,38 +1,69 @@
 import type { FplPlayer } from './types'
 import { shirtUrl } from './shirts'
+import { cn } from '@/lib/utils'
 
-export default function PlayerCard({ player, dark }: { player: FplPlayer; dark: boolean }) {
+const xp = (v: number | null) => (v !== null ? v.toFixed(1) : '–')
+
+/** Under 100% to play: the FPL feed gives null for "no news", which is fit. */
+export const doubtful = (p: FplPlayer) => p.chance_of_playing !== null && p.chance_of_playing < 100
+
+export function playerTitle(p: FplPlayer) {
+  return doubtful(p)
+    ? `${p.name} · ${p.chance_of_playing}% to play · ${xp(p.xpts_mean)} raw, ${xp(p.adjusted_xpts)} discounted`
+    : `${p.name} · ${xp(p.adjusted_xpts)} xPts`
+}
+
+/**
+ * A player on the pitch or bench. Keeps the club jersey from FPL's kit CDN in
+ * place of DESIGN.md's club-code circle; the warning dot sits on the jersey.
+ */
+export default function PlayerCard({
+  player,
+  bench = false,
+  mine = false,
+}: {
+  player: FplPlayer
+  bench?: boolean
+  mine?: boolean
+}) {
   const shirt = shirtUrl(player.team_code, player.position)
-  const oppLabel = player.opponent_team_short
+  const fixture = player.opponent_team_short
     ? `${player.opponent_team_short} (${player.was_home ? 'H' : 'A'})`
     : null
 
   return (
-    <div className="flex w-16 shrink-0 flex-col items-center text-center">
-      {shirt ? (
-        // FPL's own kit CDN — see components/fpl-pred/shirts.ts
-        // eslint-disable-next-line @next/next/no-img-element
-        <img src={shirt} alt={player.team} className="h-9 w-9 object-contain drop-shadow-md" />
-      ) : (
-        <div className="h-9 w-9 rounded-full bg-gray-300 dark:bg-gray-600" />
-      )}
-      <span
-        className={`mt-0.5 max-w-16 truncate text-[10px] leading-tight font-semibold ${
-          dark ? 'text-white drop-shadow-sm' : 'text-gray-900 dark:text-gray-100'
-        }`}
-        title={player.name}
-      >
+    <div title={playerTitle(player)} className="flex w-[76px] min-w-0 flex-col items-center gap-1 text-center">
+      <span className={cn('relative block flex-none', bench ? 'size-8' : 'size-10')}>
+        {shirt ? (
+          // FPL's own kit CDN — see components/fpl-pred/shirts.ts
+          // eslint-disable-next-line @next/next/no-img-element
+          <img src={shirt} alt={player.team} className="size-full object-contain" />
+        ) : (
+          <span className="block size-full rounded-full border border-line-strong bg-surface-2" />
+        )}
+        {doubtful(player) && (
+          <span className="absolute -top-px -right-px size-[9px] rounded-full bg-warn shadow-[0_0_0_2px_var(--surface)]" />
+        )}
+      </span>
+      <span className={cn('max-w-full truncate text-xs leading-[1.2]', bench ? 'text-ink-2' : 'font-medium')}>
         {player.name}
       </span>
-      <span
-        className={`rounded px-1 text-[10px] leading-tight font-bold ${
-          dark ? 'bg-black/35 text-white' : 'text-blue-600 dark:text-blue-400'
-        }`}
-      >
-        {player.adjusted_xpts !== null ? player.adjusted_xpts.toFixed(1) : '—'}
-      </span>
-      {oppLabel && (
-        <span className={`text-[9px] leading-tight ${dark ? 'text-white/80' : 'text-gray-400'}`}>{oppLabel}</span>
+      {bench ? (
+        <span className="font-mono text-[11px] text-ink-3">
+          {player.position} · {xp(player.adjusted_xpts)}
+        </span>
+      ) : (
+        <>
+          <span className={cn('rounded-md px-[7px] py-px font-mono text-xs font-medium', mine ? 'bg-accent-soft' : 'bg-surface-3')}>
+            {xp(player.adjusted_xpts)}
+          </span>
+          {fixture && (
+            <span className="font-mono text-[10px] whitespace-nowrap text-ink-3">
+              {fixture}
+              {doubtful(player) && ` · ${player.chance_of_playing}%`}
+            </span>
+          )}
+        </>
       )}
     </div>
   )

@@ -1,10 +1,11 @@
 'use client'
 
 import { useState, useEffect, useCallback, useId } from 'react'
-import { ChevronDown, Pencil } from 'lucide-react'
+import { Pencil } from 'lucide-react'
 
 import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
+import { NativeSelect as Select } from '@/components/ui/native-select'
 import { Segmented } from '@/components/ui/segmented'
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
 import { cn } from '@/lib/utils'
@@ -31,22 +32,6 @@ function Field({ label, error, ...props }: React.ComponentProps<'input'> & { lab
       <label htmlFor={id} className={labelClass}>{label}</label>
       <Input id={id} aria-invalid={error ? true : undefined} {...props} />
       {error && <span className="text-[13px] text-neg">{error}</span>}
-    </div>
-  )
-}
-
-/** Native select styled like a field (DESIGN.md › Select). */
-function Select({ className, size = 'default', ...props }: Omit<React.ComponentProps<'select'>, 'size'> & { size?: 'default' | 'sm' }) {
-  return (
-    <div className={cn('relative min-w-0', className)}>
-      <select
-        {...props}
-        className={cn(
-          'w-full cursor-pointer appearance-none rounded-[10px] border border-line-strong bg-page pr-9 pl-3.5 text-sm text-ink outline-hidden focus-visible:border-accent',
-          size === 'sm' ? 'h-8' : 'h-10'
-        )}
-      />
-      <ChevronDown className={cn('pointer-events-none absolute right-3 size-3.5 text-ink-3', size === 'sm' ? 'top-[9px]' : 'top-[13px]')} />
     </div>
   )
 }

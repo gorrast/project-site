@@ -1,9 +1,16 @@
 'use client'
 
 import { useEffect, useMemo, useState } from 'react'
+import { motion } from 'motion/react'
 import Pitch from './Pitch'
 import PlayersTable from './PlayersTable'
 import { DEFAULT_LEAGUE_ID } from '@/lib/fpl/config'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { NativeSelect } from '@/components/ui/native-select'
+import { MetricGroup, RevealHeading, RevealSection, quietItemProps } from '@/components/ui/Motion'
+import { SectionHeading } from '@/components/SectionHeading'
+import { cn } from '@/lib/utils'
 import type { LeagueResponse, TeamRosterResponse, PlayersResponse } from './types'
 
 const STORAGE_KEY_PREFIX = 'fpl-pred:selectedTeamId'
@@ -171,90 +178,188 @@ export default function FplPred() {
     }
   }
 
+  const myCodes = useMemo(() => rosterCodes(myTeam), [myTeam])
+  const opponentCodes = useMemo(() => rosterCodes(opponentTeam), [opponentTeam])
+  const myName = league?.teams.find(t => t.team_id === selectedTeamId)?.name ?? 'Your team'
+  const gw = league?.upcoming_gw ?? null
+
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-8">
-          <div className="bg-linear-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-2">FPL Points Predictions</h1>
-          </div>
-          <p className="text-base text-gray-500 dark:text-gray-400">
-            Model-predicted points for your Draft league, with an optimized starting XI.
-          </p>
+    <div className="mx-auto max-w-[1200px] px-[clamp(16px,5vw,40px)] pb-[120px]">
+      <section className="flex flex-col gap-3.5 pt-[clamp(40px,8vw,72px)] pb-12">
+        <div className="font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">
+          Fantasy Draft Premier League{gw && ` · Gameweek ${gw} predictions`}
         </div>
-
-        <div className="flex flex-wrap items-center justify-center gap-3 mb-8">
-          <label htmlFor="fpl-pred-league-id" className="text-sm font-medium text-gray-600 dark:text-gray-300">
-            League ID
+        <RevealHeading as="h1" className="text-[clamp(40px,9vw,60px)] leading-none font-semibold tracking-[-0.035em]">
+          FPL Predictions
+        </RevealHeading>
+        <p className="max-w-[640px] text-lg leading-relaxed text-pretty text-ink-2">
+          Model-predicted points for every player in your Draft league, and the starting XI that scores the most.
+        </p>
+        <form
+          className="mt-3 flex flex-wrap items-end gap-3"
+          onSubmit={e => { e.preventDefault(); handleLeagueIdSubmit() }}
+        >
+          <label className="flex flex-col gap-1.5">
+            <span className="text-[13px] font-medium">League ID</span>
+            <Input
+              type="text"
+              inputMode="numeric"
+              value={leagueIdInput}
+              onChange={e => setLeagueIdInput(e.target.value)}
+              className="w-[140px] font-mono"
+            />
           </label>
-          <input
-            id="fpl-pred-league-id"
-            type="text"
-            inputMode="numeric"
-            value={leagueIdInput}
-            onChange={e => setLeagueIdInput(e.target.value)}
-            onKeyDown={e => e.key === 'Enter' && handleLeagueIdSubmit()}
-            className="w-28 px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-          />
-          <button
-            onClick={handleLeagueIdSubmit}
-            className="px-3 py-1.5 rounded-lg text-sm font-semibold text-white bg-blue-600 hover:bg-blue-700 transition-colors cursor-pointer"
-          >
-            Load
-          </button>
+          <Button type="submit">Load league</Button>
+          <label className="flex min-w-[min(100%,240px)] flex-col gap-1.5">
+            <span className="text-[13px] font-medium">My team</span>
+            <NativeSelect
+              value={selectedTeamId ?? ''}
+              onChange={e => setSelectedTeamId(e.target.value ? Number(e.target.value) : null)}
+              disabled={!league}
+            >
+              <option value="">Select a team…</option>
+              {league?.teams.map(t => (
+                <option key={t.team_id} value={t.team_id}>
+                  {t.name}
+                </option>
+              ))}
+            </NativeSelect>
+          </label>
+        </form>
+        {leagueLoading && <p className="text-sm text-ink-3">Loading league…</p>}
+        {leagueError && (
+          <p role="alert" className="text-[13px] text-neg">
+            Couldn&apos;t load league {leagueId}: {leagueError}. Check the ID and try again.
+          </p>
+        )}
+      </section>
 
-          {league && (
-            <>
-              <label htmlFor="fpl-pred-team" className="text-sm font-medium text-gray-600 dark:text-gray-300 ml-4">
-                My team
-              </label>
-              <select
-                id="fpl-pred-team"
-                value={selectedTeamId ?? ''}
-                onChange={e => setSelectedTeamId(e.target.value ? Number(e.target.value) : null)}
-                className="px-3 py-1.5 border border-gray-200 dark:border-gray-600 rounded-lg bg-gray-50 dark:bg-gray-700 text-gray-900 dark:text-gray-100 text-sm outline-none focus:ring-2 focus:ring-blue-500"
-              >
-                <option value="">Select a team…</option>
-                {league.teams.map(t => (
-                  <option key={t.team_id} value={t.team_id}>
-                    {t.name}
-                  </option>
-                ))}
-              </select>
-            </>
-          )}
-        </div>
+      <div className="flex flex-col gap-20">
+        {selectedTeamId === null ? (
+          league && (
+            <p className="rounded-2xl border border-dashed border-line-strong px-6 py-8 text-center text-sm text-ink-3">
+              Pick your team above to see your starting XI and this gameweek&apos;s opponent.
+            </p>
+          )
+        ) : (
+          <>
+            <section className="flex flex-col gap-3">
+              <MetricGroup className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,240px),1fr))] gap-3">
+                <StatCard
+                  label="Your XI"
+                  dot="bg-accent"
+                  name={myName}
+                  value={myTeam?.total_adjusted_xpts ?? null}
+                  foot={myTeam && `${formation(myTeam)} · roster as of GW ${myTeam.gw_used}`}
+                />
+                {opponentTeamId !== null && (
+                  <StatCard
+                    label={`Opponent${gw ? ` · GW ${gw}` : ''}`}
+                    dot="bg-series-muted"
+                    name={opponentName ?? ''}
+                    value={opponentTeam?.total_adjusted_xpts ?? null}
+                    foot={opponentTeam && `${formation(opponentTeam)} · roster as of GW ${opponentTeam.gw_used}`}
+                  />
+                )}
+                {myTeam?.total_adjusted_xpts != null && opponentTeam?.total_adjusted_xpts != null && (
+                  <EdgeCard mine={myTeam.total_adjusted_xpts} theirs={opponentTeam.total_adjusted_xpts} opponentName={opponentName ?? 'Your opponent'} />
+                )}
+              </MetricGroup>
+              {myTeam && (
+                <p className="max-w-[760px] text-[13px] leading-normal text-ink-3">
+                  Rosters come from the last completed gameweek (GW {myTeam.gw_used}). A trade or waiver made since then
+                  shows up here once GW {myTeam.gw_used + 1} is finished.
+                </p>
+              )}
+            </section>
 
-        {leagueLoading && <p className="text-sm text-gray-400 text-center mb-6">Loading league…</p>}
-        {leagueError && <p className="text-sm text-red-600 dark:text-red-400 text-center mb-6">{leagueError}</p>}
-
-        <div className="grid grid-cols-1 lg:grid-cols-[360px_1fr] gap-6 items-start">
-          <div className="flex flex-col gap-6">
-            {selectedTeamId === null ? (
-              <div className="rounded-2xl border border-dashed border-gray-300 dark:border-gray-600 p-6 text-center text-sm text-gray-400">
-                Select your team above to see your starting XI.
-              </div>
-            ) : (
-              <Pitch
-                myTeam={myTeam}
-                myLoading={myTeamLoading}
-                myError={myTeamError}
-                opponentTeam={opponentTeam}
-                opponentLoading={opponentTeamLoading}
-                opponentError={opponentTeamError}
-                opponentName={opponentName}
+            <RevealSection>
+              <SectionHeading
+                title="Starting XI"
+                caption="The best-scoring valid formation from each 15-man roster. A warning dot means the player is under 100% to play and his points are discounted by that chance."
               />
-            )}
-          </div>
+              <div className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] gap-4">
+                <Pitch title={myName} mine data={myTeam} loading={myTeamLoading} error={myTeamError} />
+                {opponentTeamId !== null && (
+                  <Pitch
+                    title={`vs ${opponentName ?? ''}`}
+                    mine={false}
+                    data={opponentTeam}
+                    loading={opponentTeamLoading}
+                    error={opponentTeamError}
+                  />
+                )}
+              </div>
+            </RevealSection>
+          </>
+        )}
 
+        <RevealSection>
           <PlayersTable
             players={playersData?.players ?? []}
             predictionsAvailable={playersData?.predictions_available ?? false}
             loading={playersLoading}
             error={playersError}
+            gameweek={gw}
+            myCodes={myCodes}
+            opponentCodes={opponentCodes}
           />
-        </div>
+        </RevealSection>
       </div>
     </div>
+  )
+}
+
+const rosterCodes = (t: TeamRosterResponse | null) =>
+  new Set([...(t?.starting_xi ?? []), ...(t?.bench ?? [])].map(p => p.code))
+
+function formation(t: TeamRosterResponse) {
+  const n = (pos: string) => t.starting_xi.filter(p => p.position === pos).length
+  return `${n('DEF')}-${n('MID')}-${n('FWD')}`
+}
+
+const cardClass = 'flex min-w-0 flex-col gap-2 rounded-2xl border border-line bg-surface px-[22px] pt-[22px] pb-5'
+const labelClass = 'flex items-center gap-2 font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase'
+
+function Value({ v, className }: { v: string; className?: string }) {
+  return (
+    <span className={cn('font-mono text-[32px] leading-[1.1] font-medium tracking-[-0.02em]', className)}>
+      {v}
+      <span className="ml-1.5 text-[13px] text-ink-3">xPts</span>
+    </span>
+  )
+}
+
+function StatCard({ label, dot, name, value, foot }: { label: string; dot: string; name: string; value: number | null; foot: string | null }) {
+  return (
+    <motion.div {...quietItemProps} className={cardClass}>
+      <span className={labelClass}>
+        <span className={cn('size-2 rounded-full', dot)} />
+        {label}
+      </span>
+      <span className="truncate font-display text-xl font-semibold tracking-[-0.01em]">{name}</span>
+      <Value v={value !== null ? value.toFixed(1) : '–'} />
+      <span className="text-xs text-ink-3">{foot ?? 'Loading roster…'}</span>
+    </motion.div>
+  )
+}
+
+function EdgeCard({ mine, theirs, opponentName }: { mine: number; theirs: number; opponentName: string }) {
+  const diff = mine - theirs
+  const level = Math.abs(diff) < 0.05
+  return (
+    <motion.div {...quietItemProps} className={cardClass}>
+      <span className={labelClass}>Projected edge</span>
+      <span className="truncate font-display text-xl font-semibold tracking-[-0.01em]">
+        {level ? 'Too close to call' : diff > 0 ? 'You are favoured' : `${opponentName} is favoured`}
+      </span>
+      <Value
+        v={`${diff >= 0 ? '+' : '−'}${Math.abs(diff).toFixed(1)}`}
+        className={level ? 'text-ink' : diff > 0 ? 'text-pos' : 'text-neg'}
+      />
+      <span aria-hidden="true" className="mt-1 flex h-1.5 overflow-hidden rounded-[3px] bg-surface-3">
+        <span className="block h-full bg-accent" style={{ width: `${(mine / (mine + theirs || 1)) * 100}%` }} />
+      </span>
+    </motion.div>
   )
 }
