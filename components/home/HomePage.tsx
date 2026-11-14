@@ -93,7 +93,7 @@ export default function HomePage() {
         </div>
 
         {/* Project grid */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
+        <div id="projects" className="scroll-mt-[88px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
           {projects.map(project => (
             <Link
               key={project.href}

@@ -3,13 +3,13 @@ import { Analytics } from "@vercel/analytics/next"
 import { SpeedInsights } from "@vercel/speed-insights/next"
 import { Space_Grotesk, IBM_Plex_Sans, Geist_Mono } from "next/font/google";
 import { ThemeProvider } from "@/components/ThemeProvider";
-import { GlobalNavIcons } from "@/components/GlobalNavIcons";
+import { SiteHeader } from "@/components/SiteHeader";
 import "./globals.css";
 
 
 const spaceGrotesk = Space_Grotesk({
   variable: "--font-space-grotesk",
-  weight: ["500", "700"],
+  weight: ["500", "600", "700"],
   subsets: ["latin"],
 });
 
@@ -35,10 +35,11 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" suppressHydrationWarning>
-      <body className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${geistMono.variable} antialiased`}>
+    <html lang="en" className={`${spaceGrotesk.variable} ${ibmPlexSans.variable} ${geistMono.variable}`} suppressHydrationWarning>
+      {/* data-project="home" is the site-wide pop; project layouts override it. */}
+      <body data-project="home" className="antialiased">
         <ThemeProvider>
-          <GlobalNavIcons />
+          <SiteHeader />
           <main>
             {children}
           </main>
