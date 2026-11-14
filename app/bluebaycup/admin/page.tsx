@@ -1,6 +1,13 @@
 'use client'
 
-import { useState, useEffect, useCallback } from 'react'
+import { useState, useEffect, useCallback, useId } from 'react'
+import { ChevronDown, Pencil } from 'lucide-react'
+
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Segmented } from '@/components/ui/segmented'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { cn } from '@/lib/utils'
 
 // ─── Types ────────────────────────────────────────────────────────────────────
 
@@ -15,34 +22,77 @@ interface PairSlot { teamAId: number | null; teamBId: number | null; teamAScore:
 
 // ─── Helpers ──────────────────────────────────────────────────────────────────
 
-function Input({ label, ...props }: React.InputHTMLAttributes<HTMLInputElement> & { label: string }) {
+const labelClass = 'text-[13px] font-medium text-ink-2'
+
+function Field({ label, error, ...props }: React.ComponentProps<'input'> & { label: string; error?: string }) {
+  const id = useId()
   return (
-    <div className="flex flex-col gap-1">
-      <label className="text-sm font-medium text-gray-700 dark:text-gray-300">{label}</label>
-      <input
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className={labelClass}>{label}</label>
+      <Input id={id} aria-invalid={error ? true : undefined} {...props} />
+      {error && <span className="text-[13px] text-neg">{error}</span>}
+    </div>
+  )
+}
+
+/** Native select styled like a field (DESIGN.md › Select). */
+function Select({ className, size = 'default', ...props }: Omit<React.ComponentProps<'select'>, 'size'> & { size?: 'default' | 'sm' }) {
+  return (
+    <div className={cn('relative min-w-0', className)}>
+      <select
         {...props}
-        className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
+        className={cn(
+          'w-full cursor-pointer appearance-none rounded-[10px] border border-line-strong bg-page pr-9 pl-3.5 text-sm text-ink outline-hidden focus-visible:border-accent',
+          size === 'sm' ? 'h-8' : 'h-10'
+        )}
       />
+      <ChevronDown className={cn('pointer-events-none absolute right-3 size-3.5 text-ink-3', size === 'sm' ? 'top-[9px]' : 'top-[13px]')} />
+    </div>
+  )
+}
+
+function SelectField({ label, ...props }: React.ComponentProps<typeof Select> & { label: string }) {
+  const id = useId()
+  return (
+    <div className="flex flex-col gap-1.5">
+      <label htmlFor={id} className={labelClass}>{label}</label>
+      <Select id={id} {...props} />
     </div>
   )
 }
 
 function Card({ children, className = '' }: { children: React.ReactNode; className?: string }) {
   return (
-    <div className={`bg-white dark:bg-gray-800 rounded-lg border border-gray-200 dark:border-gray-700 p-6 ${className}`}>
+    <div className={cn('rounded-2xl border border-line bg-surface p-[clamp(16px,4vw,24px)]', className)}>
       {children}
     </div>
   )
 }
 
+const statusText = { error: 'text-neg', success: 'text-pos', info: 'text-ink-2' }
+
 function StatusMsg({ msg, type }: { msg: string; type: 'error' | 'success' | 'info' }) {
-  const colors = {
-    error: 'bg-red-50 dark:bg-red-900/20 border-red-200 dark:border-red-800 text-red-700 dark:text-red-300',
-    success: 'bg-green-50 dark:bg-green-900/20 border-green-200 dark:border-green-800 text-green-700 dark:text-green-300',
-    info: 'bg-blue-50 dark:bg-blue-900/20 border-blue-200 dark:border-blue-800 text-blue-700 dark:text-blue-300',
+  const wash = {
+    error: 'bg-[color-mix(in_srgb,var(--neg)_12%,transparent)]',
+    success: 'bg-[color-mix(in_srgb,var(--pos)_12%,transparent)]',
+    info: 'bg-surface-2',
   }
-  return <div className={`border rounded p-3 text-sm ${colors[type]}`}>{msg}</div>
+  return <div role={type === 'error' ? 'alert' : 'status'} className={cn('rounded-[10px] px-3.5 py-3 text-[13px]', wash[type], statusText[type])}>{msg}</div>
 }
+
+function InlineStatus({ msg, type }: { msg: string; type: 'error' | 'success' }) {
+  return <span role="status" className={cn('text-xs', statusText[type])}>{msg}</span>
+}
+
+function BackLink({ onClick }: { onClick: () => void }) {
+  return (
+    <Button variant="ghost" size="sm" onClick={onClick} className="-ml-3.5 self-start">
+      ← Back to seasons
+    </Button>
+  )
+}
+
+const muted = <p className="text-sm text-ink-3">Loading…</p>
 
 // ─── Login ────────────────────────────────────────────────────────────────────
 
@@ -69,16 +119,17 @@ function LoginForm({ onLogin }: { onLogin: () => void }) {
   }
 
   return (
-    <div className="flex items-center justify-center min-h-screen p-4 bg-gray-50 dark:bg-gray-900">
-      <Card className="w-full max-w-sm">
-        <h1 className="text-2xl font-bold mb-6 dark:text-gray-100">Admin Login</h1>
+    <div className="flex min-h-[calc(100dvh-64px)] items-center justify-center px-4 py-12">
+      <Card className="w-full max-w-[400px]">
+        <div className="mb-1.5 font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">Blue Bay Cup</div>
+        <h1 className="mb-6 text-[26px] leading-tight font-semibold tracking-[-0.02em]">Admin sign-in</h1>
         <form onSubmit={handleSubmit} className="flex flex-col gap-4">
-          <Input label="Username" type="text" value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" required />
-          <Input label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
+          <Field label="Username" type="text" value={username} onChange={e => setUsername(e.target.value)} autoComplete="username" required />
+          <Field label="Password" type="password" value={password} onChange={e => setPassword(e.target.value)} autoComplete="current-password" required />
           {error && <StatusMsg msg={error} type="error" />}
-          <button type="submit" disabled={loading} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 px-4 rounded font-medium text-sm">
-            {loading ? 'Logging in…' : 'Log In'}
-          </button>
+          <Button type="submit" disabled={loading} className="mt-2">
+            {loading ? 'Signing in…' : 'Sign in'}
+          </Button>
         </form>
       </Card>
     </div>
@@ -360,129 +411,125 @@ function SeasonsTab() {
     }
   }
 
-  if (loading) return <p className="text-sm text-gray-500">Loading…</p>
+  if (loading) return muted
 
   // ── Add Season form ──
   if (view === 'add') {
     return (
       <div className="flex flex-col gap-6">
-        <button onClick={() => setView('list')} className="self-start text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
-          ← Back to seasons
-        </button>
+        <BackLink onClick={() => setView('list')} />
 
         <form onSubmit={handleCreateSeason} className="flex flex-col gap-6">
-          <h2 className="text-lg font-semibold dark:text-gray-100">New Season</h2>
+          <h2 className="text-xl font-semibold tracking-[-0.01em]">New season</h2>
 
-          <div className="grid grid-cols-1 sm:grid-cols-4 gap-4">
-            <Input label="Season year (e.g. 2025/2026)" value={newYear} onChange={e => setNewYear(e.target.value)} required placeholder="2025/2026" />
-            <Input label="Prize pool (kr)" type="number" min={0} value={newPrizePool} onChange={e => setNewPrizePool(e.target.value)} required placeholder="1000" />
-            <Input label="High score prize (kr)" type="number" min={0} value={newHighScorePrize} onChange={e => setNewHighScorePrize(e.target.value)} placeholder="100" />
-            <Input label="League API ID" type="number" min={0} value={newLeagueApiId} onChange={e => { setNewLeagueApiId(e.target.value); setFplEntries(null); setFplFetchError('') }} required placeholder="e.g. 314159" />
+          <div className="grid grid-cols-1 gap-4 sm:grid-cols-2 lg:grid-cols-4">
+            <Field label="Season year" value={newYear} onChange={e => setNewYear(e.target.value)} required placeholder="2025/2026" />
+            <Field label="Prize pool (kr)" type="number" min={0} value={newPrizePool} onChange={e => setNewPrizePool(e.target.value)} required placeholder="1000" />
+            <Field label="High score prize (kr)" type="number" min={0} value={newHighScorePrize} onChange={e => setNewHighScorePrize(e.target.value)} placeholder="100" />
+            <Field label="League API ID" type="number" min={0} value={newLeagueApiId} onChange={e => { setNewLeagueApiId(e.target.value); setFplEntries(null); setFplFetchError('') }} required placeholder="314159" />
           </div>
 
-          <div>
-            <button
+          <div className="flex flex-col gap-3">
+            <Button
               type="button"
+              variant="secondary"
+              size="sm"
               onClick={handleFetchFplEntries}
               disabled={!newLeagueApiId.trim() || fplFetchLoading}
-              className="text-sm border border-gray-300 dark:border-gray-600 py-1.5 px-3 rounded font-medium disabled:opacity-50 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700"
+              className="self-start"
             >
               {fplFetchLoading ? 'Fetching…' : 'Fetch entry IDs'}
-            </button>
+            </Button>
 
-            {fplFetchError && <div className="mt-2"><StatusMsg msg={fplFetchError} type="error" /></div>}
+            {fplFetchError && <StatusMsg msg={fplFetchError} type="error" />}
 
             {fplEntries && fplEntries.length > 0 && !fplDraftPickAvailable && (
-              <div className="mt-2">
-                <StatusMsg msg="Draft picks aren't available yet for this league (the draft hasn't completed) — enter them manually." type="info" />
-              </div>
+              <StatusMsg msg="Draft picks aren't available yet for this league (the draft hasn't completed). Enter them by hand." type="info" />
             )}
 
             {fplEntries && (
               fplEntries.length === 0 ? (
-                <p className="mt-2 text-sm text-gray-500 dark:text-gray-400">No entries found for this league.</p>
+                <p className="text-sm text-ink-3">No entries found for this league.</p>
               ) : (
-                <div className="mt-2 overflow-x-auto rounded border border-gray-200 dark:border-gray-700">
-                  <table className="w-full text-sm border-collapse">
-                    <thead>
-                      <tr className="border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900/40">
-                        <th className="text-left py-1.5 px-3 font-medium text-gray-600 dark:text-gray-400">Team name</th>
-                        <th className="text-left py-1.5 px-3 font-medium text-gray-600 dark:text-gray-400">Entry ID</th>
-                        <th className="text-left py-1.5 px-3 font-medium text-gray-600 dark:text-gray-400">Draft pick</th>
-                      </tr>
-                    </thead>
-                    <tbody>
+                <div className="rounded-xl border border-line">
+                  <Table>
+                    <TableHeader>
+                      <TableRow>
+                        <TableHead className="pl-4">Team name</TableHead>
+                        <TableHead>Entry ID</TableHead>
+                        <TableHead className="pr-4">Draft pick</TableHead>
+                      </TableRow>
+                    </TableHeader>
+                    <TableBody>
                       {fplEntries.map(entry => (
-                        <tr key={entry.entryId} className="border-b border-gray-100 dark:border-gray-800 last:border-0">
-                          <td className="py-1.5 px-3 dark:text-gray-200">{entry.teamName}</td>
-                          <td className="py-1.5 px-3 text-gray-600 dark:text-gray-400 font-mono">{entry.entryId}</td>
-                          <td className="py-1.5 px-3 text-gray-600 dark:text-gray-400 font-mono">{entry.draftPick ?? '—'}</td>
-                        </tr>
+                        <TableRow key={entry.entryId}>
+                          <TableCell className="pl-4 text-ink">{entry.teamName}</TableCell>
+                          <TableCell className="font-mono text-ink-2">{entry.entryId}</TableCell>
+                          <TableCell className="pr-4 font-mono text-ink-2">{entry.draftPick ?? '–'}</TableCell>
+                        </TableRow>
                       ))}
-                    </tbody>
-                  </table>
+                    </TableBody>
+                  </Table>
                 </div>
               )
             )}
           </div>
 
-          <div className="flex flex-col gap-1 max-w-[160px]">
-            <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Number of participants</label>
-            <select
-              value={participantCount ?? ''}
-              onChange={e => handleCountChange(Number(e.target.value))}
-              className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
-              required
-            >
-              <option value="">— select —</option>
-              {Array.from({ length: 9 }, (_, i) => i + 6).map(n => (
-                <option key={n} value={n}>{n}</option>
-              ))}
-            </select>
-          </div>
+          <SelectField
+            label="Number of participants"
+            value={participantCount ?? ''}
+            onChange={e => handleCountChange(Number(e.target.value))}
+            className="max-w-[180px]"
+            required
+          >
+            <option value="">Select…</option>
+            {Array.from({ length: 9 }, (_, i) => i + 6).map(n => (
+              <option key={n} value={n}>{n}</option>
+            ))}
+          </SelectField>
 
           {participantRows.length > 0 && (
           <div className="flex flex-col gap-2">
-            <div className="grid grid-cols-4 gap-3 pb-1 text-xs font-medium text-gray-500 dark:text-gray-400">
+            <div className="hidden grid-cols-4 gap-3 pb-1 font-mono text-[11px] tracking-[0.06em] text-ink-3 uppercase sm:grid">
               <span>Player</span>
               <span>Team name</span>
               <span>API entry ID</span>
               <span>Draft pick</span>
             </div>
             {participantRows.map((row, i) => (
-              <div key={i} className="grid grid-cols-4 gap-3">
-                <select
+              <div key={i} className="grid grid-cols-2 gap-2 border-t border-line pt-2 first-of-type:border-0 sm:grid-cols-4 sm:gap-3 sm:border-0 sm:pt-0">
+                <Select
+                  aria-label={`Player ${i + 1}`}
                   value={row.playerId ?? ''}
                   onChange={e => updateRow(i, { playerId: Number(e.target.value) || null })}
-                  className="border border-gray-300 dark:border-gray-600 rounded px-2 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
                   required
                 >
-                  <option value="">— select player —</option>
+                  <option value="">Select player…</option>
                   {players.map(p => <option key={p.player_id} value={p.player_id}>{p.name}</option>)}
-                </select>
-                <input
+                </Select>
+                <Input
+                  aria-label={`Team name ${i + 1}`}
                   value={row.teamName}
                   onChange={e => updateRow(i, { teamName: e.target.value })}
                   placeholder="Team name"
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
                   required
                 />
-                <input
+                <Input
+                  aria-label={`API entry ID ${i + 1}`}
                   type="number"
                   min={0}
                   value={row.apiEntryId}
                   onChange={e => updateRow(i, { apiEntryId: e.target.value })}
-                  placeholder="e.g. 12345"
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                  placeholder="API entry ID"
                   required
                 />
-                <input
+                <Input
+                  aria-label={`Draft pick ${i + 1}`}
                   type="number"
                   min={1}
                   value={row.draftPick}
                   onChange={e => updateRow(i, { draftPick: e.target.value })}
-                  placeholder="e.g. 3"
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                  placeholder="Draft pick"
                   required
                 />
               </div>
@@ -493,22 +540,23 @@ function SeasonsTab() {
           {/* Add Player */}
           <div>
             {!addingPlayer ? (
-              <button type="button" onClick={() => setAddingPlayer(true)} className="text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
-                + Add Player
-              </button>
+              <Button type="button" variant="ghost" size="sm" onClick={() => setAddingPlayer(true)} className="-ml-3.5">
+                + Add player
+              </Button>
             ) : (
-              <div className="flex items-center gap-2 flex-wrap">
-                <input
+              <div className="flex flex-wrap items-center gap-2">
+                <Input
+                  aria-label="New player name"
                   value={newPlayerName}
                   onChange={e => { setNewPlayerName(e.target.value); setAddPlayerError('') }}
                   placeholder="Player name"
-                  className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-40"
+                  className="w-48"
                   onKeyDown={e => { if (e.key === 'Enter') { e.preventDefault(); handleAddPlayer() } }}
                   autoFocus
                 />
-                <button type="button" onClick={handleAddPlayer} className="bg-blue-600 text-white px-3 py-2 rounded text-sm hover:bg-blue-700">Add</button>
-                <button type="button" onClick={() => { setAddingPlayer(false); setNewPlayerName(''); setAddPlayerError('') }} className="text-gray-500 hover:text-gray-700 text-sm px-2 py-2">Cancel</button>
-                {addPlayerError && <span className="text-xs text-red-600">{addPlayerError}</span>}
+                <Button type="button" variant="secondary" size="sm" onClick={handleAddPlayer}>Add</Button>
+                <Button type="button" variant="ghost" size="sm" onClick={() => { setAddingPlayer(false); setNewPlayerName(''); setAddPlayerError('') }}>Cancel</Button>
+                {addPlayerError && <InlineStatus msg={addPlayerError} type="error" />}
               </div>
             )}
           </div>
@@ -516,12 +564,12 @@ function SeasonsTab() {
           {createStatus && <StatusMsg {...createStatus} />}
 
           <div className="flex gap-3">
-            <button type="submit" disabled={createLoading} className="bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 px-6 rounded font-medium text-sm">
-              {createLoading ? 'Creating…' : 'Create Season'}
-            </button>
-            <button type="button" onClick={() => setView('list')} className="border border-gray-300 dark:border-gray-600 py-2 px-4 rounded text-sm dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-700">
+            <Button type="submit" disabled={createLoading}>
+              {createLoading ? 'Creating…' : 'Create season'}
+            </Button>
+            <Button type="button" variant="outline" onClick={() => setView('list')}>
               Cancel
-            </button>
+            </Button>
           </div>
         </form>
       </div>
@@ -533,82 +581,77 @@ function SeasonsTab() {
     const season = seasons.find(s => s.season_id === teamsSeasonId)
     return (
       <div className="flex flex-col gap-6">
-        <button onClick={() => setView('list')} className="self-start text-sm text-blue-600 hover:text-blue-800 dark:text-blue-400">
-          ← Back to seasons
-        </button>
+        <BackLink onClick={() => setView('list')} />
 
-        <h2 className="text-lg font-semibold dark:text-gray-100">
-          Team API Entry IDs & Draft Picks {season ? `— ${season.year}` : ''}
+        <h2 className="text-xl font-semibold tracking-[-0.01em]">
+          Entry IDs and draft picks{season ? `, ${season.year}` : ''}
         </h2>
 
         {teamsLoading ? (
-          <p className="text-sm text-gray-500">Loading…</p>
+          muted
         ) : seasonTeams.length === 0 ? (
-          <p className="text-sm text-gray-500">No teams found for this season.</p>
+          <p className="text-sm text-ink-3">No teams found for this season.</p>
         ) : (
-          <div className="overflow-x-auto">
-            <table className="w-full text-sm border-collapse">
-              <thead>
-                <tr className="border-b border-gray-200 dark:border-gray-700">
-                  <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Player</th>
-                  <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Team</th>
-                  <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">API entry ID</th>
-                  <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Draft pick</th>
-                  <th className="py-2"></th>
-                </tr>
-              </thead>
-              <tbody>
-                {seasonTeams.map(team => (
-                  <tr key={team.team_id} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="py-2 pr-4 dark:text-gray-200">{team.player_name}</td>
-                    <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">{team.team_name}</td>
-                    <td className="py-2 pr-4">
-                      <input
-                        type="number"
-                        min={0}
-                        value={teamEditValues[team.team_id]?.apiEntryId ?? ''}
-                        onChange={e => setTeamEditValues(prev => ({
-                          ...prev,
-                          [team.team_id]: { ...prev[team.team_id], apiEntryId: e.target.value, draftPick: prev[team.team_id]?.draftPick ?? '' },
-                        }))}
-                        placeholder="e.g. 12345"
-                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-32"
-                      />
-                    </td>
-                    <td className="py-2 pr-4">
-                      <input
-                        type="number"
-                        min={1}
-                        value={teamEditValues[team.team_id]?.draftPick ?? ''}
-                        onChange={e => setTeamEditValues(prev => ({
-                          ...prev,
-                          [team.team_id]: { ...prev[team.team_id], draftPick: e.target.value, apiEntryId: prev[team.team_id]?.apiEntryId ?? '' },
-                        }))}
-                        placeholder="e.g. 3"
-                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-24"
-                      />
-                    </td>
-                    <td className="py-2">
-                      <div className="flex items-center gap-2">
-                        <button
-                          onClick={() => saveTeamRow(team.team_id)}
-                          disabled={teamSaving === team.team_id}
-                          className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50"
-                        >
-                          {teamSaving === team.team_id ? 'Saving…' : 'Save'}
-                        </button>
-                        {teamStatus[team.team_id] && (
-                          <span className={`text-xs ${teamStatus[team.team_id].type === 'error' ? 'text-red-600' : 'text-green-600'}`}>
-                            {teamStatus[team.team_id].msg}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ))}
-              </tbody>
-            </table>
-          </div>
+          <Table>
+            <TableHeader>
+              <TableRow>
+                <TableHead>Player</TableHead>
+                <TableHead>Team</TableHead>
+                <TableHead>API entry ID</TableHead>
+                <TableHead>Draft pick</TableHead>
+                <TableHead><span className="sr-only">Actions</span></TableHead>
+              </TableRow>
+            </TableHeader>
+            <TableBody>
+              {seasonTeams.map(team => (
+                <TableRow key={team.team_id}>
+                  <TableCell className="text-ink">{team.player_name}</TableCell>
+                  <TableCell className="text-ink-2">{team.team_name}</TableCell>
+                  <TableCell>
+                    <Input
+                      aria-label={`API entry ID for ${team.player_name}`}
+                      type="number"
+                      min={0}
+                      value={teamEditValues[team.team_id]?.apiEntryId ?? ''}
+                      onChange={e => setTeamEditValues(prev => ({
+                        ...prev,
+                        [team.team_id]: { ...prev[team.team_id], apiEntryId: e.target.value, draftPick: prev[team.team_id]?.draftPick ?? '' },
+                      }))}
+                      placeholder="12345"
+                      className="h-8 w-32"
+                    />
+                  </TableCell>
+                  <TableCell>
+                    <Input
+                      aria-label={`Draft pick for ${team.player_name}`}
+                      type="number"
+                      min={1}
+                      value={teamEditValues[team.team_id]?.draftPick ?? ''}
+                      onChange={e => setTeamEditValues(prev => ({
+                        ...prev,
+                        [team.team_id]: { ...prev[team.team_id], draftPick: e.target.value, apiEntryId: prev[team.team_id]?.apiEntryId ?? '' },
+                      }))}
+                      placeholder="3"
+                      className="h-8 w-20"
+                    />
+                  </TableCell>
+                  <TableCell className="sticky right-0 bg-surface [tr:hover>&]:bg-surface-2">
+                    <div className="flex items-center gap-2">
+                      <Button
+                        size="sm"
+                        variant="secondary"
+                        onClick={() => saveTeamRow(team.team_id)}
+                        disabled={teamSaving === team.team_id}
+                      >
+                        {teamSaving === team.team_id ? 'Saving…' : 'Save'}
+                      </Button>
+                      {teamStatus[team.team_id] && <InlineStatus {...teamStatus[team.team_id]} />}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ))}
+            </TableBody>
+          </Table>
         )}
       </div>
     )
@@ -617,103 +660,81 @@ function SeasonsTab() {
   // ── Seasons list ──
   return (
     <div className="flex flex-col gap-4">
-      <div className="flex items-center justify-between">
-        <h2 className="text-lg font-semibold dark:text-gray-100">Seasons</h2>
-        <button onClick={() => setView('add')} className="bg-blue-600 hover:bg-blue-700 text-white py-1.5 px-4 rounded text-sm font-medium">
-          + Add Season
-        </button>
+      <div className="flex items-center justify-between gap-4">
+        <h2 className="text-xl font-semibold tracking-[-0.01em]">Seasons</h2>
+        <Button size="sm" onClick={() => setView('add')}>
+          + Add season
+        </Button>
       </div>
 
       {seasons.length === 0 ? (
-        <p className="text-sm text-gray-500">No seasons yet.</p>
+        <p className="text-sm text-ink-3">No seasons yet.</p>
       ) : (
-        <div className="overflow-x-auto">
-          <table className="w-full text-sm border-collapse">
-            <thead>
-              <tr className="border-b border-gray-200 dark:border-gray-700">
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Season</th>
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">Prize pool</th>
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">High score prize</th>
-                <th className="text-left py-2 pr-4 font-medium text-gray-600 dark:text-gray-400">League API ID</th>
-                <th className="py-2"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {seasons.map(season =>
-                editingId === season.season_id ? (
-                  <tr key={season.season_id} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="py-2 pr-2">
-                      <input
-                        value={editValues.year}
-                        onChange={e => setEditValues(v => ({ ...v, year: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-28"
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="number" min={0}
-                        value={editValues.prizePool}
-                        onChange={e => setEditValues(v => ({ ...v, prizePool: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-24"
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="number" min={0}
-                        value={editValues.highScorePrize}
-                        onChange={e => setEditValues(v => ({ ...v, highScorePrize: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-24"
-                      />
-                    </td>
-                    <td className="py-2 pr-2">
-                      <input
-                        type="number" min={0}
-                        value={editValues.leagueApiId}
-                        onChange={e => setEditValues(v => ({ ...v, leagueApiId: e.target.value }))}
-                        className="border border-gray-300 dark:border-gray-600 rounded px-2 py-1 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 w-28"
-                      />
-                    </td>
-                    <td className="py-2">
-                      <div className="flex items-center gap-2 flex-wrap">
-                        <button onClick={saveEdit} disabled={editLoading} className="text-sm bg-blue-600 text-white px-3 py-1 rounded hover:bg-blue-700 disabled:opacity-50">Save</button>
-                        <button onClick={cancelEdit} className="text-sm text-gray-500 hover:text-gray-700 dark:hover:text-gray-300 px-2 py-1">Cancel</button>
-                        {confirmDeleteId !== season.season_id ? (
-                          <button onClick={() => setConfirmDeleteId(season.season_id)} className="text-sm text-red-600 hover:text-red-800 px-2 py-1">Delete</button>
-                        ) : (
-                          <>
-                            <span className="text-xs text-gray-500 dark:text-gray-400">Delete &quot;{season.year}&quot;?</span>
-                            <button onClick={() => deleteSeason(season.season_id)} disabled={editLoading} className="text-sm bg-red-600 text-white px-3 py-1 rounded hover:bg-red-700 disabled:opacity-50">Yes, Delete</button>
-                            <button onClick={() => setConfirmDeleteId(null)} className="text-sm text-gray-500 px-2 py-1">No, Keep</button>
-                          </>
-                        )}
-                        {editStatus && (
-                          <span className={`text-xs ${editStatus.type === 'error' ? 'text-red-600' : 'text-green-600'}`}>
-                            {editStatus.msg}
-                          </span>
-                        )}
-                      </div>
-                    </td>
-                  </tr>
-                ) : (
-                  <tr key={season.season_id} className="border-b border-gray-100 dark:border-gray-800">
-                    <td className="py-2 pr-4 dark:text-gray-200">{season.year}</td>
-                    <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">{season.prize_pool} kr</td>
-                    <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">{season.high_score_prize ?? 0} kr</td>
-                    <td className="py-2 pr-4 text-gray-600 dark:text-gray-400">{season.league_api_id ?? '—'}</td>
-                    <td className="py-2">
-                      <div className="flex items-center gap-1">
-                        <button onClick={() => openTeamsView(season.season_id)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 text-xs border border-gray-200 dark:border-gray-700 rounded px-2 py-1" title="Manage team API entry IDs">
-                          Teams
-                        </button>
-                        <button onClick={() => startEdit(season)} className="text-gray-400 hover:text-gray-700 dark:hover:text-gray-200 p-1 text-base" title="Edit">✏️</button>
-                      </div>
-                    </td>
-                  </tr>
-                )
-              )}
-            </tbody>
-          </table>
-        </div>
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>Season</TableHead>
+              <TableHead>Prize pool</TableHead>
+              <TableHead>High score prize</TableHead>
+              <TableHead>League API ID</TableHead>
+              <TableHead><span className="sr-only">Actions</span></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {seasons.map(season =>
+              editingId === season.season_id ? (
+                <TableRow key={season.season_id} data-state="selected">
+                  <TableCell>
+                    <Input aria-label="Season year" value={editValues.year} onChange={e => setEditValues(v => ({ ...v, year: e.target.value }))} className="h-8 w-28" />
+                  </TableCell>
+                  <TableCell>
+                    <Input aria-label="Prize pool" type="number" min={0} value={editValues.prizePool} onChange={e => setEditValues(v => ({ ...v, prizePool: e.target.value }))} className="h-8 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Input aria-label="High score prize" type="number" min={0} value={editValues.highScorePrize} onChange={e => setEditValues(v => ({ ...v, highScorePrize: e.target.value }))} className="h-8 w-24" />
+                  </TableCell>
+                  <TableCell>
+                    <Input aria-label="League API ID" type="number" min={0} value={editValues.leagueApiId} onChange={e => setEditValues(v => ({ ...v, leagueApiId: e.target.value }))} className="h-8 w-28" />
+                  </TableCell>
+                  <TableCell>
+                    <div className="flex flex-wrap items-center gap-2">
+                      <Button size="sm" onClick={saveEdit} disabled={editLoading}>Save</Button>
+                      <Button size="sm" variant="ghost" onClick={cancelEdit}>Cancel</Button>
+                      {confirmDeleteId !== season.season_id ? (
+                        <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(season.season_id)} className="text-neg hover:text-neg">Delete</Button>
+                      ) : (
+                        <>
+                          <span className="text-xs text-ink-2">Delete &quot;{season.year}&quot;?</span>
+                          <Button size="sm" variant="outline" onClick={() => deleteSeason(season.season_id)} disabled={editLoading} className="border-neg text-neg hover:text-neg">Yes, delete</Button>
+                          <Button size="sm" variant="ghost" onClick={() => setConfirmDeleteId(null)}>No, keep</Button>
+                        </>
+                      )}
+                      {editStatus && <InlineStatus {...editStatus} />}
+                    </div>
+                  </TableCell>
+                </TableRow>
+              ) : (
+                <TableRow key={season.season_id}>
+                  <TableCell className="text-ink">{season.year}</TableCell>
+                  <TableCell className="font-mono text-ink-2">{season.prize_pool} kr</TableCell>
+                  <TableCell className="font-mono text-ink-2">{season.high_score_prize ?? 0} kr</TableCell>
+                  <TableCell className="font-mono text-ink-2">{season.league_api_id ?? '–'}</TableCell>
+                  {/* Pinned so the actions stay in view when the table scrolls sideways on phones. */}
+                  <TableCell className="sticky right-0 bg-surface [tr:hover>&]:bg-surface-2">
+                    <div className="flex items-center justify-end gap-1">
+                      <Button size="sm" variant="outline" onClick={() => openTeamsView(season.season_id)} title="Manage team API entry IDs">
+                        Teams
+                      </Button>
+                      <Button size="icon" variant="ghost" onClick={() => startEdit(season)} aria-label={`Edit ${season.year}`}>
+                        <Pencil />
+                      </Button>
+                    </div>
+                  </TableCell>
+                </TableRow>
+              )
+            )}
+          </TableBody>
+        </Table>
       )}
     </div>
   )
@@ -859,39 +880,33 @@ function GameweekTab() {
 
   return (
     <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Season</label>
-          <select
-            value={selectedSeasonId ?? ''}
-            onChange={e => { setSelectedSeasonId(Number(e.target.value) || null); setStatus(null) }}
-            className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
-            required
-          >
-            <option value="">— select season —</option>
-            {seasons.map(s => <option key={s.season_id} value={s.season_id}>{s.year}</option>)}
-          </select>
-        </div>
+      <div className="grid grid-cols-1 gap-4 sm:grid-cols-2">
+        <SelectField
+          label="Season"
+          value={selectedSeasonId ?? ''}
+          onChange={e => { setSelectedSeasonId(Number(e.target.value) || null); setStatus(null) }}
+          required
+        >
+          <option value="">Select season…</option>
+          {seasons.map(s => <option key={s.season_id} value={s.season_id}>{s.year}</option>)}
+        </SelectField>
 
-        <div className="flex flex-col gap-1">
-          <label className="text-sm font-medium text-gray-700 dark:text-gray-300">Gameweek (0–38)</label>
-          <input
-            type="number"
-            min={0}
-            max={38}
-            step={1}
-            value={gameweek}
-            onChange={e => { setGameweek(e.target.value); if (gameweekError) validateGameweek(e.target.value) }}
-            onBlur={e => { if (e.target.value) validateGameweek(e.target.value) }}
-            className="border border-gray-300 dark:border-gray-600 rounded px-3 py-2 text-sm bg-white dark:bg-gray-800 dark:text-gray-100 focus:outline-none focus:ring-2 focus:ring-blue-500"
-            required
-            placeholder="e.g. 12"
-          />
-          {gameweekError && <span className="text-xs text-red-600">{gameweekError}</span>}
-        </div>
+        <Field
+          label="Gameweek (0–38)"
+          type="number"
+          min={0}
+          max={38}
+          step={1}
+          value={gameweek}
+          onChange={e => { setGameweek(e.target.value); if (gameweekError) validateGameweek(e.target.value) }}
+          onBlur={e => { if (e.target.value) validateGameweek(e.target.value) }}
+          error={gameweekError}
+          required
+          placeholder="12"
+        />
       </div>
 
-      {loadingTeams && <p className="text-sm text-gray-500">Loading teams…</p>}
+      {loadingTeams && <p className="text-sm text-ink-3">Loading teams…</p>}
 
       {slots.length > 0 && (
         <div className="flex flex-col gap-3">
@@ -911,50 +926,54 @@ function GameweekTab() {
                     : `${teamLabel(slot.teamBId)} wins`
 
             return (
-              <div key={i} className="border border-gray-200 dark:border-gray-700 rounded-lg p-3 flex flex-col gap-2">
-                <div className="grid grid-cols-1 sm:grid-cols-[1fr_auto_1fr] gap-2 items-center">
+              <div key={i} className="flex flex-col gap-3 rounded-xl border border-line bg-surface-2 p-3.5">
+                <div className="grid grid-cols-1 items-center gap-2 sm:grid-cols-[1fr_auto_1fr]">
                   <div className="flex gap-2">
-                    <select
+                    <Select
+                      aria-label={`Match ${i + 1}, team A`}
                       value={slot.teamAId ?? ''}
                       onChange={e => updateSlot(i, { teamAId: Number(e.target.value) || null })}
-                      className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                      className="flex-1"
                       required
                     >
-                      <option value="">— team —</option>
+                      <option value="">Team…</option>
                       {availableA.map(t => <option key={t.team_id} value={t.team_id}>{t.player_name} ({t.team_name})</option>)}
-                    </select>
-                    <input
+                    </Select>
+                    <Input
+                      aria-label={`Match ${i + 1}, team A points`}
                       type="number" min={0}
                       value={slot.teamAScore}
                       onChange={e => updateSlot(i, { teamAScore: e.target.value })}
                       placeholder="pts"
-                      className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                      className="w-20 font-mono"
                       required
                     />
                   </div>
 
-                  <span className="text-xs font-semibold text-gray-400 text-center">vs</span>
+                  <span className="text-center font-mono text-[11px] tracking-[0.06em] text-ink-3 uppercase">vs</span>
 
                   <div className="flex gap-2">
                     {slot.isBye ? (
-                      <span className="flex-1 flex items-center px-2 py-1.5 text-sm text-gray-400 italic">no opponent</span>
+                      <span className="flex h-10 flex-1 items-center px-3.5 text-sm text-ink-3">No opponent</span>
                     ) : (
                       <>
-                        <select
+                        <Select
+                          aria-label={`Match ${i + 1}, team B`}
                           value={slot.teamBId ?? ''}
                           onChange={e => updateSlot(i, { teamBId: Number(e.target.value) || null })}
-                          className="flex-1 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                          className="flex-1"
                           required
                         >
-                          <option value="">— team —</option>
+                          <option value="">Team…</option>
                           {availableB.map(t => <option key={t.team_id} value={t.team_id}>{t.player_name} ({t.team_name})</option>)}
-                        </select>
-                        <input
+                        </Select>
+                        <Input
+                          aria-label={`Match ${i + 1}, team B points`}
                           type="number" min={0}
                           value={slot.teamBScore}
                           onChange={e => updateSlot(i, { teamBScore: e.target.value })}
                           placeholder="pts"
-                          className="w-20 border border-gray-300 dark:border-gray-600 rounded px-2 py-1.5 text-sm bg-white dark:bg-gray-800 dark:text-gray-100"
+                          className="w-20 font-mono"
                           required
                         />
                       </>
@@ -962,11 +981,11 @@ function GameweekTab() {
                   </div>
                 </div>
                 <div className="flex items-center justify-between gap-2">
-                  <label className="flex items-center gap-1.5 text-xs text-gray-500 dark:text-gray-400">
-                    <input type="checkbox" checked={slot.isBye} onChange={e => toggleBye(i, e.target.checked)} />
+                  <label className="flex cursor-pointer items-center gap-2 text-[13px] text-ink-2">
+                    <input type="checkbox" checked={slot.isBye} onChange={e => toggleBye(i, e.target.checked)} className="size-4 accent-(--accent)" />
                     Bye (no opponent this week)
                   </label>
-                  {resultLabel && <span className="text-xs font-semibold text-gray-600 dark:text-gray-300">{resultLabel}</span>}
+                  {resultLabel && <span className="text-right text-[13px] font-medium text-ink">{resultLabel}</span>}
                 </div>
               </div>
             )
@@ -976,18 +995,23 @@ function GameweekTab() {
 
       {status && <StatusMsg {...status} />}
 
-      <button
+      <Button
         type="submit"
         disabled={loading || !slots.length || !!gameweekError}
-        className="self-start bg-blue-600 hover:bg-blue-700 disabled:opacity-50 text-white py-2 px-6 rounded font-medium text-sm"
+        className="self-start"
       >
-        {loading ? 'Submitting…' : 'Submit Gameweek'}
-      </button>
+        {loading ? 'Submitting…' : 'Submit gameweek'}
+      </Button>
     </form>
   )
 }
 
 // ─── Dashboard ────────────────────────────────────────────────────────────────
+
+const TABS: { value: Tab; label: string }[] = [
+  { value: 'seasons', label: 'Seasons' },
+  { value: 'gameweek', label: 'Gameweek results' },
+]
 
 function AdminDashboard({ username }: { username: string }) {
   const [activeTab, setActiveTab] = useState<Tab>('seasons')
@@ -997,48 +1021,26 @@ function AdminDashboard({ username }: { username: string }) {
     window.location.reload()
   }
 
-  const tabs: { id: Tab; label: string }[] = [
-    { id: 'seasons', label: 'Seasons' },
-    { id: 'gameweek', label: 'Gameweek Data' },
-  ]
-
   return (
-    <div className="min-h-screen bg-gray-50 dark:bg-gray-900 p-4 sm:p-8">
-      <div className="max-w-4xl mx-auto">
-        <div className="flex items-center justify-between mb-8">
-          <div>
-            <h1 className="text-2xl font-bold dark:text-gray-100">Admin Dashboard</h1>
-            <p className="text-sm text-gray-500 dark:text-gray-400">Logged in as {username}</p>
+    <div className="mx-auto max-w-[960px] px-[clamp(16px,5vw,40px)] pb-[120px]">
+      <section className="flex flex-wrap items-end justify-between gap-4 pt-[clamp(40px,8vw,72px)] pb-8">
+        <div className="flex min-w-0 flex-col gap-3">
+          <div className="font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">
+            Blue Bay Cup · signed in as {username}
           </div>
-          <button
-            onClick={handleLogout}
-            className="text-sm text-red-600 hover:text-red-800 dark:text-red-400 border border-red-200 dark:border-red-800 rounded px-3 py-1.5"
-          >
-            Log out
-          </button>
+          <h1 className="text-[clamp(32px,7vw,44px)] leading-none font-semibold tracking-[-0.03em]">Admin</h1>
         </div>
+        <Button variant="outline" size="sm" onClick={handleLogout}>
+          Sign out
+        </Button>
+      </section>
 
-        <div className="flex gap-1 mb-6 border-b border-gray-200 dark:border-gray-700">
-          {tabs.map(t => (
-            <button
-              key={t.id}
-              onClick={() => setActiveTab(t.id)}
-              className={`px-4 py-2 text-sm font-medium border-b-2 transition-colors ${
-                activeTab === t.id
-                  ? 'border-blue-600 text-blue-600 dark:text-blue-400 dark:border-blue-400'
-                  : 'border-transparent text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200'
-              }`}
-            >
-              {t.label}
-            </button>
-          ))}
-        </div>
+      <Segmented label="Section" options={TABS} value={activeTab} onChange={setActiveTab} className="mb-6" />
 
-        <Card>
-          {activeTab === 'seasons' && <SeasonsTab />}
-          {activeTab === 'gameweek' && <GameweekTab />}
-        </Card>
-      </div>
+      <Card>
+        {activeTab === 'seasons' && <SeasonsTab />}
+        {activeTab === 'gameweek' && <GameweekTab />}
+      </Card>
     </div>
   )
 }
@@ -1059,8 +1061,8 @@ export default function AdminPage() {
 
   if (isLoading) {
     return (
-      <div className="flex items-center justify-center min-h-screen bg-gray-50 dark:bg-gray-900">
-        <p className="text-gray-500 text-sm">Loading…</p>
+      <div className="flex min-h-[calc(100dvh-64px)] items-center justify-center">
+        {muted}
       </div>
     )
   }
