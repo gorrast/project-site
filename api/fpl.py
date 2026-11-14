@@ -45,6 +45,11 @@ def code_by_element(bootstrap: dict) -> dict:
     return {el["id"]: el["code"] for el in bootstrap["elements"]}
 
 
+def web_name_by_code(bootstrap: dict) -> dict:
+    """The short display name the official FPL site shows (e.g. "Rice", "B.Fernandes")."""
+    return {el["code"]: el["web_name"] for el in bootstrap["elements"]}
+
+
 def team_code_by_name(bootstrap: dict) -> dict:
     """Maps a PL club's display name (as stored in fpl.players.current_team)
     to FPL's per-club `code`, used to build shirt image URLs — e.g.
@@ -227,6 +232,7 @@ def get_team(team_id: int):
     code_map = code_by_element(bootstrap)
     team_codes = team_code_by_name(bootstrap)
     team_short_names = team_short_name_by_name(bootstrap)
+    web_names = web_name_by_code(bootstrap)
 
     picks_data = draft_get(
         f"entry/{team_id}/event/{gw}",
@@ -271,6 +277,7 @@ def get_team(team_id: int):
             {
                 "code": code,
                 "name": player_row.get("name", f"Player {code}"),
+                "web_name": web_names.get(code) or player_row.get("name", f"Player {code}"),
                 "team": team_name,
                 "team_code": team_codes.get(team_name),
                 "position": position,
@@ -340,20 +347,22 @@ def get_league(league_id: int):
 
 @router.get("/league/{league_id}/availability")
 def get_availability(league_id: int):
+    return {"league_id": league_id, "available_codes": available_codes(league_id, fetch_bootstrap())}
+
+
+def available_codes(league_id: int, bootstrap: dict) -> list:
     data = draft_get(
         f"league/{league_id}/element-status", not_found_detail=f"League {league_id} not found"
     )
-    bootstrap = fetch_bootstrap()
     code_map = code_by_element(bootstrap)
 
-    available_codes = []
+    codes = []
     for row in data.get("element_status", []):
         if row.get("owner") is None:
             code = code_map.get(row["element"])
             if code is not None:
-                available_codes.append(code)
-
-    return {"league_id": league_id, "available_codes": available_codes}
+                codes.append(code)
+    return codes
 
 
 @router.get("/players")
@@ -375,8 +384,9 @@ def get_players(league_id: int = Query(...)):
     )
     players_by_code = {p["code"]: p for p in players_rows}
 
-    availability = get_availability(league_id)
-    available_set = set(availability["available_codes"])
+    bootstrap = fetch_bootstrap()
+    available_set = set(available_codes(league_id, bootstrap))
+    web_names = web_name_by_code(bootstrap)
 
     players = []
     for code, pred in predictions_by_code.items():
@@ -390,6 +400,7 @@ def get_players(league_id: int = Query(...)):
             {
                 "code": code,
                 "name": player_row.get("name", f"Player {code}"),
+                "web_name": web_names.get(code) or player_row.get("name", f"Player {code}"),
                 "team": player_row.get("current_team", ""),
                 "position": pred["position"],
                 "xpts_mean": pred["xpts_mean"],

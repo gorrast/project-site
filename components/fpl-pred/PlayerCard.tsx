@@ -46,7 +46,7 @@ export default function PlayerCard({
         )}
       </span>
       <span className={cn('max-w-full truncate text-xs leading-[1.2]', bench ? 'text-ink-2' : 'font-medium')}>
-        {player.name}
+        {player.web_name}
       </span>
       {bench ? (
         <span className="font-mono text-[11px] text-ink-3">

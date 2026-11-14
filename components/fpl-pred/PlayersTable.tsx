@@ -28,7 +28,7 @@ const POSITIONS: { value: Position; label: string }[] = [
   { value: 'MID', label: 'MID' },
   { value: 'FWD', label: 'FWD' },
 ]
-const SORTABLE = new Set(['name', 'chance', 'adjusted_xpts'])
+const SORTABLE = new Set(['web_name', 'chance', 'adjusted_xpts'])
 const TOP_N = 15
 
 const MotionRow = motion.create(TableRow)
@@ -73,11 +73,11 @@ export default function PlayersTable({
     () => [
       { id: 'rank', header: '#' }, // numbered in the render loop, after sorting
       {
-        accessorKey: 'name',
+        accessorKey: 'web_name',
         header: 'Player',
         cell: ({ row }) => (
           <span className="flex min-w-0 items-center gap-2">
-            <span className="truncate font-medium">{row.original.name}</span>
+            <span title={row.original.name} className="truncate font-medium">{row.original.web_name}</span>
             {myCodes.has(row.original.code) && <span className="size-1.5 flex-none rounded-full bg-accent" />}
           </span>
         ),
