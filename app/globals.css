@@ -18,8 +18,6 @@
   --font-body: var(--font-ibm-plex-sans);
   --font-mono: var(--font-geist-mono);
   --font-sans: var(--font-ibm-plex-sans);
-  /* Alias for pages not yet migrated to font-display (redesign steps 2–5). */
-  --font-heading: var(--font-space-grotesk);
 
   /* Design tokens (docs/redesign-handoff/DESIGN.md) */
   --color-page: var(--page);

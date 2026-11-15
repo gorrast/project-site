@@ -1,150 +1,146 @@
+'use client'
+
 import Link from 'next/link'
 import Image from 'next/image'
+import { motion } from 'motion/react'
+import { MetricGroup, RevealHeading, RevealSection, quietItemProps } from '@/components/ui/Motion'
+import { SectionHeading } from '@/components/SectionHeading'
 
-interface Project {
-  title: string
-  description: string
-  href: string
-  tags: string[]
-  image?: React.ReactNode
-}
-
-const projects: Project[] = [
+const projects = [
   {
+    id: 'bbc',
     title: 'Blue Bay Cup',
-    description:
-      'Fantasy Draft Premier League tracker for the Blue Bay Cup league. Tracks season development, overall performance, and more. Fetches data from FPL api, and stores in a Supabase DB',
+    kind: 'Statistics',
     href: '/bluebaycup',
-    tags: ['Fantasy Football', 'Statistics'],
-    image: (
-      <Image
-        src="/bluebaycup_project.png"
-        alt="Blue Bay Cup"
-        fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        className="object-cover"
-      />
-    ),
+    image: '/bluebaycup_project.png',
+    description:
+      'Tracker for our Fantasy Draft Premier League. Season development, all-time standings and head-to-head records, from the FPL API and stored in Supabase.',
+    tags: 'Fantasy football · Statistics',
+    status: 'Live · updates every gameweek',
+    cta: 'View standings',
   },
   {
-    title: 'Playpilot Compare',
-    description:
-      'Evaluate and compare data for Playpilot profiles. Early prototype...',
-    href: '/playpilot',
-    tags: ['Selenium', 'Statistics', 'Movies & TV'],
-    image: (
-      <Image
-        src="/playpilot_raw.png"
-        alt="Playpilot Compare"
-        fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        className="object-cover"
-      />
-    ),
-  },
-  {
-    title: 'FPL Points Predictions',
-    description:
-      'Model-predicted Fantasy Premier League points, based on historical data and current form. Fetches data from FPL api, and live odds to train model every week.',
+    id: 'fpl',
+    title: 'FPL Predictions',
+    kind: 'Machine learning',
     href: '/fpl-pred',
-    tags: ['Machine Learning', 'Fantasy Football'],
-    image: (
-      <Image
-        src="/fpl-pred.png"
-        alt="FPL Points Predictions"
-        fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        className="object-cover"
-      />
-    ),
+    image: '/fpl-pred.png',
+    description:
+      'Predicted points for every player in a Draft league, from historical data, current form and live odds, with the starting XI that scores the most.',
+    tags: 'Machine learning · Fantasy football',
+    status: 'Model retrained weekly',
+    cta: 'See this week',
   },
   {
+    id: 'playpilot',
+    title: 'PlayPilot Compare',
+    kind: 'Prototype',
+    href: '/playpilot',
+    image: '/playpilot_raw.png',
+    description: 'Pulls the ratings from PlayPilot profiles and compares them side by side, across films and series.',
+    tags: 'Selenium · Statistics · Film & TV',
+    status: 'Early prototype',
+    cta: 'Open prototype',
+  },
+  {
+    id: 'food',
     title: 'Food Expenses',
-    description:
-      'Expense tracking tool. Fetches receipts from Kivra',
+    kind: 'Household',
     href: '/ica-tracking',
-    tags: ['Household', 'Kivra'],
-    image: (
-      <Image
-        src="/kivra-sync.png"
-        alt="Food Expenses"
-        fill
-        sizes="(max-width: 640px) 100vw, (max-width: 1024px) 50vw, 33vw"
-        className="object-cover"
-      />
-    ),
+    image: '/kivra-sync.png',
+    description:
+      'Grocery receipts pulled from Kivra and split between shared, Hugo and Benjamin, with a monthly target and a fair-share view.',
+    tags: 'Household · Kivra',
+    status: 'Private · two users',
+    cta: 'Open tracker',
   },
 ]
 
+const number = (i: number) => String(i + 1).padStart(2, '0')
+
 export default function HomePage() {
   return (
-    <div className="min-h-screen flex flex-col bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-      <div className="flex-1 max-w-6xl mx-auto w-full px-4 sm:px-6 lg:px-8 py-20">
-
-        {/* Header */}
-        <div className="mb-16">
-          <div className="bg-linear-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-            <h1 className="text-5xl md:text-6xl font-extrabold mb-4">Projects</h1>
+    <div className="flex min-h-[calc(100dvh-64px)] flex-col">
+      <div className="mx-auto flex w-full max-w-[1200px] flex-1 flex-col gap-24 px-[clamp(16px,5vw,40px)] pb-[120px]">
+        <section className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,380px),1fr))] items-end gap-x-16 gap-y-12 pt-[clamp(48px,10vw,112px)]">
+          <div className="flex min-w-0 flex-col gap-5">
+            <div className="font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">Hugo Wigh · side projects</div>
+            <RevealHeading as="h1" className="text-[clamp(44px,9vw,76px)] leading-[0.98] font-semibold tracking-[-0.04em]">
+              Things I&apos;ve been building
+            </RevealHeading>
+            <p className="max-w-[560px] text-lg leading-[1.6] text-pretty text-ink-2">
+              Fantasy football stats and a model that predicts points, a comparison tool for PlayPilot profiles, and a
+              grocery tracker built on our Kivra receipts.
+            </p>
           </div>
-          <p className="text-lg text-gray-500 dark:text-gray-400 max-w-xl">
-            A collection of things I&apos;ve been building.
-          </p>
-          <div className="mt-5 h-1 w-16 bg-linear-to-r from-blue-600 to-purple-600 rounded-full" />
-        </div>
+          <nav aria-label="Project index" className="flex flex-col border-t border-line">
+            {projects.map((p, i) => (
+              <Link
+                key={p.id}
+                href={p.href}
+                data-project={p.id}
+                className="grid min-h-[52px] grid-cols-[28px_12px_minmax(0,1fr)_auto] items-center gap-3 border-b border-line px-2 text-ink transition-colors hover:bg-surface-2"
+              >
+                <span className="font-mono text-xs text-ink-3">{number(i)}</span>
+                <span className="size-2.5 rounded-full bg-accent" />
+                <span className="truncate text-[15px] font-medium">{p.title}</span>
+                <span className="font-mono text-[11px] tracking-[0.06em] whitespace-nowrap text-ink-3 uppercase">{p.kind}</span>
+              </Link>
+            ))}
+          </nav>
+        </section>
 
-        {/* Project grid */}
-        <div id="projects" className="scroll-mt-[88px] grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-8">
-          {projects.map(project => (
-            <Link
-              key={project.href}
-              href={project.href}
-              className="group flex flex-col bg-white dark:bg-gray-800 rounded-2xl shadow-lg border border-gray-100 dark:border-gray-700 overflow-hidden hover:shadow-2xl hover:border-blue-200 dark:hover:border-blue-700 hover:-translate-y-1 transition-all duration-200"
-            >
-              {/* Image slot — replace the inner div with <Image src="..." fill className="object-cover" alt="..." /> */}
-              <div className="relative aspect-video bg-gray-100 dark:bg-gray-700 overflow-hidden">
-                {project.image ?? (
-                  <div className="absolute inset-0 flex items-center justify-center">
-                    <span className="text-gray-300 dark:text-gray-600 text-sm select-none">Image coming soon</span>
+        <RevealSection id="projects" className="scroll-mt-[88px]">
+          <SectionHeading title="Projects" caption="Each project keeps the same shell and gets one colour of its own." />
+          <MetricGroup className="grid grid-cols-[repeat(auto-fit,minmax(min(100%,440px),1fr))] gap-4">
+            {projects.map(p => (
+              <motion.div key={p.id} {...quietItemProps} className="flex min-w-0">
+                {/* The whole card is the link. No lift; the border and the arrow carry the hover. */}
+                <Link
+                  href={p.href}
+                  data-project={p.id}
+                  className="group flex min-w-0 flex-1 flex-col overflow-hidden rounded-2xl border border-line bg-surface text-ink transition-colors duration-200 ease-(--ease-calm) hover:border-accent hover:bg-surface-2"
+                >
+                  <div className="relative aspect-[16/10] border-b border-line bg-surface-2">
+                    <Image
+                      src={p.image}
+                      alt=""
+                      fill
+                      sizes="(max-width: 960px) 100vw, 600px"
+                      className="object-cover"
+                    />
                   </div>
-                )}
-              </div>
-
-              {/* Card body */}
-              <div className="flex flex-col flex-1 p-6">
-                <h2 className="text-xl font-extrabold text-gray-900 dark:text-gray-100 mb-2 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors duration-150">
-                  {project.title}
-                </h2>
-                <p className="text-sm text-gray-500 dark:text-gray-400 leading-relaxed flex-1">
-                  {project.description}
-                </p>
-                <div className="mt-4 flex flex-wrap gap-2">
-                  {project.tags.map(tag => (
-                    <span
-                      key={tag}
-                      className="px-2.5 py-0.5 rounded-full text-xs font-semibold bg-blue-50 dark:bg-blue-900/30 text-blue-600 dark:text-blue-400 border border-blue-100 dark:border-blue-800"
-                    >
-                      {tag}
+                  <div className="flex flex-1 flex-col gap-2.5 px-6 py-[22px]">
+                    <span className="flex items-center gap-2.5">
+                      <span className="size-2.5 flex-none rounded-full bg-accent" />
+                      <span className="font-display text-2xl leading-[1.15] font-semibold tracking-[-0.02em]">{p.title}</span>
                     </span>
-                  ))}
-                </div>
-                <div className="mt-5 flex items-center gap-1 text-sm font-semibold text-blue-600 dark:text-blue-400 group-hover:gap-2 transition-all duration-150">
-                  View project
-                  <span className="transition-transform duration-150 group-hover:translate-x-1">→</span>
-                </div>
-              </div>
-            </Link>
-          ))}
-        </div>
+                    <span className="text-sm leading-[1.6] text-pretty text-ink-2">{p.description}</span>
+                    <span className="font-mono text-[11px] tracking-[0.06em] text-ink-3 uppercase">{p.tags}</span>
+                    <span className="mt-auto flex flex-wrap items-center justify-between gap-x-3 gap-y-2 pt-2.5">
+                      <span className="text-xs text-ink-3">{p.status}</span>
+                      <span className="inline-flex items-center gap-1.5 text-sm font-medium whitespace-nowrap text-accent-text">
+                        {p.cta}
+                        <span
+                          aria-hidden
+                          className="transition-transform duration-[260ms] ease-(--ease-calm) group-hover:translate-x-1 motion-reduce:transform-none"
+                        >
+                          →
+                        </span>
+                      </span>
+                    </span>
+                  </div>
+                </Link>
+              </motion.div>
+            ))}
+          </MetricGroup>
+        </RevealSection>
       </div>
 
-      {/* Footer */}
-      <footer className="border-t border-gray-200 dark:border-gray-700 bg-white/60 dark:bg-gray-900/60 backdrop-blur-sm">
-        <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-6 flex flex-col sm:flex-row items-center justify-between gap-2">
-          <span className="font-semibold text-gray-700 dark:text-gray-300">Hugo Wigh</span>
-          <a
-            href="mailto:hugo@wigh.nu"
-            className="text-sm text-gray-500 dark:text-gray-400 hover:text-blue-600 dark:hover:text-blue-400 transition-colors duration-150"
-          >
+      <footer className="border-t border-line">
+        <div className="mx-auto flex max-w-[1200px] flex-wrap items-center justify-between gap-x-6 gap-y-3 px-[clamp(16px,5vw,40px)] py-7">
+          <span className="font-display text-[15px] font-semibold">Hugo Wigh</span>
+          <a href="mailto:hugo@wigh.nu" className="text-sm text-accent-text hover:underline">
             hugo@wigh.nu
           </a>
         </div>
