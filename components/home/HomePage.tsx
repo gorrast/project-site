@@ -49,7 +49,7 @@ const projects = [
     href: '/ica-tracking',
     image: '/kivra-sync.png',
     description:
-      'Grocery receipts pulled from Kivra and split between shared, Hugo and Benjamin, with a monthly target and a fair-share view.',
+      'Grocery receipts pulled from Kivra and analyzed for monthly spending against budget.',
     tags: 'Household · Kivra',
     status: 'Private · two users',
     cta: 'Open tracker',
