@@ -5,13 +5,18 @@ import RatingsHistogram from './RatingsHistogram'
 import TitleList from './TitleList'
 import { PlayPilotRatingsResponse } from './types'
 import type { ResolveProfileRetryInfo } from '@/lib/playpilot/resolveProfile'
+import { Button } from '@/components/ui/button'
+import { Input } from '@/components/ui/input'
+import { Segmented } from '@/components/ui/segmented'
+import { RevealHeading, RevealSection } from '@/components/ui/Motion'
+import { SectionHeading } from '@/components/SectionHeading'
 
 type TypeFilter = 'all' | 'movie' | 'series'
 
 const TYPE_FILTERS: { value: TypeFilter; label: string }[] = [
   { value: 'all', label: 'All' },
   { value: 'movie', label: 'Movies' },
-  { value: 'series', label: 'TV Shows' },
+  { value: 'series', label: 'TV' },
 ]
 
 export default function PlayPilot() {
@@ -116,95 +121,81 @@ export default function PlayPilot() {
   }
 
   return (
-    <div className="min-h-screen bg-linear-to-br from-blue-50 via-white to-purple-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-800">
-      <div className="max-w-3xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        {/* Header */}
-        <div className="text-center mb-10">
-          <div className="bg-linear-to-r from-blue-600 to-purple-600 text-transparent bg-clip-text">
-            <h1 className="text-4xl md:text-5xl font-extrabold mb-3">PlayPilot Compare</h1>
-          </div>
-          <p className="text-base text-gray-500 dark:text-gray-400">
-            See how a PlayPilot user rates movies and TV shows.
+    <div className="mx-auto max-w-[1200px] px-[clamp(16px,5vw,40px)] pb-[120px]">
+      <section className="flex flex-col gap-3.5 pt-[clamp(40px,8vw,72px)] pb-12">
+        <div className="font-mono text-[11px] tracking-[0.08em] text-ink-3 uppercase">Early prototype · Film &amp; TV</div>
+        <RevealHeading as="h1" className="text-[clamp(40px,9vw,60px)] leading-none font-semibold tracking-[-0.035em]">
+          PlayPilot Compare
+        </RevealHeading>
+        <p className="max-w-[640px] text-lg leading-relaxed text-pretty text-ink-2">
+          How a PlayPilot user rates films and series, from their public profile.
+        </p>
+        <form
+          className="mt-3 flex flex-wrap items-end gap-3"
+          onSubmit={e => { e.preventDefault(); handleGenerate() }}
+        >
+          <label className="flex min-w-[min(100%,260px)] flex-col gap-1.5">
+            <span className="text-[13px] font-medium">PlayPilot username</span>
+            <Input type="text" value={username} onChange={e => setUsername(e.target.value)} autoComplete="off" />
+          </label>
+          <Button type="submit" disabled={loading || !username.trim()}>
+            {loading ? 'Generating…' : 'Generate'}
+          </Button>
+        </form>
+        {loading && (
+          <p className="text-sm text-ink-3" aria-live="polite">
+            {retry
+              ? `Attempt ${retry.attempt} of ${retry.maxAttempts} failed (HTTP ${retry.status}). Retrying${countdown > 0 ? ` in ${countdown}s` : ''}…`
+              : 'Fetching ratings…'}
           </p>
-          <div className="mt-4 h-1 w-16 bg-linear-to-r from-blue-600 to-purple-600 mx-auto rounded-full" />
-        </div>
+        )}
+        {error && (
+          <p role="alert" className="text-[13px] text-neg">
+            Couldn&apos;t load ratings: {error}. Check the username, or try again in a minute.
+          </p>
+        )}
+      </section>
 
-        {/* Search card */}
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl p-5 border border-gray-100 dark:border-gray-700 mb-8">
-          <div className="flex flex-col sm:flex-row gap-3">
-            <input
-              type="text"
-              value={username}
-              onChange={e => setUsername(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && handleGenerate()}
-              placeholder="PlayPilot username (e.g. hugowigh)"
-              className="flex-1 px-4 py-2.5 border-2 border-gray-200 dark:border-gray-600 rounded-xl focus:ring-2 focus:ring-blue-500 focus:border-blue-500 bg-gray-50 dark:bg-gray-700 font-medium text-gray-900 dark:text-gray-100 transition-all duration-200 hover:border-blue-300 dark:hover:border-blue-500 outline-none"
-            />
-            <button
-              onClick={handleGenerate}
-              disabled={loading || !username.trim()}
-              className="px-5 py-2.5 rounded-xl font-bold text-white bg-linear-to-r from-blue-600 to-purple-600 shadow-lg shadow-blue-500/30 hover:shadow-xl transition-all duration-200 disabled:opacity-50 disabled:pointer-events-none cursor-pointer"
-            >
-              {loading ? 'Generating…' : 'Generate'}
-            </button>
-          </div>
-
-          {loading && retry && (
-            <p className="text-sm text-gray-500 dark:text-gray-400 mt-3">
-              Attempt {retry.attempt}/{retry.maxAttempts} failed (HTTP {retry.status}). Retrying
-              {countdown > 0 ? ` in ${countdown}s…` : '…'}
-            </p>
-          )}
-
-          {error && (
-            <p className="text-sm text-red-600 dark:text-red-400 mt-3">{error}</p>
-          )}
-        </div>
-
-        {data && (
-          data.ratings.length > 0 ? (
-            <div className="flex flex-col gap-6">
-              {data.totalRatings !== null && data.totalRatings > data.ratings.length && (
-                <p className="text-xs text-gray-400 dark:text-gray-500 text-center -mb-2">
-                  Showing {data.ratings.length} of {data.totalRatings} rated titles
-                </p>
-              )}
-
-              {/* Movie / TV toggle */}
-              <div className="flex flex-wrap justify-center gap-3">
-                {TYPE_FILTERS.map(filter => (
-                  <button
-                    key={filter.value}
-                    onClick={() => handleTypeFilterChange(filter.value)}
-                    className={`px-4 py-2 rounded-lg font-bold text-sm transition-all duration-200 transform hover:scale-105 cursor-pointer ${
-                      typeFilter === filter.value
-                        ? 'bg-linear-to-r from-blue-600 to-purple-600 text-white shadow-lg shadow-blue-500/30'
-                        : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-                    }`}
-                  >
-                    {filter.label} ({typeCounts[filter.value]})
-                  </button>
-                ))}
-              </div>
-
+      {data && (
+        data.ratings.length > 0 ? (
+          <div className="flex flex-col gap-20">
+            <section>
+              <SectionHeading
+                title="Rating distribution"
+                caption={
+                  data.totalRatings !== null && data.totalRatings > data.ratings.length
+                    ? `${data.username}. Showing ${data.ratings.length} of ${data.totalRatings} rated titles.`
+                    : `${data.username}. Every rated title on the profile.`
+                }
+              >
+                <Segmented
+                  label="Type"
+                  options={TYPE_FILTERS.map(f => ({ value: f.value, label: `${f.label} · ${typeCounts[f.value]}` }))}
+                  value={typeFilter}
+                  onChange={handleTypeFilterChange}
+                />
+              </SectionHeading>
               <RatingsHistogram
                 ratings={typeFiltered}
-                username={data.username}
                 selectedRating={selectedRating}
                 onSelectRating={handleSelectRating}
               />
+            </section>
 
+            <RevealSection>
               <TitleList
                 ratings={displayedRatings}
                 selectedRating={selectedRating}
-                onClearRating={() => setSelectedRating(null)}
+                onSelectRating={setSelectedRating}
               />
-            </div>
-          ) : (
-            <p className="text-sm text-gray-500 dark:text-gray-400 text-center">No ratings found for this profile.</p>
-          )
-        )}
-      </div>
+            </RevealSection>
+          </div>
+        ) : (
+          <p className="rounded-2xl border border-dashed border-line-strong px-6 py-8 text-center text-sm text-ink-3">
+            {data.username} has no public ratings. Check the username, or try a profile that has rated something.
+          </p>
+        )
+      )}
     </div>
   )
 }
