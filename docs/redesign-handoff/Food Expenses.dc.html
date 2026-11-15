@@ -1,0 +1,762 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Food Expenses</title>
+<script src="./support.js"></script>
+<script src="./motion.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+/* Base pair: Charcoal #1E1E1C + Sand #D8CBB3 build every page. One pop colour per project.
+   Each pop has three roles: --a-x (fills, marks, chart series), --a-x-t (text, 4.5:1 on every surface), --a-x-on (text on a fill). */
+:root,[data-theme="dark"]{color-scheme:dark;--charcoal:#1E1E1C;--sand:#D8CBB3;--page:#1E1E1C;--surface:#252522;--surface-2:#2D2C28;--surface-3:#363430;--line:#312F2B;--line-strong:#746E61;--series-muted:#47443D;--ink:#D8CBB3;--ink-2:#B7AC98;--ink-3:#A89E8C;--control-track:#181816;--control-thumb:#3E3B36;--shadow-thumb:0 1px 2px rgb(0 0 0 / .4);--shadow-pop:0 16px 48px rgb(0 0 0 / .5);--a-home:#2B65F7;--a-home-t:#5E92FF;--a-home-on:#FFFFFF;--a-bbc:#19C3E6;--a-bbc-t:#19C3E6;--a-bbc-on:#1E1E1C;--a-fpl:#F32AA4;--a-fpl-t:#FF49BA;--a-fpl-on:#1E1E1C;--a-playpilot:#8E37E2;--a-playpilot-t:#B778FF;--a-playpilot-on:#FFFFFF;--a-food:#F5B700;--a-food-t:#F5B700;--a-food-on:#1E1E1C;--c-shared:#F5B700;--c-hugo:#5E92FF;--c-benjamin:#FF49BA;--c-on:#1E1E1C;--pos:oklch(0.79 0.12 150);--neg:oklch(0.75 0.13 25);--warn:oklch(0.82 0.11 80);--gold:oklch(0.80 0.11 85);--silver:oklch(0.78 0.01 80);--bronze:oklch(0.68 0.09 50);--font-display:"Space Grotesk",system-ui,sans-serif;--font-body:"IBM Plex Sans",system-ui,sans-serif;--font-mono:"Geist Mono",ui-monospace,monospace;--ease-calm:cubic-bezier(0.22,0.61,0.36,1);--ease-out:cubic-bezier(0.165,0.84,0.44,1)}
+[data-theme="light"]{color-scheme:light;--page:#EDE8DD;--surface:#F5F2EC;--surface-2:#E7DFD0;--surface-3:#DED3BE;--line:#D8CBB3;--line-strong:#7B7468;--series-muted:#B7AC98;--ink:#1E1E1C;--ink-2:#4C4942;--ink-3:#5A554C;--control-track:#E4DBCA;--control-thumb:#F9F7F4;--shadow-thumb:0 1px 2px rgb(30 30 28 / .16);--shadow-pop:0 16px 40px rgb(30 30 28 / .16);--a-home:#1B53E6;--a-home-t:#1B53E6;--a-home-on:#FFFFFF;--a-bbc:#006A81;--a-bbc-t:#006A81;--a-bbc-on:#FFFFFF;--a-fpl:#BC007B;--a-fpl-t:#BC007B;--a-fpl-on:#FFFFFF;--a-playpilot:#852AD8;--a-playpilot-t:#852AD8;--a-playpilot-on:#FFFFFF;--a-food:#7D5A00;--a-food-t:#7D5A00;--a-food-on:#FFFFFF;--c-shared:#7D5A00;--c-hugo:#1B53E6;--c-benjamin:#BC007B;--c-on:#FFFFFF;--pos:oklch(0.46 0.12 150);--neg:oklch(0.49 0.16 25);--warn:oklch(0.47 0.12 75);--gold:oklch(0.60 0.12 80);--silver:oklch(0.58 0.01 80);--bronze:oklch(0.56 0.10 50)}
+[data-project]{--accent:var(--a-home);--accent-text:var(--a-home-t);--accent-ink:var(--a-home-on)}
+[data-project="bbc"]{--accent:var(--a-bbc);--accent-text:var(--a-bbc-t);--accent-ink:var(--a-bbc-on)}
+[data-project="fpl"]{--accent:var(--a-fpl);--accent-text:var(--a-fpl-t);--accent-ink:var(--a-fpl-on)}
+[data-project="playpilot"]{--accent:var(--a-playpilot);--accent-text:var(--a-playpilot-t);--accent-ink:var(--a-playpilot-on)}
+[data-project="food"]{--accent:var(--a-food);--accent-text:var(--a-food-t);--accent-ink:var(--a-food-on)}
+[data-project]{--accent-soft:color-mix(in srgb,var(--accent) 16%,transparent)}
+html,body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+/* Motion: buttons grow on hover only when primary, every button presses in. Reveals live in motion.js. */
+button{transition:transform 260ms var(--ease-calm),background-color 160ms,color 160ms,border-color 160ms,box-shadow 160ms !important}
+@media (prefers-reduced-motion:no-preference){button:not(:disabled):active{transform:scale(0.965)}}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){button[data-primary]:not(:disabled):hover{transform:scale(1.035)}}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:var(--ease-calm)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none !important}}
+@media print{[data-reveal],[data-reveal-heading],[data-stagger]>*,[data-wipe]{opacity:1 !important;transform:none !important;clip-path:none !important}header{position:static !important;backdrop-filter:none !important}}
+a{color:var(--accent-text,var(--ink));text-decoration:none}
+a:hover{text-decoration:underline}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent,var(--ink));outline-offset:2px}
+</style>
+</helmet>
+<div data-project="food" data-screen-label="Food Expenses" style="min-height:100vh;background:var(--page);color:var(--ink);font-family:var(--font-body)">
+
+  <header style="position:sticky;top:0;z-index:20;height:64px;display:flex;align-items:center;background:color-mix(in srgb, var(--page) 86%, transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)">
+    <div style="max-width:1200px;width:100%;margin:0 auto;padding:0 clamp(16px,5vw,40px);display:flex;align-items:center;gap:12px;box-sizing:border-box">
+      <a href="Home.dc.html" style="font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:-0.01em;color:var(--ink)">wigh.nu</a>
+      <span style="color:var(--line-strong);font-size:18px" aria-hidden="true">/</span>
+      <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;min-width:0"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none"></span>Food Expenses</span>
+      <div style="flex:1"></div>
+      <a href="Home.dc.html#projects" style="font-size:14px;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap" style-hover="background:var(--surface-2);text-decoration:none">Projects</a>
+      <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="width:36px;height:36px;flex:none;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m10.32 10.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+        </sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+        </sc-if>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1200px;margin:0 auto;padding:0 clamp(16px,5vw,40px) 120px;box-sizing:border-box">
+
+    <section style="padding:clamp(40px,8vw,72px) 0 28px;display:flex;align-items:flex-end;justify-content:space-between;gap:20px 24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">ICA · Hugo &amp; Benjamin</div>
+        <h1 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:clamp(40px,9vw,60px);font-weight:600;letter-spacing:-0.035em;line-height:1">Food expenses</h1>
+      </div>
+      <sc-if value="{{ monthScoped }}" hint-placeholder-val="{{ true }}">
+        <div style="display:flex;align-items:center;gap:8px;flex-wrap:wrap">
+          <button onClick="{{ prevMonth }}" aria-label="Previous month" disabled="{{ atFirst }}" style="width:36px;height:36px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m15 18-6-6 6-6"></path></svg></button>
+          <span aria-live="polite" style="min-width:140px;text-align:center;font-family:var(--font-display);font-size:16px;font-weight:600;letter-spacing:-0.01em">{{ monthLabel }}</span>
+          <button onClick="{{ nextMonth }}" aria-label="Next month" disabled="{{ atLast }}" style="width:36px;height:36px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="m9 18 6-6-6-6"></path></svg></button>
+          <button data-primary="" style="height:40px;padding:0 18px;margin-left:8px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:color-mix(in srgb, var(--accent) 86%, var(--ink))">Export CSV</button>
+        </div>
+      </sc-if>
+    </section>
+
+    <div role="tablist" aria-label="Views" style="display:flex;border-bottom:1px solid var(--line);margin-bottom:40px;overflow-x:auto">
+      <sc-for list="{{ tabs }}" as="t" hint-placeholder-count="4">
+        <button role="tab" aria-selected="{{ t.selected }}" onClick="{{ t.onClick }}" style="padding:10px 14px;margin-bottom:-1px;white-space:nowrap;flex:none;border:0;border-bottom:2px solid {{ t.border }};background:transparent;font-size:14px;font-weight:500;cursor:pointer;color:{{ t.fg }}">{{ t.label }}</button>
+      </sc-for>
+    </div>
+
+    <!-- THIS MONTH -->
+    <sc-if value="{{ isMonth }}" hint-placeholder-val="{{ true }}">
+      <div data-view="month" style="display:flex;flex-direction:column;gap:80px">
+        <section style="display:flex;flex-direction:column;gap:12px">
+          <div data-stagger="" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,150px),1fr));gap:12px">
+            <sc-for list="{{ buckets }}" as="b" hint-placeholder-count="5">
+              <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 20px 18px;display:flex;flex-direction:column;gap:8px;min-width:0">
+                <span style="display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)"><span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ b.dot }}"></span>{{ b.label }}</span>
+                <span style="font-family:var(--font-mono);font-size:24px;font-weight:500;letter-spacing:-0.02em;white-space:nowrap">{{ b.amount }}<span style="font-size:13px;color:var(--ink-3);margin-left:4px">kr</span></span>
+                <span style="font-size:12px;color:var(--ink-3)">{{ b.sub }}</span>
+              </div>
+            </sc-for>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 22px;display:flex;flex-direction:column;gap:12px">
+            <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;flex-wrap:wrap">
+              <span style="font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.01em">Fair share of a {{ budget }} kr month</span>
+              <span style="font-family:var(--font-mono);font-size:13px;color:{{ fair.statusFg }}">{{ fair.status }}</span>
+            </div>
+            <div style="position:relative;padding:5px 0">
+              <div style="position:relative;height:14px;border-radius:7px;background:var(--surface-3);overflow:hidden" role="img" aria-label="{{ fair.aria }}">
+                <span style="position:absolute;top:0;bottom:0;left:0;width:{{ fair.hOwn }};background:var(--c-hugo)"></span>
+                <span style="position:absolute;top:0;bottom:0;left:{{ fair.hOwn }};width:{{ fair.hShared }};background:var(--c-shared)"></span>
+                <span style="position:absolute;top:0;bottom:0;right:0;width:{{ fair.bOwn }};background:var(--c-benjamin)"></span>
+                <span style="position:absolute;top:0;bottom:0;right:{{ fair.bOwn }};width:{{ fair.bShared }};background:var(--c-shared)"></span>
+              </div>
+              <span style="position:absolute;left:50%;top:0;bottom:0;border-left:2px dashed var(--neg)" aria-hidden="true"></span>
+            </div>
+            <div style="display:flex;justify-content:space-between;gap:16px;flex-wrap:wrap;font-family:var(--font-mono);font-size:12px">
+              <span><span style="color:var(--c-hugo)">Hugo</span> {{ fair.hFair }} kr · <span style="color:{{ fair.hFg }}">{{ fair.hNote }}</span></span>
+              <span><span style="color:var(--c-benjamin)">Benjamin</span> {{ fair.bFair }} kr · <span style="color:{{ fair.bFg }}">{{ fair.bNote }}</span></span>
+            </div>
+            <span style="font-size:12px;color:var(--ink-3)">Each side fills with that person's own food, then half of the shared food. The dashed line is half the target.</span>
+          </div>
+        </section>
+        <section data-reveal="">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Where the money goes</h2>
+              <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ reports.caption }}</p>
+            </div>
+            <div style="display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line)">
+              <sc-for list="{{ scopeOpts }}" as="o" hint-placeholder-count="2">
+                <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="height:32px;padding:0 14px;border:0;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}">{{ o.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-width:0">
+              <div style="padding:16px 20px 10px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Top products</div>
+              <div data-stagger="0.04">
+                <sc-for list="{{ reports.top }}" as="p" hint-placeholder-count="10">
+                  <div style="display:grid;grid-template-columns:18px minmax(0,1fr) minmax(0,0.45fr) 34px auto;white-space:nowrap;gap:10px;align-items:center;height:42px;padding:0 20px;border-top:1px solid var(--line);font-size:14px">
+                    <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">{{ p.rank }}</span>
+                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                    <span style="height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden" aria-hidden="true"><span style="display:block;height:100%;border-radius:3px;width:{{ p.bar }};background:var(--series-muted)"></span></span>
+                    <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-align:right">×{{ p.count }}</span>
+                    <span style="font-family:var(--font-mono);font-size:13px;text-align:right">{{ p.amount }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-width:0">
+              <div style="padding:16px 20px 10px;display:flex;justify-content:space-between;gap:12px;flex-wrap:wrap">
+                <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">By category</span>
+                <span style="display:flex;gap:12px;font-size:12px;color:var(--ink-3)"><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-shared)"></span>Shared</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-hugo)"></span>Hugo</span><span style="display:inline-flex;align-items:center;gap:6px"><span style="width:8px;height:8px;border-radius:2px;background:var(--c-benjamin)"></span>Benjamin</span></span>
+              </div>
+              <div data-stagger="0.04">
+                <sc-for list="{{ reports.cats }}" as="c" hint-placeholder-count="8">
+                  <div title="{{ c.title }}" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto;white-space:nowrap;gap:12px;align-items:center;height:42px;padding:0 20px;border-top:1px solid var(--line);font-size:14px">
+                    <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span>
+                    <span style="display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-3)" aria-hidden="true"><span style="width:{{ c.s }};background:var(--c-shared)"></span><span style="width:{{ c.h }};background:var(--c-hugo)"></span><span style="width:{{ c.b }};background:var(--c-benjamin)"></span></span>
+                    <span style="font-family:var(--font-mono);font-size:13px;text-align:right">{{ c.amount }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- TRENDS -->
+    <sc-if value="{{ isTrends }}" hint-placeholder-val="{{ false }}">
+      <div data-view="trends" style="display:flex;flex-direction:column;gap:80px">
+        <section>
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+            <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Spending by month</h2>
+            <p style="margin:0;font-size:14px;color:var(--ink-3)">Shared, Hugo and Benjamin each month, with the month total and the {{ budget }} kr target. Select a month to open it.</p>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 24px 16px 16px">
+            <div style="display:flex;align-items:center;gap:8px 16px;min-height:32px;margin:0 0 14px 56px;flex-wrap:wrap;font-size:13px">
+              <span style="font-family:var(--font-display);font-size:15px;font-weight:600">{{ readout.label }}</span>
+              <span style="font-family:var(--font-mono)">{{ readout.total }} kr</span>
+              <sc-for list="{{ readout.parts }}" as="rp" hint-placeholder-count="3">
+                <span style="display:inline-flex;align-items:center;gap:6px;color:var(--ink-2)"><span style="width:8px;height:8px;border-radius:2px;background:{{ rp.color }}"></span>{{ rp.label }} <span style="font-family:var(--font-mono)">{{ rp.value }}</span></span>
+              </sc-for>
+              <span style="font-family:var(--font-mono);color:{{ readout.vsFg }}">{{ readout.vs }}</span>
+            </div>
+            <div style="display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:8px">
+              <div style="position:relative;height:280px">
+                <sc-for list="{{ chart.ticks }}" as="y" hint-placeholder-count="5">
+                  <span style="position:absolute;right:0;top:{{ y.top }};transform:translateY(-50%);font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">{{ y.label }}</span>
+                </sc-for>
+              </div>
+              <div onMouseLeave="{{ clearHover }}" style="position:relative;height:280px">
+                <sc-for list="{{ chart.ticks }}" as="y" hint-placeholder-count="5">
+                  <span style="position:absolute;left:0;right:0;top:{{ y.top }};border-top:1px solid var(--line)"></span>
+                </sc-for>
+                <div data-stagger="0.06" data-stagger-mode="grow" style="position:absolute;inset:0;display:flex">
+                  <sc-for list="{{ chart.months }}" as="m" hint-placeholder-count="8">
+                    <button onClick="{{ m.onClick }}" onMouseEnter="{{ m.onEnter }}" onFocus="{{ m.onEnter }}" aria-label="{{ m.aria }}" style="all:unset;flex:1;display:flex;align-items:flex-end;justify-content:center;gap:3px;padding:0 6px;border-radius:6px;cursor:pointer;background:{{ m.bg }};transform-origin:50% 100%">
+                      <sc-for list="{{ m.bars }}" as="b" hint-placeholder-count="3">
+                        <span style="flex:1;max-width:14px;height:{{ b.h }};border-radius:3px 3px 0 0;background:{{ b.color }}"></span>
+                      </sc-for>
+                    </button>
+                  </sc-for>
+                </div>
+                <span style="position:absolute;left:0;right:0;top:{{ chart.budgetTop }};border-top:2px dashed var(--neg);pointer-events:none"></span>
+                <span style="position:absolute;right:4px;top:{{ chart.budgetTop }};transform:translateY(-120%);font-family:var(--font-mono);font-size:10px;color:var(--neg);background:var(--surface);padding:0 4px;pointer-events:none">target</span>
+                <svg data-wipe="" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none">
+                  <polyline points="{{ chart.totalPoints }}" style="fill:none;stroke:var(--ink);stroke-width:2px;vector-effect:non-scaling-stroke;stroke-linejoin:round"></polyline>
+                </svg>
+                <sc-for list="{{ chart.dots }}" as="d" hint-placeholder-count="8">
+                  <span style="position:absolute;left:{{ d.left }};top:{{ d.top }};width:8px;height:8px;margin:-4px 0 0 -4px;border-radius:50%;background:var(--ink);box-shadow:0 0 0 2px var(--surface);pointer-events:none"></span>
+                </sc-for>
+              </div>
+              <div></div>
+              <div style="display:flex;margin-top:10px">
+                <sc-for list="{{ chart.months }}" as="m" hint-placeholder-count="8">
+                  <span style="flex:1;text-align:center;font-family:var(--font-mono);font-size:10px;color:{{ m.labelFg }}">{{ m.short }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:center;flex-wrap:wrap;gap:6px 18px;margin-top:16px;font-size:12px;color:var(--ink-3)">
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:var(--c-shared)"></span>Shared</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:var(--c-hugo)"></span>Hugo</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:var(--c-benjamin)"></span>Benjamin</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;height:2px;background:var(--ink)"></span>Total</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:14px;border-top:2px dashed var(--neg)"></span>Target</span>
+            </div>
+          </div>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">One product over time</h2>
+              <p style="margin:0;font-size:14px;color:var(--ink-3)">Monthly spend on one product, split by who it was for.</p>
+            </div>
+            <span style="position:relative;display:block">
+              <select value="{{ prod.sel }}" onChange="{{ onProd }}" aria-label="Product" style="appearance:none;-webkit-appearance:none;height:40px;min-width:220px;padding:0 38px 0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer">
+                <sc-for list="{{ prod.opts }}" as="po" hint-placeholder-count="12">
+                  <option value="{{ po.id }}">{{ po.label }}</option>
+                </sc-for>
+              </select>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:14px;top:13px;pointer-events:none;color:var(--ink-3)"><path d="m6 9 6 6 6-6"></path></svg>
+            </span>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 24px 16px 16px">
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(130px,1fr));gap:16px;margin:0 0 20px 56px">
+              <sc-for list="{{ prod.stats }}" as="st" hint-placeholder-count="3">
+                <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-3)">{{ st.label }}</span><span style="font-family:var(--font-mono);font-size:20px;font-weight:500;letter-spacing:-0.02em">{{ st.value }}</span></div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:48px minmax(0,1fr);column-gap:8px">
+              <div style="position:relative;height:180px">
+                <sc-for list="{{ prod.ticks }}" as="y" hint-placeholder-count="3">
+                  <span style="position:absolute;right:0;top:{{ y.top }};transform:translateY(-50%);font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">{{ y.label }}</span>
+                </sc-for>
+              </div>
+              <div style="position:relative;height:180px">
+                <sc-for list="{{ prod.ticks }}" as="y" hint-placeholder-count="3">
+                  <span style="position:absolute;left:0;right:0;top:{{ y.top }};border-top:1px solid var(--line)"></span>
+                </sc-for>
+                <div style="position:absolute;inset:0;display:flex">
+                  <sc-for list="{{ prod.months }}" as="pm" hint-placeholder-count="8">
+                    <div title="{{ pm.title }}" style="flex:1;display:flex;flex-direction:column;justify-content:flex-end;align-items:center;padding:0 10px">
+                      <span style="width:100%;max-width:28px;display:flex;flex-direction:column-reverse;height:{{ pm.h }};border-radius:3px 3px 0 0;overflow:hidden">
+                        <sc-for list="{{ pm.segs }}" as="sg" hint-placeholder-count="3">
+                          <span style="display:block;height:{{ sg.h }};background:{{ sg.color }}"></span>
+                        </sc-for>
+                      </span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div></div>
+              <div style="display:flex;margin-top:10px">
+                <sc-for list="{{ prod.months }}" as="pm" hint-placeholder-count="8">
+                  <span style="flex:1;text-align:center;font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">{{ pm.short }}</span>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Where the money goes</h2>
+              <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ reports.caption }}</p>
+            </div>
+            <div style="display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line)">
+              <sc-for list="{{ scopeOpts }}" as="o" hint-placeholder-count="2">
+                <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="height:32px;padding:0 14px;border:0;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}">{{ o.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,340px),1fr));gap:16px">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-width:0">
+              <div style="padding:16px 20px 10px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Top products</div>
+              <sc-for list="{{ reports.top }}" as="p" hint-placeholder-count="10">
+                <div style="display:grid;grid-template-columns:18px minmax(0,1fr) minmax(0,0.45fr) 34px auto;white-space:nowrap;gap:10px;align-items:center;height:42px;padding:0 20px;border-top:1px solid var(--line);font-size:14px">
+                  <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">{{ p.rank }}</span>
+                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                  <span style="height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden" aria-hidden="true"><span style="display:block;height:100%;border-radius:3px;width:{{ p.bar }};background:var(--series-muted)"></span></span>
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3);text-align:right">×{{ p.count }}</span>
+                  <span style="font-family:var(--font-mono);font-size:13px;text-align:right">{{ p.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-width:0">
+              <div style="padding:16px 20px 10px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">By category</div>
+              <sc-for list="{{ reports.cats }}" as="c" hint-placeholder-count="8">
+                <div title="{{ c.title }}" style="display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1.1fr) auto;white-space:nowrap;gap:12px;align-items:center;height:42px;padding:0 20px;border-top:1px solid var(--line);font-size:14px">
+                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ c.name }}</span>
+                  <span style="display:flex;height:10px;border-radius:3px;overflow:hidden;background:var(--surface-3)" aria-hidden="true"><span style="width:{{ c.s }};background:var(--c-shared)"></span><span style="width:{{ c.h }};background:var(--c-hugo)"></span><span style="width:{{ c.b }};background:var(--c-benjamin)"></span></span>
+                  <span style="font-family:var(--font-mono);font-size:13px;text-align:right">{{ c.amount }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+      </div>
+    </sc-if>
+
+    <!-- RECEIPTS -->
+    <sc-if value="{{ isReceipts }}" hint-placeholder-val="{{ false }}">
+      <div data-view="receipts" style="display:flex;flex-direction:column;gap:16px">
+        <div style="display:flex;flex-wrap:wrap;gap:8px 18px;font-size:12px;color:var(--ink-3)" aria-label="Keyboard shortcuts">
+          <sc-for list="{{ keyHints }}" as="k" hint-placeholder-count="6">
+            <span style="display:inline-flex;align-items:center;gap:6px"><kbd style="font-family:var(--font-mono);font-size:11px;padding:2px 6px;border-radius:6px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink)">{{ k.key }}</kbd>{{ k.label }}</span>
+          </sc-for>
+        </div>
+        <div style="display:flex;flex-wrap:wrap;gap:16px;align-items:flex-start">
+          <div style="flex:1 1 360px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+            <div style="padding:14px 18px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">{{ listHead }}</div>
+            <div data-stagger="0.04">
+              <sc-for list="{{ receiptRows }}" as="r" hint-placeholder-count="8">
+                <button onClick="{{ r.onClick }}" aria-pressed="{{ r.pressed }}" style="all:unset;box-sizing:border-box;width:100%;display:grid;grid-template-columns:3px minmax(0,1fr) auto;gap:12px;align-items:center;padding:12px 18px 12px 14px;border-top:1px solid var(--line);cursor:pointer;background:{{ r.bg }};box-shadow:{{ r.ring }};opacity:{{ r.opacity }}" style-hover="background:var(--surface-2)">
+                  <span style="width:3px;height:32px;border-radius:2px;background:{{ r.buyerColor }}"></span>
+                  <span style="display:flex;flex-direction:column;gap:3px;min-width:0"><span style="font-size:14px;font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.store }}</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.meta }}</span></span>
+                  <span style="display:flex;flex-direction:column;align-items:flex-end;gap:3px"><span style="font-family:var(--font-mono);font-size:13px;text-decoration:{{ r.strike }}">{{ r.amount }}</span><span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:{{ r.flagFg }}">{{ r.flag }}</span></span>
+                </button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="flex:999 1 460px;min-width:0;background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+            <div style="display:flex;align-items:flex-start;justify-content:space-between;gap:12px;padding:16px 18px;flex-wrap:wrap">
+              <div style="display:flex;flex-direction:column;gap:4px;min-width:0">
+                <span style="font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.01em">{{ sel.store }}</span>
+                <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">{{ sel.meta }}</span>
+              </div>
+              <button onClick="{{ toggleExclude }}" aria-pressed="{{ sel.excludedAttr }}" style="height:32px;padding:0 14px;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;border:1px solid {{ sel.exBorder }};background:{{ sel.exBg }};color:var(--ink)" style-hover="background:var(--surface-3)">{{ sel.exLabel }}</button>
+            </div>
+            <sc-if value="{{ sel.excluded }}" hint-placeholder-val="{{ false }}">
+              <div style="margin:0 18px 12px;padding:10px 12px;border-radius:10px;background:color-mix(in srgb, var(--warn) 14%, transparent);font-size:13px;color:var(--ink)">Excluded from every total and report. Paid privately, not from the shared account.</div>
+            </sc-if>
+            <div>
+              <sc-for list="{{ sel.items }}" as="it" hint-placeholder-count="10">
+                <div style="display:grid;grid-template-columns:minmax(0,1fr) auto auto;gap:12px;align-items:center;padding:10px 18px;border-top:1px solid var(--line);background:{{ it.bg }};box-shadow:{{ it.ring }}">
+                  <span style="display:flex;flex-direction:column;gap:3px;min-width:0">
+                    <span style="display:flex;align-items:center;gap:8px;min-width:0"><sc-if value="{{ it.isReceiptDisc }}" hint-placeholder-val="{{ false }}"><span style="font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;padding:1px 6px;border-radius:6px;background:color-mix(in srgb, var(--pos) 18%, transparent);color:var(--pos)">receipt</span></sc-if><span style="font-size:14px;line-height:1.3;color:{{ it.nameFg }}">{{ it.name }}</span></span>
+                    <span style="display:flex;align-items:center;gap:8px;flex-wrap:wrap;font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">{{ it.meta }}<sc-if value="{{ it.hasDisc }}" hint-placeholder-val="{{ false }}"><span title="{{ it.discTitle }}" style="padding:1px 6px;border-radius:6px;background:color-mix(in srgb, var(--pos) 18%, transparent);color:var(--pos)">{{ it.disc }}</span></sc-if></span>
+                  </span>
+                  <span role="group" aria-label="{{ it.groupLabel }}" style="display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:var(--control-track);border:1px solid var(--line)">
+                    <sc-for list="{{ it.opts }}" as="o" hint-placeholder-count="3">
+                      <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" title="{{ o.title }}" style="width:30px;height:24px;border:0;border-radius:6px;padding:0;font-family:var(--font-mono);font-size:12px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button>
+                    </sc-for>
+                  </span>
+                  <span style="display:flex;flex-direction:column;align-items:flex-end;min-width:84px"><span style="font-family:var(--font-mono);font-size:13px;color:{{ it.amountFg }}">{{ it.amount }}</span><span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">{{ it.was }}</span></span>
+                </div>
+              </sc-for>
+            </div>
+            <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(100px,1fr));gap:12px;padding:14px 18px;border-top:1px solid var(--line);background:var(--surface-2)">
+              <sc-for list="{{ sel.splits }}" as="sp" hint-placeholder-count="4">
+                <div style="display:flex;flex-direction:column;gap:3px"><span style="display:flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:10px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)"><span style="width:7px;height:7px;border-radius:50%;background:{{ sp.color }}"></span>{{ sp.label }}</span><span style="font-family:var(--font-mono);font-size:14px">{{ sp.value }}</span></div>
+              </sc-for>
+            </div>
+          </div>
+        </div>
+      </div>
+    </sc-if>
+
+    <!-- PRODUCTS -->
+    <sc-if value="{{ isProducts }}" hint-placeholder-val="{{ false }}">
+      <div data-view="products" style="display:flex;flex-direction:column;gap:16px">
+        <p style="margin:0;max-width:720px;font-size:14px;line-height:1.6;color:var(--ink-2)">A product's default decides who new lines of it belong to in future imports. It doesn't change receipts already on the site; fix those line by line under Receipts. Totals cover every month and leave out excluded receipts.</p>
+        <div style="display:flex;align-items:flex-end;gap:10px;flex-wrap:wrap">
+          <label style="flex:1 1 260px;display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;font-weight:500">Search products</span>
+            <input type="search" value="{{ prodQuery }}" onChange="{{ onQuery }}" placeholder="Raw name, display name or category" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--page);color:var(--ink);font-size:14px;outline:none;box-sizing:border-box" style-focus="border-color:var(--accent)">
+          </label>
+          <button onClick="{{ toggleNoDefault }}" aria-pressed="{{ noDefaultAttr }}" style="height:40px;padding:0 16px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;border:1px solid {{ noDefaultChip.border }};background:{{ noDefaultChip.bg }};color:{{ noDefaultChip.fg }}">Only without a default</button>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+          <div style="overflow-x:auto;overflow-y:hidden">
+            <div data-stagger="0.03" style="min-width:820px">
+              <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 120px 40px 100px 120px;column-gap:12px;align-items:center;height:44px;padding:0 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)">
+                <span>Raw name</span><span>Display name</span><span>Category</span><span style="text-align:right">n</span><span style="text-align:right">Total</span><span style="text-align:right">Default</span>
+              </div>
+              <sc-for list="{{ productRows }}" as="p" hint-placeholder-count="12">
+                <div style="display:grid;grid-template-columns:minmax(0,1.3fr) minmax(0,1fr) 120px 40px 100px 120px;column-gap:12px;align-items:center;height:48px;padding:0 20px;border-top:1px solid var(--line);font-size:14px" style-hover="background:var(--surface-2)">
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.raw }}</span>
+                  <span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ p.nameFg }}">{{ p.name }}</span>
+                  <span style="font-size:13px;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.cat }}</span>
+                  <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ p.n }}</span>
+                  <span style="text-align:right;font-family:var(--font-mono);font-size:13px">{{ p.total }}</span>
+                  <span style="display:flex;justify-content:flex-end"><span role="group" aria-label="{{ p.groupLabel }}" style="display:inline-flex;gap:2px;padding:2px;border-radius:8px;background:var(--control-track);border:1px solid var(--line)">
+                    <sc-for list="{{ p.opts }}" as="o" hint-placeholder-count="3">
+                      <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" title="{{ o.title }}" style="width:30px;height:24px;border:0;border-radius:6px;padding:0;font-family:var(--font-mono);font-size:12px;font-weight:600;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }}">{{ o.label }}</button>
+                    </sc-for>
+                  </span></span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="padding:12px 20px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)">{{ productsFoot }}</div>
+        </div>
+      </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark","tsType":"&#39;dark&#39; | &#39;light&#39;"},"tab":{"editor":"enum","options":["month","trends","receipts","products"],"default":"month","tsType":"string"}}'>
+class Component extends DCLogic {
+  data = this.build();
+  state = {
+    theme: (this.props && this.props.theme) || 'dark',
+    tab: (this.props && this.props.tab) || 'month',
+    monthIdx: this.data.MONTHS.length - 2, scope: 'month', scopeTouched: false,
+    selId: null, cursor: 0, hoverIdx: null, prodSel: null, prodQuery: '', noDefault: false,
+    cons: {}, excl: {}, defs: {},
+  };
+
+  componentDidMount() {
+    document.documentElement.dataset.theme = this.state.theme;
+    if (window.WighMotion) window.WighMotion.mount(document);
+    this.onKey = e => this.handleKey(e);
+    window.addEventListener('keydown', this.onKey);
+  }
+  componentWillUnmount() { window.removeEventListener('keydown', this.onKey); }
+  componentDidUpdate(prev, prevState) {
+    if (prev.theme !== this.props.theme && this.props.theme) this.setState({ theme: this.props.theme });
+    if (prev.tab !== this.props.tab && this.props.tab) this.setTab(this.props.tab);
+    document.documentElement.dataset.theme = this.state.theme;
+    const M = window.WighMotion;
+    if (M && prevState && prevState.tab !== this.state.tab) M.swap(document.querySelector('[data-view="' + this.state.tab + '"]'));
+  }
+
+  build() {
+    const P = [
+      ['MELLANMJÖLK 1,5% 1L','Mellanmjölk 1,5 %','Dairy',17.9,'shared','st'],
+      ['ARLA YOGHURT NATURELL','Yoghurt naturell','Dairy',24.5,'shared','st'],
+      ['SMÖR NORMALSALTAT 500G','Butter','Dairy',62.9,'shared','st'],
+      ['HUSHÅLLSOST 17% 1KG','Hushållsost','Dairy',109,'shared','st'],
+      ['ÄGG 12P FRIGÅENDE','Eggs, 12-pack','Dairy',49.9,'shared','st'],
+      ['HAVREDRYCK BARISTA','Oat drink barista','Dairy',27.5,'Benjamin','st'],
+      ['BANANER','Bananas','Fruit & veg',24.9,'shared','kg'],
+      ['GURKA','Cucumber','Fruit & veg',14.9,'shared','st'],
+      ['TOMATER KVISTAR','Vine tomatoes','Fruit & veg',39.9,'shared','kg'],
+      ['LÖK GUL 1KG','Yellow onions','Fruit & veg',16.9,'shared','st'],
+      ['AVOKADO 2P','Avocado, 2-pack','Fruit & veg',29.9,'Hugo','st'],
+      ['POTATIS FAST','Potatoes','Fruit & veg',14.9,'shared','kg'],
+      ['KYCKLINGFILÉ 900G','Chicken fillet','Meat & fish',99.9,'shared','st'],
+      ['LAXFILÉ 2P','Salmon fillet','Meat & fish',79.9,'Hugo','st'],
+      ['NÖTFÄRS 12% 500G','Minced beef','Meat & fish',64.9,'shared','st'],
+      ['HALLOUMI 200G','Halloumi','Meat & fish',34.9,'Benjamin','st'],
+      ['PASTA PENNE 1KG','Penne','Pantry',24.9,'shared','st'],
+      ['KROSSADE TOMATER','Crushed tomatoes','Pantry',12.9,'shared','st'],
+      ['JASMINRIS 1KG','Jasmine rice','Pantry',32.9,'shared','st'],
+      ['HAVREGRYN 1,5KG','Rolled oats','Pantry',26.9,'Benjamin','st'],
+      ['KAFFE MELLANROST 450G','Coffee, medium roast','Pantry',69.9,'shared','st'],
+      ['FULLKORNSBRÖD','Wholegrain bread','Bread',32.9,'shared','st'],
+      ['KNÄCKEBRÖD RÅG','Rye crispbread','Bread',22.9,'Hugo','st'],
+      ['APELSINJUICE 1L','Orange juice','Drinks',27.9,'Hugo','st'],
+      ['ENERGIDRYCK 4P','Energy drink, 4-pack','Drinks',49.9,'Benjamin','st'],
+      ['MÖRK CHOKLAD 70%','Dark chocolate','Sweets & snacks',24.9,'Hugo','st'],
+      ['CHIPS SALTADE 275G','Crisps','Sweets & snacks',29.9,'Benjamin','st'],
+      ['DISKMEDEL 500ML','Washing-up liquid','Household',21.9,'shared','st'],
+      ['TOALETTPAPPER 8P','Toilet paper','Household',54.9,'shared','st'],
+      ['PROTEINBAR CHOKLAD',null,'Sweets & snacks',19.9,null,'st'],
+      ['KOMBUCHA INGEFÄRA',null,'Drinks',29.9,null,'st'],
+    ].map(([raw, name, cat, price, def, unit]) => ({ raw, name, cat, price, def, unit }));
+    const MONTHS = ['2026-04','2026-05','2026-06','2026-07','2026-08','2026-09','2026-10','2026-11'];
+    const LONG = ['April','May','June','July','August','September','October','November'];
+    const STORES = ['ICA Kvantum Liljeholmen','ICA Nära Hornstull','ICA Supermarket Västertorp'];
+    let s = 4812 >>> 0;
+    const r = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+    const r2 = n => Math.round(n * 100) / 100;
+    const receipts = []; let lineId = 1, rid = 1;
+    MONTHS.forEach((ym, m) => {
+      const n = m === MONTHS.length - 1 ? 4 : 10 + Math.floor(r() * 4);
+      const lastDay = m === MONTHS.length - 1 ? 11 : 28;
+      const days = Array.from({ length: n }, () => 1 + Math.floor(r() * lastDay)).sort((a, b) => a - b);
+      days.forEach((day, i) => {
+        const buyer = r() < 0.55 ? 'Hugo' : 'Benjamin';
+        const count = 6 + Math.floor(r() * 11);
+        const pool = [...P].sort(() => r() - 0.5).slice(0, count);
+        const lines = pool.map((p, k) => {
+          const qty = p.unit === 'kg' ? Math.round((0.4 + r() * 1.4) * 1000) / 1000 : (r() < 0.2 ? 2 : 1);
+          const total = r2(p.price * qty * (0.92 + r() * 0.16));
+          let consumer = p.def || buyer;
+          if (r() < 0.1) consumer = ['shared', 'Hugo', 'Benjamin'][Math.floor(r() * 3)];
+          const disc = r() < 0.1 ? -r2(total * (0.1 + r() * 0.15)) : 0;
+          return { id: lineId++, no: k + 1, p, qty, total, consumer, disc, discName: disc ? 'Veckans erbjudande' : '' };
+        });
+        const rl = [];
+        if (rid % 3 === 0) rl.push({ id: lineId++, no: lines.length + 1, raw: r() < 0.5 ? 'PANT RETUR' : 'STAMMISRABATT 5%', name: null, total: -r2(2 + r() * 14), consumer: buyer });
+        rl.forEach(x => { x.name = x.raw === 'PANT RETUR' ? 'Bottle deposit return' : 'Regulars discount 5%'; });
+        const hh = 8 + Math.floor(r() * 12), mm = Math.floor(r() * 60);
+        receipts.push({
+          id: rid, kivra: 'kv_' + (830000 + rid * 37), m, buyer, store: STORES[Math.floor(r() * STORES.length)],
+          date: `${ym}-${String(day).padStart(2, '0')}`, time: `${String(hh).padStart(2, '0')}:${String(mm).padStart(2, '0')}`,
+          lines, rl, excluded: (m === 5 && i === 3) || (m === MONTHS.length - 2 && i === 2),
+        });
+        rid++;
+      });
+    });
+    return { P, MONTHS, LONG, receipts, budget: 5000 };
+  }
+
+  kr(n, unit) {
+    const v = Math.abs(n).toLocaleString('sv-SE', { minimumFractionDigits: 2, maximumFractionDigits: 2 });
+    return (n < -0.004 ? '−' : '') + v + (unit === false ? '' : ' kr');
+  }
+  cons(line) { const c = this.state.cons[line.id]; return c || line.consumer; }
+  isEx(rc) { const e = this.state.excl[rc.id]; return e === undefined ? rc.excluded : e; }
+  defOf(p) { const d = this.state.defs[p.raw]; return d === undefined ? p.def : d; }
+
+  tally(list) {
+    const t = { shared: 0, Hugo: 0, Benjamin: 0, discount: 0, counted: 0, count: list.length };
+    list.forEach(rc => {
+      if (this.isEx(rc)) return;
+      t.counted++;
+      rc.lines.forEach(l => { t[this.cons(l)] += l.total + l.disc; t.discount -= l.disc; });
+      rc.rl.forEach(l => { t[this.cons(l)] += l.total; t.discount -= l.total; });
+    });
+    t.total = t.shared + t.Hugo + t.Benjamin;
+    return t;
+  }
+
+  setTab(tab) {
+    const s = this.state;
+    const scope = s.scopeTouched ? s.scope : tab === 'trends' ? 'all' : 'month';
+    this.setState({ tab, scope });
+  }
+
+  monthReceipts() {
+    const D = this.data, m = this.state.monthIdx;
+    return D.receipts.filter(rc => rc.m === m).sort((a, b) => (b.date + b.time).localeCompare(a.date + a.time));
+  }
+  selected() {
+    const list = this.monthReceipts();
+    return list.find(rc => rc.id === this.state.selId) || list[0];
+  }
+  cursorLines(rc) { return [...rc.lines, ...rc.rl]; }
+
+  handleKey(e) {
+    if (this.state.tab !== 'receipts' || e.metaKey || e.ctrlKey || e.altKey) return;
+    const tag = (e.target && e.target.tagName) || '';
+    if (tag === 'INPUT' || tag === 'TEXTAREA' || tag === 'SELECT') return;
+    const rc = this.selected(); if (!rc) return;
+    const lines = this.cursorLines(rc), list = this.monthReceipts(), idx = list.indexOf(rc);
+    const k = e.key.toLowerCase();
+    const cur = Math.min(this.state.cursor, lines.length - 1);
+    const set = (c) => { const line = lines[cur]; this.setState({ cons: { ...this.state.cons, [line.id]: c }, cursor: Math.min(cur + 1, lines.length - 1) }); };
+    let handled = true;
+    if (k === 'arrowdown' || k === 'j') this.setState({ cursor: Math.min(cur + 1, lines.length - 1) });
+    else if (k === 'arrowup' || k === 'k') this.setState({ cursor: Math.max(cur - 1, 0) });
+    else if (k === 'arrowright' || k === ']') { const n = list[Math.min(idx + 1, list.length - 1)]; this.setState({ selId: n.id, cursor: 0 }); }
+    else if (k === 'arrowleft' || k === '[') { const n = list[Math.max(idx - 1, 0)]; this.setState({ selId: n.id, cursor: 0 }); }
+    else if (k === 's') set('shared');
+    else if (k === 'h') set('Hugo');
+    else if (k === 'b') set('Benjamin');
+    else if (k === 'e') this.setState({ excl: { ...this.state.excl, [rc.id]: !this.isEx(rc) } });
+    else handled = false;
+    if (handled) e.preventDefault();
+  }
+
+  renderVals() {
+    const s = this.state, D = this.data, isDark = s.theme === 'dark', kr = (n, u) => this.kr(n, u);
+    const COLORS = { shared: 'var(--c-shared)', Hugo: 'var(--c-hugo)', Benjamin: 'var(--c-benjamin)' };
+    const NAMES = { shared: 'Shared', Hugo: 'Hugo', Benjamin: 'Benjamin' };
+    const m = s.monthIdx, monthName = `${D.LONG[m]} ${D.MONTHS[m].slice(0, 4)}`;
+    const monthList = this.monthReceipts();
+    const t = this.tally(monthList);
+    const pct = v => t.total > 0 ? Math.round(v / t.total * 100) + '% of month' : '–';
+
+    const buckets = [
+      { label: 'Month total', dot: 'var(--ink)', amount: kr(t.total, false), sub: `${t.counted} of ${t.count} receipts counted` },
+      { label: 'Shared', dot: COLORS.shared, amount: kr(t.shared, false), sub: pct(t.shared) },
+      { label: 'Hugo', dot: COLORS.Hugo, amount: kr(t.Hugo, false), sub: pct(t.Hugo) },
+      { label: 'Benjamin', dot: COLORS.Benjamin, amount: kr(t.Benjamin, false), sub: pct(t.Benjamin) },
+      { label: 'Discounts', dot: 'var(--pos)', amount: kr(t.discount, false), sub: 'saved this month' },
+    ];
+    const B = D.budget, half = B / 2, clamp = (v, a, b) => Math.max(a, Math.min(b, v));
+    const side = (own) => { const fair = own + t.shared / 2; const fp = clamp(fair / B * 100, 0, 50 + 50); const o = clamp(own / B * 100, 0, fp); return { fair, own: o, sh: fp - o }; };
+    const H = side(t.Hugo), Bn = side(t.Benjamin);
+    const note = f => f > half ? `${kr(f - half)} over fair share` : `${kr(half - f)} left of fair share`;
+    const over = t.total > B;
+    const fair = {
+      hOwn: H.own.toFixed(2) + '%', hShared: H.sh.toFixed(2) + '%', bOwn: Bn.own.toFixed(2) + '%', bShared: Bn.sh.toFixed(2) + '%',
+      hFair: kr(H.fair, false), bFair: kr(Bn.fair, false), hNote: note(H.fair), bNote: note(Bn.fair),
+      hFg: H.fair > half ? 'var(--neg)' : 'var(--ink-2)', bFg: Bn.fair > half ? 'var(--neg)' : 'var(--ink-2)',
+      status: over ? `${kr(t.total - B)} over` : `${kr(B - t.total)} left`, statusFg: over ? 'var(--neg)' : 'var(--ink)',
+      aria: `Hugo ${kr(H.fair)}, Benjamin ${kr(Bn.fair)}, against ${kr(half)} each`,
+    };
+
+    // reports
+    const scopeList = s.scope === 'month' ? monthList : D.receipts;
+    const st = this.tally(scopeList);
+    const prodAgg = {}, catAgg = {};
+    scopeList.forEach(rc => {
+      if (this.isEx(rc)) return;
+      rc.lines.forEach(l => {
+        const name = l.p.name || l.p.raw, amt = l.total + l.disc, c = this.cons(l);
+        prodAgg[name] = prodAgg[name] || { name, amount: 0, count: 0 };
+        prodAgg[name].amount += amt; prodAgg[name].count++;
+        catAgg[l.p.cat] = catAgg[l.p.cat] || { name: l.p.cat, shared: 0, Hugo: 0, Benjamin: 0, total: 0 };
+        catAgg[l.p.cat][c] += amt; catAgg[l.p.cat].total += amt;
+      });
+    });
+    const topArr = Object.values(prodAgg).sort((a, b) => b.amount - a.amount).slice(0, 10);
+    const topMax = topArr.length ? topArr[0].amount : 1;
+    const reports = {
+      caption: (s.scope === 'month' ? monthName : `All ${D.MONTHS.length} months`) + ` · ${kr(st.total)} · net of discounts, excluded receipts left out`,
+      top: topArr.map((p, i) => ({ rank: i + 1, name: p.name, count: p.count, amount: kr(p.amount), bar: (p.amount / topMax * 100).toFixed(1) + '%' })),
+      cats: Object.values(catAgg).sort((a, b) => b.total - a.total).map(c => ({
+        name: c.name, amount: kr(c.total), s: (c.shared / c.total * 100).toFixed(1) + '%', h: (c.Hugo / c.total * 100).toFixed(1) + '%', b: (c.Benjamin / c.total * 100).toFixed(1) + '%',
+        title: `${c.name}: shared ${kr(c.shared)}, Hugo ${kr(c.Hugo)}, Benjamin ${kr(c.Benjamin)}`,
+      })),
+    };
+    const seg = o => ({ ...o, pressed: o.id === s.scope ? 'true' : 'false', bg: o.id === s.scope ? 'var(--control-thumb)' : 'transparent', fg: o.id === s.scope ? 'var(--ink)' : 'var(--ink-3)', shadow: o.id === s.scope ? 'var(--shadow-thumb)' : 'none', onClick: () => this.setState({ scope: o.id, scopeTouched: true }) });
+
+    // trends
+    const perMonth = D.MONTHS.map((_, i) => this.tally(D.receipts.filter(rc => rc.m === i)));
+    const scale = Math.ceil(Math.max(B, ...perMonth.map(x => x.total)) * 1.12 / 500) * 500;
+    const n = D.MONTHS.length, hv = s.hoverIdx == null ? m : s.hoverIdx, ht = perMonth[hv];
+    const chart = {
+      ticks: [1, 0.75, 0.5, 0.25, 0].map(f => ({ label: (scale * f).toLocaleString('sv-SE'), top: ((1 - f) * 100) + '%' })),
+      budgetTop: (100 - B / scale * 100).toFixed(2) + '%',
+      months: perMonth.map((x, i) => ({
+        short: D.LONG[i].slice(0, 3), labelFg: i === hv ? 'var(--ink)' : 'var(--ink-3)',
+        bg: i === hv ? 'var(--surface-2)' : 'transparent', aria: `${D.LONG[i]}: ${kr(x.total)}. Open this month`,
+        bars: ['shared', 'Hugo', 'Benjamin'].map(c => ({ h: (x[c] / scale * 100).toFixed(2) + '%', color: COLORS[c] })),
+        onEnter: () => this.setState({ hoverIdx: i }), onClick: () => this.setState({ monthIdx: i, tab: 'month', scope: s.scopeTouched ? s.scope : 'month', selId: null, cursor: 0 }),
+      })),
+      totalPoints: perMonth.map((x, i) => `${((i + 0.5) / n * 100).toFixed(2)},${(100 - x.total / scale * 100).toFixed(2)}`).join(' '),
+      dots: perMonth.map((x, i) => ({ left: ((i + 0.5) / n * 100).toFixed(2) + '%', top: (100 - x.total / scale * 100).toFixed(2) + '%' })),
+    };
+    const vsB = ht.total - B;
+    const readout = {
+      label: `${D.LONG[hv]} ${D.MONTHS[hv].slice(0, 4)}`, total: kr(ht.total, false),
+      parts: ['shared', 'Hugo', 'Benjamin'].map(c => ({ label: NAMES[c], value: kr(ht[c], false), color: COLORS[c] })),
+      vs: vsB > 0 ? `${kr(vsB)} over target` : `${kr(-vsB)} under target`, vsFg: vsB > 0 ? 'var(--neg)' : 'var(--ink-3)',
+    };
+
+    // product over time
+    const allNames = [...new Set(D.P.map(p => p.name || p.raw))];
+    const allTop = {};
+    D.receipts.forEach(rc => { if (!this.isEx(rc)) rc.lines.forEach(l => { const k = l.p.name || l.p.raw; allTop[k] = (allTop[k] || 0) + l.total + l.disc; }); });
+    const prodSel = s.prodSel || Object.entries(allTop).sort((a, b) => b[1] - a[1])[0][0];
+    const pm = D.MONTHS.map((_, i) => {
+      const o = { shared: 0, Hugo: 0, Benjamin: 0, count: 0 };
+      D.receipts.forEach(rc => { if (rc.m !== i || this.isEx(rc)) return; rc.lines.forEach(l => { if ((l.p.name || l.p.raw) === prodSel) { o[this.cons(l)] += l.total + l.disc; o.count++; } }); });
+      o.total = o.shared + o.Hugo + o.Benjamin; return o;
+    });
+    const pTotal = pm.reduce((a, x) => a + x.total, 0), pCount = pm.reduce((a, x) => a + x.count, 0);
+    const pScale = Math.max(50, Math.ceil(Math.max(...pm.map(x => x.total)) * 1.15 / 50) * 50);
+    const prod = {
+      sel: prodSel, opts: allNames.sort((a, b) => a.localeCompare(b, 'sv')).map(x => ({ id: x, label: x })),
+      stats: [{ label: 'All months', value: kr(pTotal) }, { label: 'Times bought', value: String(pCount) }, { label: 'Per purchase', value: pCount ? kr(pTotal / pCount) : '–' }],
+      ticks: [1, 0.5, 0].map(f => ({ label: Math.round(pScale * f).toLocaleString('sv-SE'), top: ((1 - f) * 100) + '%' })),
+      months: pm.map((x, i) => ({
+        short: D.LONG[i].slice(0, 3), h: (x.total / pScale * 100).toFixed(2) + '%', title: `${D.LONG[i]}: ${kr(x.total)} (${x.count}×)`,
+        segs: ['shared', 'Hugo', 'Benjamin'].map(c => ({ h: x.total ? (x[c] / x.total * 100).toFixed(2) + '%' : '0', color: COLORS[c] })),
+      })),
+    };
+
+    // receipts
+    const rc = this.selected();
+    const lines = rc ? this.cursorLines(rc) : [];
+    const cursor = Math.min(s.cursor, Math.max(lines.length - 1, 0));
+    const shb = (cur, write, label) => ['shared', 'Hugo', 'Benjamin'].map(c => ({
+      label: c[0].toUpperCase(), title: NAMES[c], pressed: cur === c ? 'true' : 'false',
+      bg: cur === c ? COLORS[c] : 'transparent', fg: cur === c ? 'var(--c-on)' : 'var(--ink-3)', onClick: () => write(c),
+    }));
+    const receiptRows = monthList.map(x => {
+      const ex = this.isEx(x), sel = rc && x.id === rc.id;
+      const amt = x.lines.reduce((a, l) => a + l.total + l.disc, 0) + x.rl.reduce((a, l) => a + l.total, 0);
+      return {
+        store: x.store, meta: `${x.date} ${x.time} · ${x.buyer} paid`, amount: kr(amt), buyerColor: COLORS[x.buyer],
+        flag: ex ? 'excluded' : `${x.lines.length + x.rl.length} lines`, flagFg: ex ? 'var(--warn)' : 'var(--ink-3)',
+        strike: ex ? 'line-through' : 'none', opacity: ex ? '0.55' : '1', pressed: sel ? 'true' : 'false',
+        bg: sel ? 'var(--surface-3)' : 'transparent', ring: 'none',
+        onClick: () => this.setState({ selId: x.id, cursor: 0 }),
+      };
+    });
+    let sel = { store: '', meta: '', items: [], splits: [], excluded: false, excludedAttr: 'false', exLabel: '', exBorder: 'var(--line-strong)', exBg: 'transparent' };
+    if (rc) {
+      const ex = this.isEx(rc);
+      const tt = { shared: 0, Hugo: 0, Benjamin: 0 };
+      const items = lines.map((l, i) => {
+        const isR = !l.p, c = this.cons(l);
+        const net = isR ? l.total : l.total + l.disc;
+        tt[c] += net;
+        const write = v => this.setState({ cons: { ...this.state.cons, [l.id]: v }, cursor: i });
+        const qty = isR ? 'whole receipt' : l.p.unit === 'kg' ? `${l.qty.toLocaleString('sv-SE')} kg` : `${l.qty} st`;
+        return {
+          name: isR ? l.name : (l.p.name || l.p.raw), nameFg: !isR && !l.p.name ? 'var(--ink-3)' : 'var(--ink)',
+          meta: isR ? 'applies to the whole receipt' : `${qty} · ${l.p.cat}`,
+          isReceiptDisc: isR, hasDisc: !isR && l.disc < 0, disc: !isR && l.disc ? kr(l.disc) : '', discTitle: l.discName || '',
+          amount: kr(net), amountFg: net < 0 ? 'var(--pos)' : 'var(--ink)', was: !isR && l.disc ? `was ${kr(l.total)}` : '',
+          bg: i === cursor ? 'var(--surface-2)' : 'transparent', ring: i === cursor ? 'inset 3px 0 0 var(--accent)' : 'none',
+          groupLabel: `Who is ${isR ? l.name : (l.p.name || l.p.raw)} for`, opts: shb(c, write),
+        };
+      });
+      sel = {
+        store: rc.store, meta: `${rc.date} ${rc.time} · ${rc.buyer} paid · ${rc.kivra}`, items, excluded: ex, excludedAttr: ex ? 'true' : 'false',
+        exLabel: ex ? 'Excluded · include again' : 'Exclude receipt', exBorder: ex ? 'var(--warn)' : 'var(--line-strong)', exBg: ex ? 'color-mix(in srgb, var(--warn) 14%, transparent)' : 'transparent',
+        splits: [
+          { label: 'Hugo', value: kr(tt.Hugo), color: COLORS.Hugo }, { label: 'Benjamin', value: kr(tt.Benjamin), color: COLORS.Benjamin },
+          { label: 'Shared', value: kr(tt.shared), color: COLORS.shared }, { label: 'Receipt', value: kr(tt.shared + tt.Hugo + tt.Benjamin), color: 'var(--ink)' },
+        ],
+      };
+    }
+
+    // products
+    const life = {};
+    D.receipts.forEach(x => { if (this.isEx(x)) return; x.lines.forEach(l => { life[l.p.raw] = life[l.p.raw] || { n: 0, total: 0 }; life[l.p.raw].n++; life[l.p.raw].total += l.total + l.disc; }); });
+    const q = s.prodQuery.trim().toLowerCase();
+    const prods = D.P.filter(p => (!q || [p.raw, p.name || '', p.cat].some(f => f.toLowerCase().includes(q))) && (!s.noDefault || !this.defOf(p)))
+      .sort((a, b) => ((life[b.raw] || {}).total || 0) - ((life[a.raw] || {}).total || 0));
+    const productRows = prods.map(p => ({
+      raw: p.raw, name: p.name || 'not reviewed', nameFg: p.name ? 'var(--ink)' : 'var(--ink-3)', cat: p.cat,
+      n: (life[p.raw] || {}).n || '–', total: life[p.raw] ? kr(life[p.raw].total) : '–', groupLabel: `Default for ${p.name || p.raw}`,
+      opts: shb(this.defOf(p), v => this.setState({ defs: { ...this.state.defs, [p.raw]: v } })),
+    }));
+
+    const next = isDark ? 'light' : 'dark';
+    const TABS = [{ id: 'month', label: 'This month' }, { id: 'trends', label: 'Trends' }, { id: 'receipts', label: 'Receipts' }, { id: 'products', label: 'Products' }];
+    return {
+      isDark, isLight: !isDark,
+      toggleTheme: () => { const apply = () => { document.documentElement.dataset.theme = next; this.setState({ theme: next }); }; if (window.WighMotion) window.WighMotion.theme(apply); else apply(); },
+      tabs: TABS.map(x => ({ ...x, selected: x.id === s.tab ? 'true' : 'false', fg: x.id === s.tab ? 'var(--ink)' : 'var(--ink-3)', border: x.id === s.tab ? 'var(--accent)' : 'transparent', onClick: () => this.setTab(x.id) })),
+      isMonth: s.tab === 'month', isTrends: s.tab === 'trends', isReceipts: s.tab === 'receipts', isProducts: s.tab === 'products',
+      monthScoped: s.tab === 'month' || s.tab === 'receipts', monthLabel: monthName,
+      atFirst: m === 0, atLast: m === D.MONTHS.length - 1,
+      prevMonth: () => this.setState({ monthIdx: Math.max(0, m - 1), selId: null, cursor: 0 }),
+      nextMonth: () => this.setState({ monthIdx: Math.min(D.MONTHS.length - 1, m + 1), selId: null, cursor: 0 }),
+      budget: B.toLocaleString('sv-SE'), buckets, fair, reports,
+      scopeOpts: [{ id: 'month', label: 'This month' }, { id: 'all', label: 'All time' }].map(seg),
+      chart, readout, clearHover: () => this.setState({ hoverIdx: null }),
+      prod, onProd: e => this.setState({ prodSel: e.target.value }),
+      keyHints: [{ key: '↑ ↓', label: 'line' }, { key: '← →', label: 'receipt' }, { key: 'S', label: 'shared' }, { key: 'H', label: 'Hugo' }, { key: 'B', label: 'Benjamin' }, { key: 'E', label: 'exclude receipt' }],
+      listHead: `${monthList.length} receipts · ${monthName}`, receiptRows, sel,
+      toggleExclude: () => rc && this.setState({ excl: { ...s.excl, [rc.id]: !this.isEx(rc) } }),
+      prodQuery: s.prodQuery, onQuery: e => this.setState({ prodQuery: e.target.value }),
+      noDefaultAttr: s.noDefault ? 'true' : 'false', toggleNoDefault: () => this.setState({ noDefault: !s.noDefault }),
+      noDefaultChip: s.noDefault ? { border: 'var(--accent)', bg: 'var(--accent-soft)', fg: 'var(--ink)' } : { border: 'var(--line-strong)', bg: 'transparent', fg: 'var(--ink-2)' },
+      productRows, productsFoot: `${prods.length} of ${D.P.length} products · ${D.P.filter(p => !this.defOf(p)).length} without a default`,
+    };
+  }
+}
+</script>
+</body>
+</html>

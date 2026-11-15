@@ -1,0 +1,646 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="./motion.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+/* Base pair: Charcoal #1E1E1C + Sand #D8CBB3 build every page. One pop colour per project.
+   Each pop has three roles: --a-x (fills, marks, chart series), --a-x-t (text, 4.5:1 on every surface), --a-x-on (text on a fill). */
+:root,[data-theme="dark"]{color-scheme:dark;--charcoal:#1E1E1C;--sand:#D8CBB3;--page:#1E1E1C;--surface:#252522;--surface-2:#2D2C28;--surface-3:#363430;--line:#312F2B;--line-strong:#746E61;--series-muted:#47443D;--ink:#D8CBB3;--ink-2:#B7AC98;--ink-3:#A89E8C;--control-track:#181816;--control-thumb:#3E3B36;--shadow-thumb:0 1px 2px rgb(0 0 0 / .4);--shadow-pop:0 16px 48px rgb(0 0 0 / .5);--a-home:#2B65F7;--a-home-t:#5E92FF;--a-home-on:#FFFFFF;--a-bbc:#19C3E6;--a-bbc-t:#19C3E6;--a-bbc-on:#1E1E1C;--a-fpl:#F32AA4;--a-fpl-t:#FF49BA;--a-fpl-on:#1E1E1C;--a-playpilot:#8E37E2;--a-playpilot-t:#B778FF;--a-playpilot-on:#FFFFFF;--a-food:#F5B700;--a-food-t:#F5B700;--a-food-on:#1E1E1C;--c-shared:#F5B700;--c-hugo:#5E92FF;--c-benjamin:#FF49BA;--pos:oklch(0.79 0.12 150);--neg:oklch(0.75 0.13 25);--warn:oklch(0.82 0.11 80);--gold:oklch(0.80 0.11 85);--silver:oklch(0.78 0.01 80);--bronze:oklch(0.68 0.09 50);--font-display:"Space Grotesk",system-ui,sans-serif;--font-body:"IBM Plex Sans",system-ui,sans-serif;--font-mono:"Geist Mono",ui-monospace,monospace;--ease-calm:cubic-bezier(0.22,0.61,0.36,1);--ease-out:cubic-bezier(0.165,0.84,0.44,1)}
+[data-theme="light"]{color-scheme:light;--page:#EDE8DD;--surface:#F5F2EC;--surface-2:#E7DFD0;--surface-3:#DED3BE;--line:#D8CBB3;--line-strong:#7B7468;--series-muted:#B7AC98;--ink:#1E1E1C;--ink-2:#4C4942;--ink-3:#5A554C;--control-track:#E4DBCA;--control-thumb:#F9F7F4;--shadow-thumb:0 1px 2px rgb(30 30 28 / .16);--shadow-pop:0 16px 40px rgb(30 30 28 / .16);--a-home:#1B53E6;--a-home-t:#1B53E6;--a-home-on:#FFFFFF;--a-bbc:#006A81;--a-bbc-t:#006A81;--a-bbc-on:#FFFFFF;--a-fpl:#BC007B;--a-fpl-t:#BC007B;--a-fpl-on:#FFFFFF;--a-playpilot:#852AD8;--a-playpilot-t:#852AD8;--a-playpilot-on:#FFFFFF;--a-food:#7D5A00;--a-food-t:#7D5A00;--a-food-on:#FFFFFF;--c-shared:#7D5A00;--c-hugo:#1B53E6;--c-benjamin:#BC007B;--pos:oklch(0.46 0.12 150);--neg:oklch(0.49 0.16 25);--warn:oklch(0.47 0.12 75);--gold:oklch(0.60 0.12 80);--silver:oklch(0.58 0.01 80);--bronze:oklch(0.56 0.10 50)}
+/* Manager identity palette: one fixed colour per manager, assigned by id. Only for charts that show every manager at once. */
+:root,[data-theme="dark"]{--p1:#F97770;--p2:#F2823B;--p3:#D89700;--p4:#B4A900;--p5:#76BA4B;--p6:#12C281;--p7:#00BFB7;--p8:#00B8E1;--p9:#59A6FF;--p10:#9C93FF;--p11:#CA83E9;--p12:#E977BB}
+[data-theme="light"]{--p1:#C04442;--p2:#BB5000;--p3:#9A6A00;--p4:#807700;--p5:#478809;--p6:#008C57;--p7:#008782;--p8:#0083A3;--p9:#2474CF;--p10:#6E62CD;--p11:#9752B4;--p12:#B2468A}
+[data-project]{--accent:var(--a-home);--accent-text:var(--a-home-t);--accent-ink:var(--a-home-on)}
+[data-project="bbc"]{--accent:var(--a-bbc);--accent-text:var(--a-bbc-t);--accent-ink:var(--a-bbc-on)}
+[data-project="fpl"]{--accent:var(--a-fpl);--accent-text:var(--a-fpl-t);--accent-ink:var(--a-fpl-on)}
+[data-project="playpilot"]{--accent:var(--a-playpilot);--accent-text:var(--a-playpilot-t);--accent-ink:var(--a-playpilot-on)}
+[data-project="food"]{--accent:var(--a-food);--accent-text:var(--a-food-t);--accent-ink:var(--a-food-on)}
+[data-project]{--accent-soft:color-mix(in srgb,var(--accent) 16%,transparent)}
+html,body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+/* Motion: buttons grow on hover only when primary, every button presses in. Reveals live in motion.js. */
+button{transition:transform 260ms var(--ease-calm),background-color 160ms,color 160ms,border-color 160ms,box-shadow 160ms !important}
+@media (prefers-reduced-motion:no-preference){button:not(:disabled):active{transform:scale(0.965)}}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){button[data-primary]:not(:disabled):hover{transform:scale(1.035)}}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:var(--ease-calm)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none !important}}
+@media print{[data-reveal],[data-reveal-heading],[data-stagger]>*,[data-wipe]{opacity:1 !important;transform:none !important;clip-path:none !important}header{position:static !important;backdrop-filter:none !important}}
+a{color:var(--accent-text,var(--ink));text-decoration:none}
+a:hover{text-decoration:underline}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent,var(--ink));outline-offset:2px}
+</style>
+</helmet>
+<div data-project="bbc" data-screen-label="Blue Bay Cup" style="min-height:100vh;background:var(--page);color:var(--ink);font-family:var(--font-body)">
+
+  <header style="position:sticky;top:0;z-index:20;height:64px;display:flex;align-items:center;background:color-mix(in srgb, var(--page) 86%, transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)">
+    <div style="max-width:1200px;width:100%;margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:12px;box-sizing:border-box">
+      <a href="Home.dc.html" style="font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:-0.01em;color:var(--ink)">wigh.nu</a>
+      <span style="color:var(--line-strong);font-size:18px">/</span>
+      <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink)"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Blue Bay Cup</span>
+      <div style="flex:1"></div>
+      <a href="Home.dc.html#projects" style="font-size:14px;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap" style-hover="background:var(--surface-2);text-decoration:none">Projects</a>
+      <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="width:36px;height:36px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m10.32 10.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+        </sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+        </sc-if>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1200px;margin:0 auto;padding:0 40px 120px;box-sizing:border-box">
+
+    <section style="padding:72px 0 48px;display:flex;align-items:flex-end;justify-content:space-between;gap:24px;flex-wrap:wrap">
+      <div style="display:flex;flex-direction:column;gap:14px;min-width:0">
+        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Fantasy Draft Premier League · {{ seasonCount }} seasons</div>
+        <h1 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:60px;font-weight:600;letter-spacing:-0.035em;line-height:1">Blue Bay Cup</h1>
+      </div>
+      <div style="display:flex;align-items:center;gap:10px;flex-wrap:nowrap">
+        <div role="tablist" style="display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line)">
+          <sc-for list="{{ viewOpts }}" as="o" hint-placeholder-count="2">
+            <button role="tab" onClick="{{ o.onClick }}" style="height:34px;padding:0 18px;border:0;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }};transition:background-color 160ms, color 160ms">{{ o.label }}</button>
+          </sc-for>
+        </div>
+        <sc-if value="{{ isSeason }}" hint-placeholder-val="{{ false }}">
+          <div style="position:relative">
+            <select value="{{ seasonId }}" onChange="{{ onSeason }}" aria-label="Season" style="appearance:none;-webkit-appearance:none;height:40px;padding:0 38px 0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer">
+              <sc-for list="{{ seasonOpts }}" as="so" hint-placeholder-count="4">
+                <option value="{{ so.id }}">{{ so.name }}</option>
+              </sc-for>
+            </select>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;right:14px;top:13px;pointer-events:none;color:var(--ink-3)"><path d="m6 9 6 6 6-6"></path></svg>
+          </div>
+        </sc-if>
+      </div>
+    </section>
+
+    <sc-if value="{{ isAllTime }}" hint-placeholder-val="{{ true }}">
+      <div data-view="alltime" style="display:flex;flex-direction:column;gap:80px">
+
+        <section style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:18px 22px;display:flex;align-items:center;justify-content:space-between;gap:12px 24px;flex-wrap:wrap">
+          <div style="display:flex;align-items:center;gap:12px 20px;flex-wrap:wrap;min-width:0">
+            <span style="display:inline-flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--accent-text)"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>{{ liveCard.season }} · {{ liveCard.gw }}</span>
+            <span style="font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.01em">{{ liveCard.leader }} leads</span>
+            <span style="font-size:14px;color:var(--ink-2)">{{ liveCard.line }}</span>
+          </div>
+          <button onClick="{{ openSeason }}" style="height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap" style-hover="background:var(--surface-3)">Open this season →</button>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+            <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Overall standings</h2>
+            <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ overallCaption }}</p>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+            <div style="overflow-x:auto;overflow-y:hidden">
+              <div data-stagger="0.04" style="min-width:760px">
+                <div style="display:grid;grid-template-columns:40px minmax(140px,1.4fr) 48px 150px 72px 80px 80px 96px;column-gap:12px;align-items:center;height:44px;padding:0 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)">
+                  <span>Rank</span><span>Manager</span><span style="text-align:right">Apps</span><span>Medals</span><span style="text-align:right">Avg pts</span><span style="text-align:right">Avg PF</span><span style="text-align:right">Avg PA</span><span style="text-align:right">Prize</span>
+                </div>
+                <sc-for list="{{ overallRows }}" as="r" hint-placeholder-count="12">
+                  <div style="display:grid;grid-template-columns:40px minmax(140px,1.4fr) 48px 150px 72px 80px 80px 96px;column-gap:12px;align-items:center;height:52px;padding:0 20px;border-top:1px solid var(--line);font-size:14px" style-hover="background:var(--surface-2)">
+                    <span style="font-family:var(--font-mono);font-size:13px;color:{{ r.rankFg }}">{{ r.rank }}</span>
+                    <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.apps }}</span>
+                    <span style="display:flex;gap:14px">
+                      <sc-for list="{{ r.medals }}" as="m" hint-placeholder-count="3">
+                        <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:13px;color:{{ m.fg }};min-width:28px"><span style="width:8px;height:8px;border-radius:50%;background:{{ m.dot }}"></span>{{ m.count }}</span>
+                      </sc-for>
+                    </span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:14px;font-weight:500">{{ r.avgPts }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.avgPf }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.avgPa }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:{{ r.prizeFg }}">{{ r.prize }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+            <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Head-to-head</h2>
+            <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ h2hCaption }}</p>
+          </div>
+          <div style="display:grid;grid-template-columns:minmax(0,220px) minmax(0,1fr);gap:24px;align-items:start">
+            <div style="display:flex;flex-direction:column;gap:2px">
+              <sc-for list="{{ h2hPlayers }}" as="p" hint-placeholder-count="12">
+                <button onClick="{{ p.onClick }}" style="display:flex;align-items:center;gap:10px;height:38px;padding:0 12px;border:0;border-radius:10px;text-align:left;font-size:14px;cursor:pointer;background:{{ p.bg }};color:{{ p.fg }};transition:background-color 160ms" style-hover="background:var(--surface-2)"><span style="width:6px;height:6px;border-radius:50%;background:{{ p.dot }};flex:none"></span>{{ p.name }}</button>
+              </sc-for>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-width:0">
+              <div style="overflow-x:auto;overflow-y:hidden">
+                <div style="min-width:560px">
+                  <div style="display:grid;grid-template-columns:minmax(150px,1fr) 80px 150px 120px;column-gap:16px;align-items:center;height:44px;padding:0 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)">
+                    <span>Opponent</span><span style="text-align:right">W–D–L</span><span>Win rate</span><span>Last 5</span>
+                  </div>
+                  <sc-for list="{{ h2hRows }}" as="h" hint-placeholder-count="11">
+                    <div style="display:grid;grid-template-columns:minmax(150px,1fr) 80px 150px 120px;column-gap:16px;align-items:center;height:48px;padding:0 20px;border-top:1px solid var(--line);font-size:14px">
+                      <span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ h.name }}</span>
+                      <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ h.wdl }}</span>
+                      <span style="display:flex;align-items:center;gap:10px">
+                        <span style="flex:1;height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden"><span style="display:block;height:100%;border-radius:3px;width:{{ h.bar }};background:{{ h.barColor }}"></span></span>
+                        <span style="font-family:var(--font-mono);font-size:13px;width:38px;text-align:right;color:{{ h.pctFg }}">{{ h.pct }}</span>
+                      </span>
+                      <span style="display:flex;gap:4px">
+                        <sc-for list="{{ h.form }}" as="f" hint-placeholder-count="5">
+                          <span title="{{ f.title }}" style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:{{ f.bg }};color:{{ f.fg }}">{{ f.res }}</span>
+                        </sc-for>
+                      </span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+            <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Past champions</h2>
+            <p style="margin:0;font-size:14px;color:var(--ink-3)">Winners of the {{ champCount }} finished seasons, newest first.</p>
+          </div>
+          <div data-stagger="" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px">
+            <sc-for list="{{ champs }}" as="c" hint-placeholder-count="3">
+              <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;display:flex;flex-direction:column;gap:10px;min-width:0">
+                <div style="display:flex;align-items:center;justify-content:space-between;gap:8px">
+                  <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">{{ c.season }}</span>
+                  <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:11px;color:var(--ink-3)"><span style="width:6px;height:6px;border-radius:50%;background:var(--gold)"></span>Champion</span>
+                </div>
+                <div style="font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-0.02em;line-height:1.15">{{ c.winner }}</div>
+                <div style="font-size:13px;color:var(--ink-2);line-height:1.5">{{ c.line }}<br><span style="color:var(--ink-3)">{{ c.sub }}</span></div>
+              </div>
+            </sc-for>
+          </div>
+        </section>
+
+      </div>
+    </sc-if>
+
+    <sc-if value="{{ isSeason }}" hint-placeholder-val="{{ false }}">
+      <div data-view="season" style="display:flex;flex-direction:column;gap:80px">
+
+        <section data-reveal="">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px 32px;flex-wrap:wrap;margin-bottom:20px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">{{ seasonName }} standings</h2>
+              <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ seasonCaption }}</p>
+            </div>
+            <div style="display:flex;flex-direction:column;gap:4px;align-items:flex-end;white-space:nowrap">
+              <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Highest gameweek</span>
+              <span style="font-size:14px;color:var(--ink-2)"><span style="font-family:var(--font-mono);font-size:20px;font-weight:500;color:var(--ink)">{{ hs.score }}</span> pts · {{ hs.name }} · GW {{ hs.gw }}</span>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+            <div style="overflow-x:auto;overflow-y:hidden">
+              <div data-stagger="0.04" style="min-width:780px">
+                <div style="display:grid;grid-template-columns:40px minmax(140px,1.4fr) 48px 32px 32px 32px 56px 56px 124px 52px;column-gap:12px;align-items:center;height:44px;padding:0 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)">
+                  <span>Rank</span><span>Manager</span><span style="text-align:right">Pts</span><span style="text-align:right">W</span><span style="text-align:right">D</span><span style="text-align:right">L</span><span style="text-align:right">PF</span><span style="text-align:right">PA</span><span>Form</span><span style="text-align:right">Luck</span>
+                </div>
+                <sc-for list="{{ seasonRows }}" as="r" hint-placeholder-count="12">
+                  <div onClick="{{ r.onClick }}" style="display:grid;grid-template-columns:40px minmax(140px,1.4fr) 48px 32px 32px 32px 56px 56px 124px 52px;column-gap:12px;align-items:center;height:52px;padding:0 20px;border-top:1px solid var(--line);font-size:14px;cursor:pointer;background:{{ r.bg }};transition:background-color 160ms" style-hover="background:var(--surface-2)">
+                    <span style="font-family:var(--font-mono);font-size:13px;color:{{ r.rankFg }}">{{ r.rank }}</span>
+                    <span style="display:flex;align-items:center;gap:8px;font-weight:500;min-width:0"><span style="white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="width:6px;height:6px;border-radius:50%;background:{{ r.dot }};flex:none"></span></span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:14px;font-weight:500">{{ r.pts }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.w }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.d }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.l }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.pf }}</span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.pa }}</span>
+                    <span style="display:flex;gap:4px">
+                      <sc-for list="{{ r.form }}" as="f" hint-placeholder-count="5">
+                        <span title="{{ f.title }}" style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:{{ f.bg }};color:{{ f.fg }}">{{ f.res }}</span>
+                      </sc-for>
+                    </span>
+                    <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:{{ r.luckFg }}">{{ r.luck }}</span>
+                  </div>
+                </sc-for>
+              </div>
+            </div>
+          </div>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:12px 24px;flex-wrap:wrap;margin-bottom:16px">
+            <div style="display:flex;flex-direction:column;gap:6px">
+              <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">{{ dev.title }}</h2>
+              <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ dev.caption }}</p>
+            </div>
+            <div style="display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line);overflow-x:auto;max-width:100%">
+              <sc-for list="{{ metricOpts }}" as="o" hint-placeholder-count="4">
+                <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="height:32px;padding:0 14px;border:0;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;flex:none;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}">{{ o.label }}</button>
+              </sc-for>
+            </div>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px 24px 18px 12px">
+            <div style="display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:10px">
+              <div style="position:relative;height:clamp(300px,42vw,400px)">
+                <sc-for list="{{ dev.ticks }}" as="y" hint-placeholder-count="6">
+                  <span style="position:absolute;right:0;top:{{ y.top }};transform:translateY(-50%);font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">{{ y.label }}</span>
+                </sc-for>
+              </div>
+              <div onMouseLeave="{{ clearDevHover }}" style="position:relative;height:clamp(300px,42vw,400px)">
+                <sc-for list="{{ dev.ticks }}" as="y" hint-placeholder-count="6">
+                  <span style="position:absolute;left:0;right:0;top:{{ y.top }};border-top:1px dashed var(--line)"></span>
+                </sc-for>
+                <span style="position:absolute;top:0;bottom:0;left:{{ dev.guideLeft }};border-left:1px solid var(--line-strong);opacity:{{ dev.guideOpacity }};pointer-events:none"></span>
+                <svg id="dev-svg" data-wipe="" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible;pointer-events:none">
+                  <sc-for list="{{ dev.lines }}" as="ln" hint-placeholder-count="12">
+                    <path d="{{ ln.d }}" style="fill:none;stroke:{{ ln.color }};stroke-width:{{ ln.width }};opacity:{{ ln.opacity }};vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round"></path>
+                  </sc-for>
+                </svg>
+                <sc-for list="{{ dev.dots }}" as="d" hint-placeholder-count="0">
+                  <span style="position:absolute;left:{{ d.left }};top:{{ d.top }};width:{{ d.size }};height:{{ d.size }};transform:translate(-50%,-50%);border-radius:50%;background:{{ d.color }};opacity:{{ d.opacity }};box-shadow:0 0 0 {{ d.ring }} var(--surface);pointer-events:none"></span>
+                </sc-for>
+                <div style="position:absolute;inset:0;display:flex">
+                  <sc-for list="{{ dev.cols }}" as="c" hint-placeholder-count="9">
+                    <span onMouseEnter="{{ c.onEnter }}" style="flex:1"></span>
+                  </sc-for>
+                </div>
+                <sc-if value="{{ dev.showTip }}" hint-placeholder-val="{{ false }}">
+                  <div style="position:absolute;top:0;left:{{ dev.tipLeft }};transform:{{ dev.tipShift }};min-width:190px;background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-pop);padding:10px 12px;display:flex;flex-direction:column;gap:4px;font-size:12px;pointer-events:none;z-index:3">
+                    <span style="font-size:13px;font-weight:500;margin-bottom:2px">{{ dev.tipTitle }}</span>
+                    <sc-for list="{{ dev.tipRows }}" as="t" hint-placeholder-count="12">
+                      <span style="display:flex;align-items:center;gap:8px;opacity:{{ t.opacity }}"><span style="width:8px;height:8px;border-radius:2px;flex:none;background:{{ t.color }}"></span><span style="color:var(--ink-2);flex:1;white-space:nowrap">{{ t.name }}</span><span style="font-family:var(--font-mono);padding-left:12px">{{ t.value }}</span></span>
+                    </sc-for>
+                  </div>
+                </sc-if>
+              </div>
+              <div></div>
+              <div style="position:relative;height:26px">
+                <sc-for list="{{ dev.xticks }}" as="t" hint-placeholder-count="8">
+                  <span style="position:absolute;top:10px;left:{{ t.left }};transform:translateX(-50%);font-family:var(--font-mono);font-size:10px;color:var(--ink-3);white-space:nowrap">{{ t.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;flex-wrap:wrap;justify-content:center;gap:4px 6px;margin-top:14px">
+              <sc-for list="{{ dev.legend }}" as="lg" hint-placeholder-count="12">
+                <button onClick="{{ lg.onClick }}" aria-pressed="{{ lg.pressed }}" style="display:inline-flex;align-items:center;gap:6px;height:28px;padding:0 10px;border-radius:999px;border:1px solid {{ lg.border }};background:transparent;font-size:12px;cursor:pointer;color:{{ lg.fg }}"><span style="width:8px;height:8px;border-radius:2px;background:{{ lg.color }}"></span>{{ lg.name }}</button>
+              </sc-for>
+            </div>
+          </div>
+        </section>
+
+        <section data-reveal="">
+          <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:16px">
+            <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">{{ focusName }}, match by match</h2>
+            <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ marginCaption }}</p>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:6px;margin-bottom:16px">
+            <sc-for list="{{ focusChips }}" as="p" hint-placeholder-count="12">
+              <button onClick="{{ p.onClick }}" aria-pressed="{{ p.pressed }}" style="height:32px;padding:0 14px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;border:1px solid {{ p.border }};background:{{ p.bg }};color:{{ p.fg }}" style-hover="border-color:var(--line-strong)">{{ p.name }}</button>
+            </sc-for>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:20px 24px 18px 12px">
+            <div style="display:flex;align-items:center;gap:8px 14px;min-height:32px;margin:0 0 14px 46px;font-size:14px;flex-wrap:wrap">
+              <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3)">GW {{ readout.gw }}</span>
+              <span style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:{{ readout.bg }};color:{{ readout.fg }}">{{ readout.res }}</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent)"></span>{{ focusName }} <span style="font-family:var(--font-mono);font-weight:500">{{ readout.ms }}</span></span>
+              <span style="display:inline-flex;align-items:center;gap:6px;white-space:nowrap;color:var(--ink-2)"><span style="width:8px;height:8px;border-radius:2px;background:var(--neg)"></span>{{ readout.opp }} <span style="font-family:var(--font-mono);font-weight:500;color:var(--ink)">{{ readout.os }}</span></span>
+            </div>
+            <div style="display:grid;grid-template-columns:36px minmax(0,1fr);column-gap:10px">
+              <div style="position:relative;height:clamp(240px,32vw,320px)">
+                <sc-for list="{{ pfTicks }}" as="y" hint-placeholder-count="5">
+                  <span style="position:absolute;right:0;top:{{ y.top }};transform:translateY(-50%);font-family:var(--font-mono);font-size:10px;color:var(--ink-3)">{{ y.label }}</span>
+                </sc-for>
+              </div>
+              <div onMouseLeave="{{ clearHover }}" style="position:relative;height:clamp(240px,32vw,320px)">
+                <sc-for list="{{ pfTicks }}" as="y" hint-placeholder-count="5">
+                  <span style="position:absolute;left:0;right:0;top:{{ y.top }};border-top:1px dashed var(--line)"></span>
+                </sc-for>
+                <div data-stagger="0.015" data-stagger-mode="grow" style="position:absolute;inset:0;display:flex;align-items:stretch">
+                  <sc-for list="{{ bars }}" as="b" hint-placeholder-count="38">
+                    <div onMouseEnter="{{ b.onEnter }}" title="{{ b.title }}" style="flex:1;min-width:0;display:flex;align-items:flex-end;justify-content:center;gap:1px;padding:0 1px;border-radius:4px;background:{{ b.bg }};transform-origin:50% 100%">
+                      <span style="flex:1;max-width:12px;height:{{ b.pf }};background:var(--accent);border-radius:2px 2px 0 0"></span>
+                      <span style="flex:1;max-width:12px;height:{{ b.pa }};background:var(--neg);border-radius:2px 2px 0 0"></span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div></div>
+              <div style="display:flex;margin-top:8px">
+                <sc-for list="{{ bars }}" as="b" hint-placeholder-count="38">
+                  <span style="flex:1;min-width:0;text-align:center;font-family:var(--font-mono);font-size:9px;color:{{ b.labelFg }};white-space:nowrap;overflow:hidden">{{ b.label }}</span>
+                </sc-for>
+              </div>
+            </div>
+            <div style="display:flex;justify-content:center;gap:18px;margin-top:12px;font-size:12px;color:var(--ink-3)">
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:var(--accent)"></span>Points for</span>
+              <span style="display:inline-flex;align-items:center;gap:6px"><span style="width:9px;height:9px;border-radius:2px;background:var(--neg)"></span>Points against</span>
+            </div>
+          </div>
+        </section>
+
+      </div>
+    </sc-if>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;view&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;alltime&quot;,&quot;season&quot;],&quot;default&quot;:&quot;alltime&quot;,&quot;tsType&quot;:&quot;'alltime' | 'season'&quot;}}">
+class Component extends DCLogic {
+  data = this.build();
+  state = {
+    theme: (this.props && this.props.theme) || 'dark',
+    view: (this.props && this.props.view) || 'alltime',
+    seasonId: '2026', focus: 2, h2hPlayer: 2, hoverGw: null,
+    metric: 'rank', hl: null, devHover: null,
+  };
+
+  componentDidMount() {
+    document.documentElement.dataset.theme = this.state.theme;
+    if (window.WighMotion) window.WighMotion.mount(document);
+  }
+  componentDidUpdate(prev, prevState) {
+    if (prev.theme !== this.props.theme && this.props.theme) this.setState({ theme: this.props.theme });
+    if (prev.view !== this.props.view && this.props.view) this.setState({ view: this.props.view });
+    document.documentElement.dataset.theme = this.state.theme;
+    const M = window.WighMotion;
+    if (!M || !prevState) return;
+    if (prevState.view !== this.state.view) M.swap(document.querySelector('[data-view="' + this.state.view + '"]'));
+    else if (prevState.metric !== this.state.metric || prevState.seasonId !== this.state.seasonId) M.redraw(document.getElementById('dev-svg'));
+  }
+
+  build() {
+    const P = ['Samuel Alm','Johan Svensson','Hugo Wigh','Anton Novén','Benjamin Sten','Markus Johansson','Erik Kask','Eric Lagerström','Nima Tehranchi','Jakob Ekholm','August Wigh','Hampus Kennebäck'];
+    const STR = [47,45,45,44,42,43,43,44,39,40,37,38];
+    const SEAS = [
+      { id: '2023', name: '2023/24', gws: 38, total: 38, pool: 3000 },
+      { id: '2024', name: '2024/25', gws: 38, total: 38, pool: 3000 },
+      { id: '2025', name: '2025/26', gws: 38, total: 38, pool: 3600 },
+      { id: '2026', name: '2026/27', gws: 9, total: 38, pool: 3600, live: true },
+    ];
+    const n = P.length;
+    const mk = seed => { let s = seed >>> 0; return () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; }; };
+    const seasons = SEAS.map((se, si) => {
+      const r = mk(9182 + si * 7919);
+      const str = STR.map(v => v + (r() - 0.5) * 6);
+      const T = P.map((name, i) => ({ i, name, pts: 0, w: 0, d: 0, l: 0, pf: 0, pa: 0, exp: 0, games: [], ranks: [] }));
+      for (let g = 1; g <= se.gws; g++) {
+        const rot = (g - 1) % (n - 1);
+        const arr = [0];
+        for (let k = 0; k < n - 1; k++) arr.push(1 + ((k + rot) % (n - 1)));
+        const sc = T.map((_, i) => Math.max(14, Math.round(str[i] + (r() + r() + r() - 1.5) * 22)));
+        const play = (a, b) => {
+          const t = T[a], ms = sc[a], os = sc[b];
+          const res = ms > os ? 'W' : ms < os ? 'L' : 'D';
+          t.pf += ms; t.pa += os;
+          if (res === 'W') { t.w++; t.pts += 3; } else if (res === 'D') { t.d++; t.pts += 1; } else t.l++;
+          t.games.push({ gw: g, res, opp: b, ms, os });
+          t.exp += sc.filter((s, j) => j !== a && s < ms).length / (n - 1) * 3;
+        };
+        for (let k = 0; k < n / 2; k++) { play(arr[k], arr[n - 1 - k]); play(arr[n - 1 - k], arr[k]); }
+        [...T].sort((x, y) => y.pts - x.pts || y.pf - x.pf).forEach((t, k) => t.ranks.push(k + 1));
+      }
+      const order = [...T].sort((x, y) => y.pts - x.pts || y.pf - x.pf);
+      order.forEach((t, k) => { t.rank = k + 1; t.luck = t.exp ? t.pts / t.exp : 1; });
+      let hs = null;
+      T.forEach(t => t.games.forEach(gm => { if (!hs || gm.ms > hs.score) hs = { score: gm.ms, gw: gm.gw, name: t.name }; }));
+      return { ...se, teams: T, order, hs };
+    });
+    const fin = seasons.filter(s => !s.live);
+    const overall = P.map((name, i) => {
+      const rows = fin.map(s => s.teams[i]);
+      const medal = k => fin.filter(s => s.teams[i].rank === k).length;
+      let prize = 0;
+      fin.forEach(s => {
+        const t = s.teams[i];
+        if (t.rank === 1) prize += s.pool * 0.5;
+        if (t.rank === 2) prize += s.pool * 0.25;
+        if (t.rank === 3) prize += s.pool * 0.15;
+        if (s.hs.name === name) prize += s.pool * 0.1;
+      });
+      const avg = f => rows.reduce((a, t) => a + f(t), 0) / rows.length;
+      return { i, name, apps: rows.length, g: medal(1), s: medal(2), b: medal(3), avgPts: avg(t => t.pts), avgPf: avg(t => t.pf), avgPa: avg(t => t.pa), prize };
+    }).sort((a, b) => b.g - a.g || b.s - a.s || b.b - a.b || b.avgPts - a.avgPts);
+    overall.forEach((o, k) => { o.rank = k + 1; });
+    const h2h = P.map(() => P.map(() => ({ w: 0, d: 0, l: 0, games: [] })));
+    seasons.forEach(s => s.teams.forEach(t => t.games.forEach(gm => {
+      const c = h2h[t.i][gm.opp];
+      c[gm.res === 'W' ? 'w' : gm.res === 'D' ? 'd' : 'l']++;
+      c.games.push({ ...gm, season: s.name });
+    })));
+    return { P, seasons, overall, h2h, fin };
+  }
+
+  renderVals() {
+    const D = this.data, s = this.state, n = D.P.length;
+    const kr = v => v ? Math.round(v).toLocaleString('sv-SE') + ' kr' : '–';
+    const ord = k => k + ((k % 100 >= 11 && k % 100 <= 13) ? 'th' : ({ 1: 'st', 2: 'nd', 3: 'rd' }[k % 10] || 'th'));
+    const chip = (res, title) => ({
+      res, title: title || '',
+      bg: res === 'W' ? 'color-mix(in srgb, var(--pos) 18%, transparent)' : res === 'L' ? 'color-mix(in srgb, var(--neg) 18%, transparent)' : 'var(--surface-3)',
+      fg: res === 'W' ? 'var(--pos)' : res === 'L' ? 'var(--neg)' : 'var(--ink-3)',
+    });
+    const formOf = games => {
+      const last = games.slice(-5).map(g => chip(g.res, `GW ${g.gw}${g.season ? ' ' + g.season : ''} · ${g.ms}–${g.os} vs ${D.P[g.opp]}`));
+      while (last.length < 5) last.unshift({ res: '–', title: 'No match', bg: 'transparent', fg: 'var(--line-strong)' });
+      return last;
+    };
+    const isDark = s.theme === 'dark';
+    const isSeason = s.view === 'season';
+
+    const viewOpts = [{ id: 'alltime', label: 'All-time' }, { id: 'season', label: 'Season' }].map(o => ({
+      ...o,
+      bg: o.id === s.view ? 'var(--control-thumb)' : 'transparent',
+      fg: o.id === s.view ? 'var(--ink)' : 'var(--ink-3)',
+      shadow: o.id === s.view ? 'var(--shadow-thumb)' : 'none',
+      onClick: () => this.setState({ view: o.id }),
+    }));
+
+    const live = D.seasons.find(x => x.live);
+    const [l1, l2] = live.order;
+    const gap = l1.pts - l2.pts;
+    const liveCard = {
+      season: live.name, gw: `GW ${live.gws} of ${live.total}`, leader: l1.name,
+      line: gap ? `${l1.pts} pts, ${gap} ahead of ${l2.name}` : `${l1.pts} pts, level with ${l2.name}`,
+    };
+    const champs = [...D.fin].reverse().map(x => {
+      const [a, b, c] = x.order;
+      return { season: x.name, winner: a.name, line: `${a.pts} pts, ${a.pts - b.pts} clear of ${b.name}`, sub: `3rd ${c.name}` };
+    });
+
+    const overallRows = D.overall.map(o => ({
+      rank: o.rank, name: o.name, apps: o.apps,
+      rankFg: o.rank <= 3 ? 'var(--ink)' : 'var(--ink-3)',
+      medals: [['g', 'var(--gold)'], ['s', 'var(--silver)'], ['b', 'var(--bronze)']].map(([k, c]) => ({
+        count: o[k] || '–', dot: o[k] ? c : 'var(--surface-3)', fg: o[k] ? 'var(--ink)' : 'var(--ink-3)',
+      })),
+      avgPts: o.avgPts.toFixed(1), avgPf: o.avgPf.toFixed(1), avgPa: o.avgPa.toFixed(1),
+      prize: kr(o.prize), prizeFg: o.prize ? 'var(--ink)' : 'var(--ink-3)',
+    }));
+
+    const hp = s.h2hPlayer;
+    const h2hPlayers = D.P.map((name, i) => ({
+      name, onClick: () => this.setState({ h2hPlayer: i }),
+      bg: i === hp ? 'var(--accent-soft)' : 'transparent',
+      fg: i === hp ? 'var(--ink)' : 'var(--ink-2)',
+      dot: i === hp ? 'var(--accent)' : 'transparent',
+    }));
+    const h2hRows = D.P.map((name, j) => ({ j, name, ...D.h2h[hp][j] })).filter(r => r.j !== hp).map(r => {
+      const tot = r.w + r.d + r.l, pct = tot ? r.w / tot * 100 : 0;
+      return {
+        name: r.name, wdl: `${r.w}–${r.d}–${r.l}`, pct: pct.toFixed(0) + '%', pctNum: pct, bar: pct.toFixed(1) + '%',
+        barColor: pct >= 50 ? 'var(--pos)' : 'var(--neg)', pctFg: pct >= 50 ? 'var(--ink)' : 'var(--ink-2)',
+        form: formOf(r.games),
+      };
+    }).sort((a, b) => b.pctNum - a.pctNum);
+
+    const se = D.seasons.find(x => x.id === s.seasonId) || live;
+    const G = se.gws, focus = s.focus, ft = se.teams[focus];
+    const seasonRows = se.order.map(t => ({
+      rank: t.rank, name: t.name, pts: t.pts, w: t.w, d: t.d, l: t.l, pf: t.pf, pa: t.pa,
+      rankFg: t.rank <= 3 ? 'var(--ink)' : 'var(--ink-3)',
+      luck: t.luck.toFixed(2), luckFg: t.luck > 1.05 ? 'var(--pos)' : t.luck < 0.95 ? 'var(--neg)' : 'var(--ink-2)',
+      form: formOf(t.games),
+      bg: t.i === focus ? 'var(--accent-soft)' : 'transparent',
+      dot: t.i === focus ? 'var(--accent)' : 'transparent',
+      onClick: () => this.setState({ focus: t.i, hoverGw: null }),
+    }));
+
+    // ---- Season development: every manager in their own colour, like the live MultiPlayerLineChart ----
+    const f2 = v => v.toFixed(2);
+    const curve = P => { // monotone cubic (recharts type="monotone")
+      const m = P.length; if (!m) return ''; if (m === 1) return `M${f2(P[0][0])},${f2(P[0][1])}`;
+      const d = [], t = [];
+      for (let i = 0; i < m - 1; i++) d.push((P[i + 1][1] - P[i][1]) / (P[i + 1][0] - P[i][0]));
+      t[0] = d[0]; t[m - 1] = d[m - 2];
+      for (let i = 1; i < m - 1; i++) t[i] = d[i - 1] * d[i] <= 0 ? 0 : (d[i - 1] + d[i]) / 2;
+      for (let i = 0; i < m - 1; i++) {
+        if (d[i] === 0) { t[i] = 0; t[i + 1] = 0; continue; }
+        const a = t[i] / d[i], b = t[i + 1] / d[i], q = a * a + b * b;
+        if (q > 9) { const k = 3 / Math.sqrt(q); t[i] = k * a * d[i]; t[i + 1] = k * b * d[i]; }
+      }
+      let out = `M${f2(P[0][0])},${f2(P[0][1])}`;
+      for (let i = 0; i < m - 1; i++) {
+        const h = (P[i + 1][0] - P[i][0]) / 3;
+        out += ` C${f2(P[i][0] + h)},${f2(P[i][1] + t[i] * h)} ${f2(P[i + 1][0] - h)},${f2(P[i + 1][1] - t[i + 1] * h)} ${f2(P[i + 1][0])},${f2(P[i + 1][1])}`;
+      }
+      return out;
+    };
+    const METRICS = [
+      { id: 'rank', label: 'Rank', title: 'Rank by gameweek' },
+      { id: 'pts', label: 'Total points', title: 'League points by gameweek' },
+      { id: 'pf', label: 'Avg points for', title: 'Average points for' },
+      { id: 'pa', label: 'Avg points against', title: 'Average points against' },
+    ];
+    const metric = METRICS.find(x => x.id === s.metric) || METRICS[0];
+    const series = se.teams.map(t => {
+      let pts = 0, pf = 0, pa = 0;
+      return t.games.map((g, k) => {
+        pts += g.res === 'W' ? 3 : g.res === 'D' ? 1 : 0; pf += g.ms; pa += g.os;
+        return metric.id === 'rank' ? t.ranks[k] : metric.id === 'pts' ? pts : metric.id === 'pf' ? pf / (k + 1) : pa / (k + 1);
+      });
+    });
+    const flat = series.flat();
+    let lo, hi, tickVals;
+    if (metric.id === 'rank') { lo = 1; hi = n; tickVals = D.P.map((_, k) => k + 1); }
+    else if (metric.id === 'pts') { lo = 0; hi = Math.max(10, Math.ceil(Math.max(...flat) / 10) * 10); tickVals = [0, 0.25, 0.5, 0.75, 1].map(q => Math.round(hi * q)); }
+    else { lo = Math.floor((Math.min(...flat) - 2) / 5) * 5; hi = Math.ceil((Math.max(...flat) + 2) / 5) * 5; tickVals = [0, 0.25, 0.5, 0.75, 1].map(q => Math.round(lo + (hi - lo) * q)); }
+    const yv = v => metric.id === 'rank' ? (v - 1) / (n - 1) * 100 : (hi - v) / (hi - lo) * 100;
+    const xc = k => (k + 0.5) / G * 100;
+    const hl = s.hl, lit = i => hl == null || hl === i;
+    const fmt = v => metric.id === 'rank' ? ord(v) : metric.id === 'pts' ? String(v) : v.toFixed(1);
+    const drawOrder = se.teams.map(t => t.i).sort((a, b) => (a === hl) - (b === hl));
+    const dotSize = G > 20 ? 5 : 7;
+    const dh = s.devHover != null && s.devHover < G ? s.devHover : null;
+    const step = G > 20 ? 5 : G > 10 ? 2 : 1;
+    const dev = {
+      title: metric.title,
+      caption: `${se.name}, all ${n} managers${se.live ? ` after GW ${G}` : ''}. Pick a name under the chart to bring one line forward; hover a gameweek for the full table.`,
+      ticks: tickVals.map(v => ({ label: v, top: f2(yv(v)) + '%' })),
+      lines: drawOrder.map(i => ({
+        d: curve(series[i].map((v, k) => [xc(k), yv(v)])), color: `var(--p${i + 1})`,
+        width: hl === i ? '3px' : '2px', opacity: lit(i) ? '1' : '0.15',
+      })),
+      dots: drawOrder.flatMap(i => series[i].map((v, k) => ({
+        left: f2(xc(k)) + '%', top: f2(yv(v)) + '%', color: `var(--p${i + 1})`,
+        size: (dh === k && lit(i) ? dotSize + 3 : dotSize) + 'px', ring: dh === k && lit(i) ? '2px' : '1px', opacity: lit(i) ? '1' : '0.15',
+      }))),
+      cols: series[0].map((_, k) => ({ onEnter: () => this.setState({ devHover: k }) })),
+      xticks: series[0].map((_, k) => k).filter(k => k === 0 || (k + 1) % step === 0).map(k => ({ label: 'GW' + (k + 1), left: f2(xc(k)) + '%' })),
+      showTip: dh != null, guideLeft: dh != null ? f2(xc(dh)) + '%' : '0%', guideOpacity: dh != null ? '1' : '0',
+      tipLeft: dh != null ? f2(xc(dh)) + '%' : '0%', tipShift: dh != null && xc(dh) > 55 ? 'translateX(calc(-100% - 12px))' : 'translateX(12px)',
+      tipTitle: dh != null ? `GW ${dh + 1}` : '',
+      tipRows: dh == null ? [] : se.teams.map(t => ({ i: t.i, v: series[t.i][dh] }))
+        .sort((a, b) => metric.id === 'rank' ? a.v - b.v : b.v - a.v)
+        .map(r => ({ name: D.P[r.i], value: fmt(r.v), color: `var(--p${r.i + 1})`, opacity: lit(r.i) ? '1' : '0.4' })),
+      legend: D.P.map((name, i) => ({
+        name, color: `var(--p${i + 1})`, pressed: hl === i ? 'true' : 'false',
+        border: hl === i ? 'var(--line-strong)' : 'transparent', fg: lit(i) ? 'var(--ink)' : 'var(--ink-3)',
+        onClick: () => this.setState({ hl: hl === i ? null : i }),
+      })),
+    };
+    const metricOpts = METRICS.map(o => ({
+      ...o, pressed: o.id === metric.id ? 'true' : 'false',
+      bg: o.id === metric.id ? 'var(--control-thumb)' : 'transparent', fg: o.id === metric.id ? 'var(--ink)' : 'var(--ink-3)', shadow: o.id === metric.id ? 'var(--shadow-thumb)' : 'none',
+      onClick: () => this.setState({ metric: o.id, devHover: null }),
+    }));
+
+    // ---- Match by match: points for vs against, like the live ClusteredColumnChart ----
+    const focusChips = D.P.map((name, i) => ({
+      name, pressed: i === focus ? 'true' : 'false', onClick: () => this.setState({ focus: i, hoverGw: null }),
+      bg: i === focus ? 'var(--accent-soft)' : 'transparent',
+      border: i === focus ? 'var(--accent)' : 'var(--line)',
+      fg: i === focus ? 'var(--ink)' : 'var(--ink-2)',
+    }));
+    const games = ft.games;
+    const top = Math.max(20, Math.ceil(Math.max(...games.map(g => Math.max(g.ms, g.os))) * 1.08 / 20) * 20);
+    const pfTicks = [1, 0.75, 0.5, 0.25, 0].map(q => ({ label: Math.round(top * q), top: ((1 - q) * 100) + '%' }));
+    const hv = s.hoverGw != null && s.hoverGw < G ? s.hoverGw : G - 1;
+    const lstep = G > 20 ? 2 : 1;
+    const bars = games.map((g, k) => ({
+      pf: (g.ms / top * 100).toFixed(2) + '%', pa: (g.os / top * 100).toFixed(2) + '%',
+      bg: k === hv ? 'var(--surface-2)' : 'transparent', title: `GW ${g.gw} · ${g.ms}–${g.os} vs ${D.P[g.opp]}`,
+      label: (k % lstep === 0) ? String(g.gw) : '', labelFg: k === hv ? 'var(--ink)' : 'var(--ink-3)',
+      onEnter: () => this.setState({ hoverGw: k }),
+    }));
+    const hg = games[hv];
+    const rc = chip(hg.res);
+    const readout = { gw: hg.gw, res: hg.res, bg: rc.bg, fg: rc.fg, opp: D.P[hg.opp], ms: hg.ms, os: hg.os };
+    const marginCaption = `${ft.w}W ${ft.d}D ${ft.l}L · ${ft.pf} points for, ${ft.pa} against. Pick a manager, then hover a gameweek for the score.`;
+
+    return {
+      isDark, isLight: !isDark,
+      toggleTheme: () => {
+        const next = isDark ? 'light' : 'dark';
+        const apply = () => { document.documentElement.dataset.theme = next; this.setState({ theme: next }); };
+        if (window.WighMotion) window.WighMotion.theme(apply); else apply();
+      },
+      seasonCount: D.seasons.length,
+      viewOpts, isAllTime: !isSeason, isSeason,
+      seasonId: se.id,
+      seasonOpts: [...D.seasons].reverse().map(x => ({ id: x.id, name: x.live ? `${x.name} · live` : x.name })),
+      onSeason: e => this.setState({ seasonId: e.target.value, hoverGw: null }),
+      liveCard, champs, champCount: D.fin.length,
+      openSeason: () => this.setState({ view: 'season', seasonId: live.id, hoverGw: null, devHover: null }),
+      overallCaption: `${D.fin.length} finished seasons. Ranked by titles, then 2nd and 3rd places, then average points.`,
+      overallRows,
+      h2hCaption: `Every match across ${D.seasons.length} seasons, from ${D.P[hp]}'s side. Sorted by win rate.`,
+      h2hPlayers, h2hRows,
+      seasonName: se.name,
+      seasonCaption: se.live ? `Gameweek ${G} of ${se.total}. Select a row to follow that manager in the charts.` : `Final standings after ${G} gameweeks. Select a row to follow that manager in the charts.`,
+      hs: se.hs, seasonRows,
+      dev, metricOpts, clearDevHover: () => this.setState({ devHover: null }),
+      focusChips, pfTicks,
+      focusName: ft.name, marginCaption, bars, readout, lastGw: G,
+      clearHover: () => this.setState({ hoverGw: null }),
+    };
+  }
+}
+</script>
+</body>
+</html>
