@@ -5,5 +5,5 @@ export const metadata: Metadata = {
 }
 
 export default function IcaTrackingLayout({ children }: { children: React.ReactNode }) {
-  return children
+  return <div data-project="food">{children}</div>
 }

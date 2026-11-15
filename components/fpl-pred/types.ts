@@ -5,6 +5,8 @@
 export interface FplPlayer {
   code: number
   name: string
+  /** The short name the official FPL site shows, e.g. "B.Fernandes". */
+  web_name: string
   team: string
   team_code: number | null
   position: string

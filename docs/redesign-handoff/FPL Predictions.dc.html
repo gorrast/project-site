@@ -1,0 +1,376 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FPL Predictions</title>
+<script src="./support.js"></script>
+<script src="./motion.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+/* Base pair: Charcoal #1E1E1C + Sand #D8CBB3 build every page. One pop colour per project.
+   Each pop has three roles: --a-x (fills, marks, chart series), --a-x-t (text, 4.5:1 on every surface), --a-x-on (text on a fill). */
+:root,[data-theme="dark"]{color-scheme:dark;--charcoal:#1E1E1C;--sand:#D8CBB3;--page:#1E1E1C;--surface:#252522;--surface-2:#2D2C28;--surface-3:#363430;--line:#312F2B;--line-strong:#746E61;--series-muted:#47443D;--ink:#D8CBB3;--ink-2:#B7AC98;--ink-3:#A89E8C;--control-track:#181816;--control-thumb:#3E3B36;--shadow-thumb:0 1px 2px rgb(0 0 0 / .4);--shadow-pop:0 16px 48px rgb(0 0 0 / .5);--a-home:#2B65F7;--a-home-t:#5E92FF;--a-home-on:#FFFFFF;--a-bbc:#19C3E6;--a-bbc-t:#19C3E6;--a-bbc-on:#1E1E1C;--a-fpl:#F32AA4;--a-fpl-t:#FF49BA;--a-fpl-on:#1E1E1C;--a-playpilot:#8E37E2;--a-playpilot-t:#B778FF;--a-playpilot-on:#FFFFFF;--a-food:#F5B700;--a-food-t:#F5B700;--a-food-on:#1E1E1C;--c-shared:#F5B700;--c-hugo:#5E92FF;--c-benjamin:#FF49BA;--pos:oklch(0.79 0.12 150);--neg:oklch(0.75 0.13 25);--warn:oklch(0.82 0.11 80);--gold:oklch(0.80 0.11 85);--silver:oklch(0.78 0.01 80);--bronze:oklch(0.68 0.09 50);--font-display:"Space Grotesk",system-ui,sans-serif;--font-body:"IBM Plex Sans",system-ui,sans-serif;--font-mono:"Geist Mono",ui-monospace,monospace;--ease-calm:cubic-bezier(0.22,0.61,0.36,1);--ease-out:cubic-bezier(0.165,0.84,0.44,1)}
+[data-theme="light"]{color-scheme:light;--page:#EDE8DD;--surface:#F5F2EC;--surface-2:#E7DFD0;--surface-3:#DED3BE;--line:#D8CBB3;--line-strong:#7B7468;--series-muted:#B7AC98;--ink:#1E1E1C;--ink-2:#4C4942;--ink-3:#5A554C;--control-track:#E4DBCA;--control-thumb:#F9F7F4;--shadow-thumb:0 1px 2px rgb(30 30 28 / .16);--shadow-pop:0 16px 40px rgb(30 30 28 / .16);--a-home:#1B53E6;--a-home-t:#1B53E6;--a-home-on:#FFFFFF;--a-bbc:#006A81;--a-bbc-t:#006A81;--a-bbc-on:#FFFFFF;--a-fpl:#BC007B;--a-fpl-t:#BC007B;--a-fpl-on:#FFFFFF;--a-playpilot:#852AD8;--a-playpilot-t:#852AD8;--a-playpilot-on:#FFFFFF;--a-food:#7D5A00;--a-food-t:#7D5A00;--a-food-on:#FFFFFF;--c-shared:#7D5A00;--c-hugo:#1B53E6;--c-benjamin:#BC007B;--pos:oklch(0.46 0.12 150);--neg:oklch(0.49 0.16 25);--warn:oklch(0.47 0.12 75);--gold:oklch(0.60 0.12 80);--silver:oklch(0.58 0.01 80);--bronze:oklch(0.56 0.10 50)}
+[data-project]{--accent:var(--a-home);--accent-text:var(--a-home-t);--accent-ink:var(--a-home-on)}
+[data-project="bbc"]{--accent:var(--a-bbc);--accent-text:var(--a-bbc-t);--accent-ink:var(--a-bbc-on)}
+[data-project="fpl"]{--accent:var(--a-fpl);--accent-text:var(--a-fpl-t);--accent-ink:var(--a-fpl-on)}
+[data-project="playpilot"]{--accent:var(--a-playpilot);--accent-text:var(--a-playpilot-t);--accent-ink:var(--a-playpilot-on)}
+[data-project="food"]{--accent:var(--a-food);--accent-text:var(--a-food-t);--accent-ink:var(--a-food-on)}
+[data-project]{--accent-soft:color-mix(in srgb,var(--accent) 16%,transparent)}
+html,body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+/* Motion: buttons grow on hover only when primary, every button presses in. Reveals live in motion.js. */
+button{transition:transform 260ms var(--ease-calm),background-color 160ms,color 160ms,border-color 160ms,box-shadow 160ms !important}
+@media (prefers-reduced-motion:no-preference){button:not(:disabled):active{transform:scale(0.965)}}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){button[data-primary]:not(:disabled):hover{transform:scale(1.035)}}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:var(--ease-calm)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none !important}}
+@media print{[data-reveal],[data-reveal-heading],[data-stagger]>*,[data-wipe]{opacity:1 !important;transform:none !important;clip-path:none !important}header{position:static !important;backdrop-filter:none !important}}
+a{color:var(--accent-text,var(--ink));text-decoration:none}
+a:hover{text-decoration:underline}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent,var(--ink));outline-offset:2px}
+</style>
+</helmet>
+<div data-project="fpl" data-screen-label="FPL Predictions" style="min-height:100vh;background:var(--page);color:var(--ink);font-family:var(--font-body)">
+
+  <header style="position:sticky;top:0;z-index:20;height:64px;display:flex;align-items:center;background:color-mix(in srgb, var(--page) 86%, transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)">
+    <div style="max-width:1200px;width:100%;margin:0 auto;padding:0 clamp(16px,5vw,40px);display:flex;align-items:center;gap:12px;box-sizing:border-box">
+      <a href="Home.dc.html" style="font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:-0.01em;color:var(--ink)">wigh.nu</a>
+      <span style="color:var(--line-strong);font-size:18px" aria-hidden="true">/</span>
+      <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;color:var(--ink);white-space:nowrap;min-width:0"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent);flex:none"></span>FPL Predictions</span>
+      <div style="flex:1"></div>
+      <a href="Home.dc.html#projects" style="font-size:14px;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap" style-hover="background:var(--surface-2);text-decoration:none">Projects</a>
+      <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="width:36px;height:36px;flex:none;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m10.32 10.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+        </sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+        </sc-if>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1200px;margin:0 auto;padding:0 clamp(16px,5vw,40px) 120px;box-sizing:border-box">
+
+    <section style="padding:clamp(40px,8vw,72px) 0 48px;display:flex;flex-direction:column;gap:14px">
+      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Fantasy Draft Premier League · Gameweek {{ gw }} predictions</div>
+      <h1 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:clamp(40px,9vw,60px);font-weight:600;letter-spacing:-0.035em;line-height:1">FPL Predictions</h1>
+      <p style="margin:0;max-width:640px;font-size:18px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">Model-predicted points for every player in your Draft league, and the starting XI that scores the most.</p>
+      <div style="display:flex;align-items:flex-end;gap:12px;flex-wrap:wrap;margin-top:12px">
+        <label style="display:flex;flex-direction:column;gap:6px">
+          <span style="font-size:13px;font-weight:500">League ID</span>
+          <input type="text" inputmode="numeric" value="{{ leagueInput }}" onChange="{{ onLeagueInput }}" style="width:140px;height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--page);color:var(--ink);font-family:var(--font-mono);font-size:14px;outline:none;box-sizing:border-box" style-focus="border-color:var(--accent)">
+        </label>
+        <button data-primary="" onClick="{{ loadLeague }}" style="height:40px;padding:0 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:color-mix(in srgb, var(--accent) 86%, var(--ink))">Load league</button>
+        <label style="display:flex;flex-direction:column;gap:6px;min-width:min(100%,240px)">
+          <span style="font-size:13px;font-weight:500">My team</span>
+          <span style="position:relative;display:block">
+            <select value="{{ myId }}" onChange="{{ onTeam }}" style="appearance:none;-webkit-appearance:none;width:100%;height:40px;padding:0 38px 0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--page);color:var(--ink);font-size:14px;cursor:pointer">
+              <sc-for list="{{ teamOpts }}" as="t" hint-placeholder-count="12">
+                <option value="{{ t.id }}">{{ t.name }}</option>
+              </sc-for>
+            </select>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:14px;top:13px;pointer-events:none;color:var(--ink-3)"><path d="m6 9 6 6 6-6"></path></svg>
+          </span>
+        </label>
+      </div>
+    </section>
+
+    <div style="display:flex;flex-direction:column;gap:80px">
+
+      <section style="display:flex;flex-direction:column;gap:12px">
+        <div data-stagger="" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,240px),1fr));gap:12px">
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <span style="display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Your XI</span>
+            <span style="font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ my.name }}</span>
+            <span style="font-family:var(--font-mono);font-size:32px;font-weight:500;letter-spacing:-0.02em;line-height:1.1">{{ my.total }}<span style="font-size:13px;color:var(--ink-3);margin-left:6px">xPts</span></span>
+            <span style="font-size:12px;color:var(--ink-3)">{{ my.formation }} · roster as of GW {{ rosterGw }}</span>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <span style="display:flex;align-items:center;gap:8px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)"><span style="width:8px;height:8px;border-radius:50%;background:var(--series-muted)"></span>Opponent · GW {{ gw }}</span>
+            <span style="font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ opp.name }}</span>
+            <span style="font-family:var(--font-mono);font-size:32px;font-weight:500;letter-spacing:-0.02em;line-height:1.1">{{ opp.total }}<span style="font-size:13px;color:var(--ink-3);margin-left:6px">xPts</span></span>
+            <span style="font-size:12px;color:var(--ink-3)">{{ opp.formation }} · roster as of GW {{ rosterGw }}</span>
+          </div>
+          <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:22px 22px 20px;display:flex;flex-direction:column;gap:8px;min-width:0">
+            <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Projected edge</span>
+            <span style="font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.01em">{{ edge.label }}</span>
+            <span style="font-family:var(--font-mono);font-size:32px;font-weight:500;letter-spacing:-0.02em;line-height:1.1;color:{{ edge.fg }}">{{ edge.value }}<span style="font-size:13px;color:var(--ink-3);margin-left:6px">xPts</span></span>
+            <span style="display:flex;height:6px;border-radius:3px;overflow:hidden;background:var(--surface-3);margin-top:4px" aria-hidden="true"><span style="display:block;height:100%;width:{{ edge.share }};background:var(--accent)"></span></span>
+          </div>
+        </div>
+        <p style="margin:0;font-size:13px;color:var(--ink-3);line-height:1.5;max-width:760px">Rosters come from the last completed gameweek (GW {{ rosterGw }}). A trade or waiver made after that deadline shows up here once GW {{ gw }} locks.</p>
+      </section>
+
+      <section data-reveal="">
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+          <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Starting XI</h2>
+          <p style="margin:0;font-size:14px;color:var(--ink-3);max-width:720px">The best-scoring valid formation from each 15-man roster. A warning dot means the player is under 100% to play and his points are discounted by that chance.</p>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(min(100%,440px),1fr));gap:16px">
+          <sc-for list="{{ pitches }}" as="pt" hint-placeholder-count="2">
+            <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden;min-width:0;display:flex;flex-direction:column">
+              <div style="display:flex;align-items:baseline;justify-content:space-between;gap:12px;padding:16px 20px">
+                <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="width:8px;height:8px;border-radius:50%;flex:none;background:{{ pt.dot }}"></span><span style="font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.01em;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ pt.title }}</span></span>
+                <span style="font-family:var(--font-mono);font-size:14px;font-weight:500;white-space:nowrap;color:{{ pt.totalFg }}">{{ pt.total }} xPts</span>
+              </div>
+              <div style="position:relative;border-top:1px solid var(--line);padding:22px 6px 18px">
+                <svg viewBox="0 0 100 140" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:10px;width:calc(100% - 20px);height:calc(100% - 20px);pointer-events:none;color:var(--line)">
+                  <rect x="1" y="1" width="98" height="138" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke" rx="2"></rect>
+                  <line x1="1" y1="70" x2="99" y2="70" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></line>
+                  <circle cx="50" cy="70" r="11" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></circle>
+                  <rect x="26" y="1" width="48" height="17" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></rect>
+                  <rect x="26" y="122" width="48" height="17" fill="none" stroke="currentColor" stroke-width="1" vector-effect="non-scaling-stroke"></rect>
+                </svg>
+                <div data-stagger="0.08" style="position:relative;display:flex;flex-direction:column;gap:20px">
+                  <sc-for list="{{ pt.rows }}" as="row" hint-placeholder-count="4">
+                    <div style="display:flex;justify-content:space-around;gap:2px">
+                      <sc-for list="{{ row.players }}" as="p" hint-placeholder-count="4">
+                        <div title="{{ p.title }}" style="width:76px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center">
+                          <span style="position:relative;width:40px;height:40px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line-strong);display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--ink-2)">{{ p.club }}<span style="position:absolute;top:-1px;right:-1px;width:9px;height:9px;border-radius:50%;background:{{ p.warnDot }};box-shadow:0 0 0 2px {{ p.warnRing }}"></span></span>
+                          <span style="max-width:76px;font-size:12px;font-weight:500;line-height:1.2;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                          <span style="font-family:var(--font-mono);font-size:12px;font-weight:500;padding:1px 7px;border-radius:6px;background:{{ pt.pill }}">{{ p.xpts }}</span>
+                          <span style="font-family:var(--font-mono);font-size:10px;color:var(--ink-3);white-space:nowrap">{{ p.fixture }}</span>
+                        </div>
+                      </sc-for>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+              <div style="border-top:1px solid var(--line);padding:14px 16px 16px;display:flex;flex-direction:column;gap:10px;margin-top:auto">
+                <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Bench · auto-sub order</span>
+                <div style="display:flex;justify-content:space-around;gap:4px">
+                  <sc-for list="{{ pt.bench }}" as="p" hint-placeholder-count="4">
+                    <div title="{{ p.title }}" style="width:76px;min-width:0;display:flex;flex-direction:column;align-items:center;gap:4px;text-align:center">
+                      <span style="position:relative;width:32px;height:32px;border-radius:50%;background:var(--surface-2);border:1px solid var(--line);display:grid;place-items:center;font-family:var(--font-mono);font-size:9px;font-weight:600;color:var(--ink-3)">{{ p.club }}<span style="position:absolute;top:-1px;right:-1px;width:8px;height:8px;border-radius:50%;background:{{ p.warnDot }};box-shadow:0 0 0 2px {{ p.warnRing }}"></span></span>
+                      <span style="max-width:76px;font-size:12px;line-height:1.2;color:var(--ink-2);white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ p.name }}</span>
+                      <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">{{ p.pos }} · {{ p.xpts }}</span>
+                    </div>
+                  </sc-for>
+                </div>
+              </div>
+            </div>
+          </sc-for>
+        </div>
+      </section>
+
+      <section data-reveal="">
+        <div style="display:flex;flex-direction:column;gap:6px;margin-bottom:20px">
+          <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Players</h2>
+          <p style="margin:0;font-size:14px;color:var(--ink-3)">{{ playersCaption }}</p>
+        </div>
+        <div style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-bottom:16px">
+          <div style="display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line);flex-wrap:wrap">
+            <sc-for list="{{ posOpts }}" as="o" hint-placeholder-count="5">
+              <button onClick="{{ o.onClick }}" aria-pressed="{{ o.pressed }}" style="height:32px;padding:0 14px;border:0;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;white-space:nowrap;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}">{{ o.label }}</button>
+            </sc-for>
+          </div>
+          <span style="position:relative;display:block">
+            <select value="{{ clubFilter }}" onChange="{{ onClub }}" aria-label="Club" style="appearance:none;-webkit-appearance:none;height:38px;padding:0 36px 0 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer">
+              <sc-for list="{{ clubOpts }}" as="c" hint-placeholder-count="21">
+                <option value="{{ c.id }}">{{ c.label }}</option>
+              </sc-for>
+            </select>
+            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" style="position:absolute;right:13px;top:12px;pointer-events:none;color:var(--ink-3)"><path d="m6 9 6 6 6-6"></path></svg>
+          </span>
+          <button onClick="{{ toggleAvail }}" aria-pressed="{{ availOnly }}" style="height:32px;padding:0 14px;border-radius:999px;font-size:13px;cursor:pointer;white-space:nowrap;border:1px solid {{ availChip.border }};background:{{ availChip.bg }};color:{{ availChip.fg }}">Available only</button>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+          <div style="overflow-x:auto;overflow-y:hidden">
+            <div data-stagger="0.03" style="min-width:780px">
+              <div style="display:grid;grid-template-columns:28px minmax(150px,1.4fr) 52px 44px 76px 64px minmax(130px,1fr) 150px;column-gap:12px;align-items:center;height:44px;padding:0 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)">
+                <span>#</span>
+                <button onClick="{{ sortName }}" style="all:unset;cursor:pointer;color:{{ sortFg.name }}">Player{{ sortMark.name }}</button>
+                <span>Club</span><span>Pos</span><span>Next</span>
+                <button onClick="{{ sortChance }}" style="all:unset;cursor:pointer;text-align:right;color:{{ sortFg.chance }}">Chance{{ sortMark.chance }}</button>
+                <button onClick="{{ sortXpts }}" style="all:unset;cursor:pointer;text-align:right;color:{{ sortFg.xpts }}">xPts{{ sortMark.xpts }}</button>
+                <span>Status</span>
+              </div>
+              <sc-for list="{{ rows }}" as="r" hint-placeholder-count="15">
+                <div style="display:grid;grid-template-columns:28px minmax(150px,1.4fr) 52px 44px 76px 64px minmax(130px,1fr) 150px;column-gap:12px;align-items:center;height:48px;padding:0 20px;border-top:1px solid var(--line);font-size:14px;background:{{ r.bg }}" style-hover="background:var(--surface-2)">
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-3)">{{ r.rank }}</span>
+                  <span style="display:flex;align-items:center;gap:8px;min-width:0"><span style="font-weight:500;white-space:nowrap;overflow:hidden;text-overflow:ellipsis">{{ r.name }}</span><span style="width:6px;height:6px;border-radius:50%;flex:none;background:{{ r.dot }}"></span></span>
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)">{{ r.club }}</span>
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)">{{ r.pos }}</span>
+                  <span style="font-family:var(--font-mono);font-size:12px;color:var(--ink-2)">{{ r.fixture }}</span>
+                  <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:{{ r.chanceFg }}">{{ r.chance }}</span>
+                  <span style="display:flex;align-items:center;gap:10px">
+                    <span style="flex:1;height:6px;border-radius:3px;background:var(--surface-3);overflow:hidden" aria-hidden="true"><span style="display:block;height:100%;border-radius:3px;width:{{ r.bar }};background:{{ r.barColor }}"></span></span>
+                    <span style="font-family:var(--font-mono);font-size:14px;font-weight:500;width:34px;text-align:right">{{ r.xpts }}</span>
+                  </span>
+                  <span style="font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;color:{{ r.statusFg }}">{{ r.status }}</span>
+                </div>
+              </sc-for>
+            </div>
+          </div>
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:12px;padding:12px 20px;border-top:1px solid var(--line);flex-wrap:wrap">
+            <span style="font-size:12px;color:var(--ink-3)">{{ shownLine }}</span>
+            <sc-if value="{{ canShowMore }}" hint-placeholder-val="{{ true }}">
+              <button onClick="{{ toggleMore }}" style="height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer" style-hover="background:var(--surface-3)">{{ moreLabel }}</button>
+            </sc-if>
+          </div>
+        </div>
+      </section>
+
+    </div>
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props='{"theme":{"editor":"enum","options":["dark","light"],"default":"dark","tsType":"&#39;dark&#39; | &#39;light&#39;"}}'>
+class Component extends DCLogic {
+  data = this.build();
+  state = {
+    theme: (this.props && this.props.theme) || 'dark',
+    leagueInput: '67501', myId: 2, pos: 'all', club: 'all', availOnly: false,
+    sortKey: 'xpts', sortDesc: true, showAll: false,
+  };
+
+  componentDidMount() {
+    document.documentElement.dataset.theme = this.state.theme;
+    if (window.WighMotion) window.WighMotion.mount(document);
+  }
+  componentDidUpdate(prev) {
+    if (prev.theme !== this.props.theme && this.props.theme) this.setState({ theme: this.props.theme });
+    document.documentElement.dataset.theme = this.state.theme;
+  }
+
+  build() {
+    const MANAGERS = ['Samuel Alm','Johan Svensson','Hugo Wigh','Anton Novén','Benjamin Sten','Markus Johansson','Erik Kask','Eric Lagerström','Nima Tehranchi','Jakob Ekholm','August Wigh','Hampus Kennebäck'];
+    const CLUBS = ['ARS','AVL','BOU','BRE','BHA','BUR','CHE','CRY','EVE','FUL','LEE','LIV','MCI','MUN','NEW','NFO','SUN','TOT','WHU','WOL'];
+    const FIRST = ['A.','B.','C.','D.','E.','F.','G.','H.','J.','K.','L.','M.','N.','O.','P.','R.','S.','T.','V.','Y.'];
+    // Invented surnames: the mock must not read as stats about real players.
+    const LAST = ['Okafor','Lindqvist','Moreau','Haddad','Brennan','Castillo','Nakamura','Osei','Varga','Holm','Duarte','Kowalski','Mensah','Ferreira','Sørensen','Achterberg','Bianchi','Dubois','Ndiaye','Quinn','Rahman','Tanaka','Vidal','Walsh','Yilmaz','Zielinski','Ekström','Herrera','Jansen','Martens','Pereira','Aldana','Brodeur','Calloway','Delacroix','Esposito','Fairweather','Grönholm','Hartigan','Ilunga','Jovanović','Kettering','Larrañaga','Mbatha','Northcott','Oyelaran','Pellegrini','Quaresma','Rautio','Szabó','Thornbury','Ulloa','Valverde','Whitlock','Yamashiro','Zubiri','Abernethy','Bjarnason','Cardoso','Dunleavy','Eklund','Fonseca','Galván','Haugland','Ibarra','Kestrel','Lombardi','Moravec','Nyström','Ortega','Pinheiro','Rasmussen','Strand','Tavernier','Vasquez','Wennberg'];
+    let s = 20261112 >>> 0;
+    const r = () => { s = (Math.imul(s, 1664525) + 1013904223) >>> 0; return s / 4294967296; };
+    const pick = a => a[Math.floor(r() * a.length)];
+    const MEAN = { GKP: 3.4, DEF: 3.9, MID: 4.7, FWD: 4.9 }, SPREAD = { GKP: 1.2, DEF: 1.7, MID: 2.4, FWD: 2.4 };
+    const used = new Set();
+    let code = 1;
+    const mk = (pos, owner) => {
+      let name; do { name = pick(FIRST) + ' ' + pick(LAST); } while (used.has(name)); used.add(name);
+      const club = pick(CLUBS);
+      let opp; do { opp = pick(CLUBS); } while (opp === club);
+      const roll = r();
+      const chance = roll < 0.84 ? null : roll < 0.92 ? 75 : roll < 0.97 ? 50 : 25;
+      const xm = Math.max(0.8, MEAN[pos] + (r() + r() - 1) * SPREAD[pos] * 1.4);
+      const adj = chance == null ? xm : xm * chance / 100;
+      return { code: code++, name, club, pos, opp, home: r() < 0.5, chance, xm, adj, owner };
+    };
+    const players = [];
+    const SQUAD = { GKP: 2, DEF: 5, MID: 5, FWD: 3 };
+    MANAGERS.forEach((_, m) => { for (const p in SQUAD) for (let i = 0; i < SQUAD[p]; i++) players.push(mk(p, m)); });
+    const FREE = { GKP: 10, DEF: 22, MID: 24, FWD: 14 };
+    for (const p in FREE) for (let i = 0; i < FREE[p]; i++) players.push(mk(p, null));
+    // gameweek 10 schedule: pairs by rotation
+    const order = [2, 0, 5, 9, 1, 7, 3, 11, 4, 6, 8, 10];
+    const oppOf = {};
+    for (let i = 0; i < order.length; i += 2) { oppOf[order[i]] = order[i + 1]; oppOf[order[i + 1]] = order[i]; }
+    return { MANAGERS, CLUBS, players, oppOf, gw: 10, rosterGw: 9 };
+  }
+
+  // Exact optimiser from the handoff: every valid (DEF, MID, FWD) split summing to 10, top-N per position.
+  bestXI(roster) {
+    const by = { GKP: [], DEF: [], MID: [], FWD: [] };
+    roster.forEach(p => by[p.pos].push(p));
+    for (const k in by) by[k].sort((a, b) => b.adj - a.adj);
+    let best = null;
+    for (let d = 3; d <= 5; d++) for (let m = 2; m <= 5; m++) {
+      const f = 10 - d - m;
+      if (f < 1 || f > 3) continue;
+      const xi = [...by.GKP.slice(0, 1), ...by.DEF.slice(0, d), ...by.MID.slice(0, m), ...by.FWD.slice(0, f)];
+      const tot = xi.reduce((a, p) => a + p.adj, 0);
+      if (!best || tot > best.tot) best = { xi, tot, d, m, f };
+    }
+    const inXi = new Set(best.xi.map(p => p.code));
+    const bench = roster.filter(p => !inXi.has(p.code)).sort((a, b) => b.adj - a.adj);
+    return { ...best, bench, formation: `${best.d}-${best.m}-${best.f}` };
+  }
+
+  renderVals() {
+    const s = this.state, D = this.data, isDark = s.theme === 'dark';
+    const fix = p => `${p.opp} (${p.home ? 'H' : 'A'})`;
+    const title = p => p.chance == null ? `${p.name} · ${p.adj.toFixed(1)} xPts` : `${p.name} · ${p.chance}% to play · ${p.xm.toFixed(1)} raw, ${p.adj.toFixed(1)} discounted`;
+    const node = (p, ring) => ({
+      name: p.name, club: p.club, pos: p.pos, xpts: p.adj.toFixed(1), fixture: fix(p) + (p.chance != null ? ` · ${p.chance}%` : ''),
+      warnDot: p.chance != null ? 'var(--warn)' : 'transparent', warnRing: p.chance != null ? ring : 'transparent', title: title(p),
+    });
+    const team = id => {
+      const roster = D.players.filter(p => p.owner === id);
+      const b = this.bestXI(roster);
+      const rows = ['GKP', 'DEF', 'MID', 'FWD'].map(pos => ({ players: b.xi.filter(p => p.pos === pos).map(p => node(p, 'var(--surface)')) }));
+      return { id, name: D.MANAGERS[id], total: b.tot.toFixed(1), tot: b.tot, formation: b.formation, rows, bench: b.bench.map(p => node(p, 'var(--surface)')) };
+    };
+    const myId = Number(s.myId), oppId = D.oppOf[myId];
+    const my = team(myId), opp = team(oppId);
+    const diff = my.tot - opp.tot;
+    const edge = {
+      label: diff >= 0 ? 'You are favoured' : `${opp.name.split(' ')[0]} is favoured`,
+      value: (diff >= 0 ? '+' : '−') + Math.abs(diff).toFixed(1),
+      fg: Math.abs(diff) < 0.05 ? 'var(--ink)' : diff > 0 ? 'var(--pos)' : 'var(--neg)',
+      share: (my.tot / (my.tot + opp.tot) * 100).toFixed(1) + '%',
+    };
+    const pitches = [
+      { ...my, title: my.name, dot: 'var(--accent)', totalFg: 'var(--accent-text)', pill: 'var(--accent-soft)' },
+      { ...opp, title: 'vs ' + opp.name, dot: 'var(--series-muted)', totalFg: 'var(--ink)', pill: 'var(--surface-3)' },
+    ];
+
+    const seg = (cur, key) => o => ({
+      ...o, pressed: o.id === cur ? 'true' : 'false',
+      bg: o.id === cur ? 'var(--control-thumb)' : 'transparent', fg: o.id === cur ? 'var(--ink)' : 'var(--ink-3)', shadow: o.id === cur ? 'var(--shadow-thumb)' : 'none',
+      onClick: () => this.setState({ [key]: o.id, showAll: false }),
+    });
+    let list = D.players.filter(p => (s.pos === 'all' || p.pos === s.pos) && (s.club === 'all' || p.club === s.club) && (!s.availOnly || p.owner == null));
+    const dir = s.sortDesc ? -1 : 1;
+    const val = p => s.sortKey === 'xpts' ? p.adj : s.sortKey === 'chance' ? (p.chance == null ? 100 : p.chance) : p.name.replace(/^[A-Z]\. /, '');
+    list = [...list].sort((a, b) => { const x = val(a), y = val(b); return (x < y ? -1 : x > y ? 1 : 0) * dir || b.adj - a.adj; });
+    const total = list.length, top = Math.max(...D.players.map(p => p.adj));
+    const shown = s.showAll ? list : list.slice(0, 15);
+    const rows = shown.map((p, i) => {
+      const mine = p.owner === myId, theirs = p.owner === oppId;
+      return {
+        rank: i + 1, name: p.name, club: p.club, pos: p.pos, fixture: fix(p),
+        chance: p.chance == null ? '–' : p.chance + '%', chanceFg: p.chance == null ? 'var(--ink-3)' : 'var(--warn)',
+        xpts: p.adj.toFixed(1), bar: (p.adj / top * 100).toFixed(1) + '%', barColor: mine ? 'var(--accent)' : 'var(--series-muted)',
+        bg: mine ? 'var(--accent-soft)' : 'transparent', dot: mine ? 'var(--accent)' : 'transparent',
+        status: p.owner == null ? 'Available' : mine ? 'Your team' : theirs ? `Opponent · ${D.MANAGERS[p.owner].split(' ')[0]}` : D.MANAGERS[p.owner],
+        statusFg: p.owner == null ? 'var(--ink)' : 'var(--ink-3)',
+      };
+    });
+    const sortBy = key => () => this.setState({ sortKey: key, sortDesc: s.sortKey === key ? !s.sortDesc : key !== 'name' });
+    const mark = key => s.sortKey === key ? (s.sortDesc ? ' ↓' : ' ↑') : '';
+    const free = D.players.filter(p => p.owner == null).length;
+    const next = isDark ? 'light' : 'dark';
+    return {
+      isDark, isLight: !isDark,
+      toggleTheme: () => {
+        const apply = () => { document.documentElement.dataset.theme = next; this.setState({ theme: next }); };
+        if (window.WighMotion) window.WighMotion.theme(apply); else apply();
+      },
+      gw: D.gw, rosterGw: D.rosterGw,
+      leagueInput: s.leagueInput, onLeagueInput: e => this.setState({ leagueInput: e.target.value }), loadLeague: () => {},
+      myId: String(myId), teamOpts: D.MANAGERS.map((name, id) => ({ id: String(id), name })), onTeam: e => this.setState({ myId: Number(e.target.value) }),
+      my, opp, edge, pitches,
+      playersCaption: `${D.players.length} players in the league's pool, ${free} available. Gameweek ${D.gw} predictions with chance of playing applied. Your players are highlighted.`,
+      posOpts: [{ id: 'all', label: 'All' }, { id: 'GKP', label: 'GKP' }, { id: 'DEF', label: 'DEF' }, { id: 'MID', label: 'MID' }, { id: 'FWD', label: 'FWD' }].map(seg(s.pos, 'pos')),
+      clubFilter: s.club, clubOpts: [{ id: 'all', label: 'All clubs' }, ...D.CLUBS.map(c => ({ id: c, label: c }))], onClub: e => this.setState({ club: e.target.value, showAll: false }),
+      availOnly: s.availOnly ? 'true' : 'false', toggleAvail: () => this.setState({ availOnly: !s.availOnly, showAll: false }),
+      availChip: s.availOnly ? { border: 'var(--accent)', bg: 'var(--accent-soft)', fg: 'var(--ink)' } : { border: 'var(--line-strong)', bg: 'transparent', fg: 'var(--ink-2)' },
+      sortName: sortBy('name'), sortChance: sortBy('chance'), sortXpts: sortBy('xpts'),
+      sortMark: { name: mark('name'), chance: mark('chance'), xpts: mark('xpts') },
+      sortFg: { name: s.sortKey === 'name' ? 'var(--ink)' : 'var(--ink-3)', chance: s.sortKey === 'chance' ? 'var(--ink)' : 'var(--ink-3)', xpts: s.sortKey === 'xpts' ? 'var(--ink)' : 'var(--ink-3)' },
+      rows, shownLine: `Showing ${shown.length} of ${total}`,
+      canShowMore: total > 15, moreLabel: s.showAll ? 'Show top 15' : `Show all ${total}`, toggleMore: () => this.setState({ showAll: !s.showAll }),
+    };
+  }
+}
+</script>
+</body>
+</html>

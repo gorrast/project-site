@@ -1,5 +1,6 @@
 'use client'
 
+import { ChevronLeft, ChevronRight } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import type { MonthSummary } from './types'
 
@@ -24,10 +25,10 @@ export function MonthStepper({ months, currentKey, onChange }: MonthStepperProps
         onClick={() => canGoOlder && onChange(months[index - 1].key)}
         aria-label="Previous month"
       >
-        ‹
+        <ChevronLeft />
       </Button>
-      <span className="min-w-[150px] text-center font-heading text-[15px] font-medium text-gray-900 dark:text-gray-100">
-        {current?.label ?? '—'}
+      <span aria-live="polite" className="min-w-[140px] text-center font-display text-base font-semibold tracking-[-0.01em]">
+        {current?.label ?? '–'}
       </span>
       <Button
         variant="outline"
@@ -36,7 +37,7 @@ export function MonthStepper({ months, currentKey, onChange }: MonthStepperProps
         onClick={() => canGoNewer && onChange(months[index + 1].key)}
         aria-label="Next month"
       >
-        ›
+        <ChevronRight />
       </Button>
     </div>
   )

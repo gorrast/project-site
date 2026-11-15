@@ -7,136 +7,63 @@
 @theme {
   /* Bluebaycup redesign's 680px responsive breakpoint (design spec) */
   --breakpoint-bbc: 42.5rem;
-
-  /* Enable all Tailwind utilities */
-  --color-blue-50: #eff6ff;
-  --color-blue-100: #dbeafe;
-  --color-blue-200: #bfdbfe;
-  --color-blue-300: #93c5fd;
-  --color-blue-400: #60a5fa;
-  --color-blue-500: #3b82f6;
-  --color-blue-600: #2563eb;
-  --color-blue-700: #1d4ed8;
-  --color-blue-800: #1e40af;
-  --color-blue-900: #1e3a8a;
-
-  --color-purple-50: #faf5ff;
-  --color-purple-100: #f3e8ff;
-  --color-purple-200: #e9d5ff;
-  --color-purple-300: #d8b4fe;
-  --color-purple-400: #c084fc;
-  --color-purple-500: #a855f7;
-  --color-purple-600: #9333ea;
-  --color-purple-700: #7e22ce;
-  --color-purple-800: #6b21a8;
-  --color-purple-900: #581c87;
-
-  --color-green-50: #f0fdf4;
-  --color-green-100: #dcfce7;
-  --color-green-200: #bbf7d0;
-  --color-green-300: #86efac;
-  --color-green-400: #4ade80;
-  --color-green-500: #22c55e;
-  --color-green-600: #16a34a;
-  --color-green-700: #15803d;
-  --color-green-800: #166534;
-  --color-green-900: #14532d;
-
-  --color-emerald-50: #ecfdf5;
-  --color-emerald-100: #d1fae5;
-  --color-emerald-200: #a7f3d0;
-  --color-emerald-300: #6ee7b7;
-  --color-emerald-400: #34d399;
-  --color-emerald-500: #10b981;
-  --color-emerald-600: #059669;
-  --color-emerald-700: #047857;
-  --color-emerald-800: #065f46;
-  --color-emerald-900: #064e3b;
-
-  --color-orange-50: #fff7ed;
-  --color-orange-100: #ffedd5;
-  --color-orange-200: #fed7aa;
-  --color-orange-300: #fdba74;
-  --color-orange-400: #fb923c;
-  --color-orange-500: #f97316;
-  --color-orange-600: #ea580c;
-  --color-orange-700: #c2410c;
-  --color-orange-800: #9a3412;
-  --color-orange-900: #7c2d12;
-
-  --color-red-50: #fef2f2;
-  --color-red-100: #fee2e2;
-  --color-red-200: #fecaca;
-  --color-red-300: #fca5a5;
-  --color-red-400: #f87171;
-  --color-red-500: #ef4444;
-  --color-red-600: #dc2626;
-  --color-red-700: #b91c1c;
-  --color-red-800: #991b1b;
-  --color-red-900: #7f1d1d;
-
-  --color-pink-50: #fdf2f8;
-  --color-pink-100: #fce7f3;
-  --color-pink-200: #fbcfe8;
-  --color-pink-300: #f9a8d4;
-  --color-pink-400: #f472b6;
-  --color-pink-500: #ec4899;
-  --color-pink-600: #db2777;
-  --color-pink-700: #be185d;
-  --color-pink-800: #9f1239;
-  --color-pink-900: #831843;
-
-  --color-gray-50: #f9fafb;
-  --color-gray-100: #f3f4f6;
-  --color-gray-200: #e5e7eb;
-  --color-gray-300: #d1d5db;
-  --color-gray-400: #9ca3af;
-  --color-gray-500: #6b7280;
-  --color-gray-600: #4b5563;
-  --color-gray-700: #374151;
-  --color-gray-800: #1f2937;
-  --color-gray-900: #111827;
 }
 
 @theme inline {
   /* Distinct raw next/font variable names (--font-space-grotesk etc, set on
-     <body> in app/layout.tsx) feeding into Tailwind's theme tokens below —
+     <html> in app/layout.tsx) feeding into Tailwind's theme tokens below —
      mapping a token to a CSS var of the SAME name is a circular no-op (the
      bug this replaces: --font-sans was set to var(--font-sans)). */
-  --font-heading: var(--font-space-grotesk);
-  --font-sans: var(--font-ibm-plex-sans);
+  --font-display: var(--font-space-grotesk);
+  --font-body: var(--font-ibm-plex-sans);
   --font-mono: var(--font-geist-mono);
-  --color-sidebar-ring: var(--sidebar-ring);
-  --color-sidebar-border: var(--sidebar-border);
-  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
-  --color-sidebar-accent: var(--sidebar-accent);
-  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
-  --color-sidebar-primary: var(--sidebar-primary);
-  --color-sidebar-foreground: var(--sidebar-foreground);
-  --color-sidebar: var(--sidebar);
-  --color-chart-5: var(--chart-5);
-  --color-chart-4: var(--chart-4);
-  --color-chart-3: var(--chart-3);
-  --color-chart-2: var(--chart-2);
-  --color-chart-1: var(--chart-1);
-  --color-ring: var(--ring);
-  --color-input: var(--input);
-  --color-border: var(--border);
-  --color-destructive: var(--destructive);
-  --color-accent-foreground: var(--accent-foreground);
+  --font-sans: var(--font-ibm-plex-sans);
+
+  /* Design tokens (docs/redesign-handoff/DESIGN.md) */
+  --color-page: var(--page);
+  --color-surface: var(--surface);
+  --color-surface-2: var(--surface-2);
+  --color-surface-3: var(--surface-3);
+  --color-line: var(--line);
+  --color-line-strong: var(--line-strong);
+  --color-series-muted: var(--series-muted);
+  --color-ink: var(--ink);
+  --color-ink-2: var(--ink-2);
+  --color-ink-3: var(--ink-3);
+  --color-control-track: var(--control-track);
+  --color-control-thumb: var(--control-thumb);
   --color-accent: var(--accent);
-  --color-muted-foreground: var(--muted-foreground);
-  --color-muted: var(--muted);
-  --color-secondary-foreground: var(--secondary-foreground);
-  --color-secondary: var(--secondary);
-  --color-primary-foreground: var(--primary-foreground);
-  --color-primary: var(--primary);
-  --color-popover-foreground: var(--popover-foreground);
-  --color-popover: var(--popover);
-  --color-card-foreground: var(--card-foreground);
-  --color-card: var(--card);
-  --color-foreground: var(--foreground);
+  --color-accent-text: var(--accent-text);
+  --color-accent-ink: var(--accent-ink);
+  --color-accent-soft: var(--accent-soft);
+  --color-pos: var(--pos);
+  --color-neg: var(--neg);
+  --color-warn: var(--warn);
+  --color-gold: var(--gold);
+  --color-silver: var(--silver);
+  --color-bronze: var(--bronze);
+  --color-c-shared: var(--c-shared);
+  --color-c-hugo: var(--c-hugo);
+  --color-c-benjamin: var(--c-benjamin);
+  --color-c-on: var(--c-on);
+
+  /* shadcn names, so components/ui/* and `npx shadcn add` output resolve */
   --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --color-card: var(--card);
+  --color-card-foreground: var(--card-foreground);
+  --color-popover: var(--popover);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-primary: var(--primary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-secondary: var(--secondary);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-muted: var(--muted);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-border: var(--border);
+  --color-input: var(--input);
+  --color-ring: var(--ring);
+  --color-destructive: var(--destructive);
   --radius-sm: calc(var(--radius) * 0.6);
   --radius-md: calc(var(--radius) * 0.8);
   --radius-lg: var(--radius);
@@ -146,73 +73,77 @@
   --radius-4xl: calc(var(--radius) * 2.6);
 }
 
-:root {
-  --background: oklch(1 0 0);
-  --foreground: oklch(0.145 0 0);
-  --card: oklch(1 0 0);
-  --card-foreground: oklch(0.145 0 0);
-  --popover: oklch(1 0 0);
-  --popover-foreground: oklch(0.145 0 0);
-  --primary: oklch(0.205 0 0);
-  --primary-foreground: oklch(0.985 0 0);
-  --secondary: oklch(0.97 0 0);
-  --secondary-foreground: oklch(0.205 0 0);
-  --muted: oklch(0.97 0 0);
-  --muted-foreground: oklch(0.556 0 0);
-  --accent: oklch(0.97 0 0);
-  --accent-foreground: oklch(0.205 0 0);
-  --destructive: oklch(0.577 0.245 27.325);
-  --border: oklch(0.922 0 0);
-  --input: oklch(0.922 0 0);
-  --ring: oklch(0.708 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --radius: 0.625rem;
-  --sidebar: oklch(0.985 0 0);
-  --sidebar-foreground: oklch(0.145 0 0);
-  --sidebar-primary: oklch(0.205 0 0);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.97 0 0);
-  --sidebar-accent-foreground: oklch(0.205 0 0);
-  --sidebar-border: oklch(0.922 0 0);
-  --sidebar-ring: oklch(0.708 0 0);
+/* Dark is the default; next-themes puts .dark or .light on <html>. */
+:root, .dark {
+  color-scheme: dark;
+  --charcoal:#1E1E1C; --sand:#D8CBB3;
+  --page:#1E1E1C; --surface:#252522; --surface-2:#2D2C28; --surface-3:#363430;
+  --line:#312F2B;          /* hairlines, card edges */
+  --line-strong:#746E61;   /* field, select and icon-button borders (3:1) */
+  --series-muted:#47443D;  /* muted chart series */
+  --ink:#D8CBB3; --ink-2:#B7AC98; --ink-3:#A89E8C;
+  --control-track:#181816; --control-thumb:#3E3B36; --shadow-thumb:0 1px 2px rgb(0 0 0/.4);
+  --shadow-pop:0 16px 48px rgb(0 0 0/.5);
+  /* pop: fill · text · ink on fill */
+  --a-home:#2B65F7;      --a-home-t:#5E92FF;      --a-home-on:#fff;      /* Electric Blue, site-wide */
+  --a-bbc:#19C3E6;       --a-bbc-t:#19C3E6;       --a-bbc-on:#1E1E1C;    /* Bay Cyan */
+  --a-fpl:#F32AA4;       --a-fpl-t:#FF49BA;       --a-fpl-on:#1E1E1C;    /* Hot Magenta */
+  --a-playpilot:#8E37E2; --a-playpilot-t:#B778FF; --a-playpilot-on:#fff; /* Ultraviolet */
+  --a-food:#F5B700;      --a-food-t:#F5B700;      --a-food-on:#1E1E1C;   /* Saffron */
+  /* Food Expenses consumers */
+  --c-shared:#F5B700; --c-hugo:#5E92FF; --c-benjamin:#FF49BA; --c-on:#1E1E1C;
+  --pos:oklch(.79 .12 150); --neg:oklch(.75 .13 25); --warn:oklch(.82 .11 80);
+  --gold:oklch(.80 .11 85); --silver:oklch(.78 .01 80); --bronze:oklch(.68 .09 50);
+  --ease-calm:cubic-bezier(.22,.61,.36,1); --ease-out:cubic-bezier(.165,.84,.44,1);
+  /* Blue Bay Cup manager palette, assigned by player_id */
+  --p1:#F97770; --p2:#F2823B; --p3:#D89700; --p4:#B4A900; --p5:#76BA4B; --p6:#12C281;
+  --p7:#00BFB7; --p8:#00B8E1; --p9:#59A6FF; --p10:#9C93FF; --p11:#CA83E9; --p12:#E977BB;
+}
+.light {
+  color-scheme: light;
+  --page:#EDE8DD; --surface:#F5F2EC; --surface-2:#E7DFD0; --surface-3:#DED3BE;
+  --line:#D8CBB3; --line-strong:#7B7468; --series-muted:#B7AC98;
+  --ink:#1E1E1C; --ink-2:#4C4942; --ink-3:#5A554C;
+  --control-track:#E4DBCA; --control-thumb:#F9F7F4; --shadow-thumb:0 1px 2px rgb(30 30 28/.16);
+  --shadow-pop:0 16px 40px rgb(30 30 28/.16);
+  --a-home:#1B53E6;      --a-home-t:#1B53E6;      --a-home-on:#fff;
+  --a-bbc:#006A81;       --a-bbc-t:#006A81;       --a-bbc-on:#fff;
+  --a-fpl:#BC007B;       --a-fpl-t:#BC007B;       --a-fpl-on:#fff;
+  --a-playpilot:#852AD8; --a-playpilot-t:#852AD8; --a-playpilot-on:#fff;
+  --a-food:#7D5A00;      --a-food-t:#7D5A00;      --a-food-on:#fff;
+  --c-shared:#7D5A00; --c-hugo:#1B53E6; --c-benjamin:#BC007B; --c-on:#fff;
+  --pos:oklch(.46 .12 150); --neg:oklch(.49 .16 25); --warn:oklch(.47 .12 75);
+  --gold:oklch(.60 .12 80); --silver:oklch(.58 .01 80); --bronze:oklch(.56 .10 50);
+  --p1:#C04442; --p2:#BB5000; --p3:#9A6A00; --p4:#807700; --p5:#478809; --p6:#008C57;
+  --p7:#008782; --p8:#0083A3; --p9:#2474CF; --p10:#6E62CD; --p11:#9752B4; --p12:#B2468A;
 }
 
-.dark {
-  --background: oklch(0.145 0 0);
-  --foreground: oklch(0.985 0 0);
-  --card: oklch(0.205 0 0);
-  --card-foreground: oklch(0.985 0 0);
-  --popover: oklch(0.205 0 0);
-  --popover-foreground: oklch(0.985 0 0);
-  --primary: oklch(0.922 0 0);
-  --primary-foreground: oklch(0.205 0 0);
-  --secondary: oklch(0.269 0 0);
-  --secondary-foreground: oklch(0.985 0 0);
-  --muted: oklch(0.269 0 0);
-  --muted-foreground: oklch(0.708 0 0);
-  --accent: oklch(0.269 0 0);
-  --accent-foreground: oklch(0.985 0 0);
-  --destructive: oklch(0.704 0.191 22.216);
-  --border: oklch(1 0 0 / 10%);
-  --input: oklch(1 0 0 / 15%);
-  --ring: oklch(0.556 0 0);
-  --chart-1: oklch(0.87 0 0);
-  --chart-2: oklch(0.556 0 0);
-  --chart-3: oklch(0.439 0 0);
-  --chart-4: oklch(0.371 0 0);
-  --chart-5: oklch(0.269 0 0);
-  --sidebar: oklch(0.205 0 0);
-  --sidebar-foreground: oklch(0.985 0 0);
-  --sidebar-primary: oklch(0.488 0.243 264.376);
-  --sidebar-primary-foreground: oklch(0.985 0 0);
-  --sidebar-accent: oklch(0.269 0 0);
-  --sidebar-accent-foreground: oklch(0.985 0 0);
-  --sidebar-border: oklch(1 0 0 / 10%);
-  --sidebar-ring: oklch(0.556 0 0);
+/* shadcn mapping so components/ui/* pick up the system. shadcn's own --accent
+   (a neutral hover fill) is gone: --accent is the project pop, use bg-muted. */
+:root, .dark, .light {
+  --background: var(--page); --foreground: var(--ink);
+  --card: var(--surface); --card-foreground: var(--ink);
+  --popover: var(--surface); --popover-foreground: var(--ink);
+  --primary: var(--ink); --primary-foreground: var(--page);
+  --secondary: var(--surface-2); --secondary-foreground: var(--ink);
+  --muted: var(--surface-2); --muted-foreground: var(--ink-3);
+  --border: var(--line); --input: var(--line-strong); --ring: var(--ink-3);
+  --destructive: var(--neg);
+  --radius: 0.625rem;
+}
+
+/* The pop. <body> is data-project="home"; each project's layout.tsx overrides it. */
+[data-project]            { --accent: var(--a-home);      --accent-text: var(--a-home-t);      --accent-ink: var(--a-home-on); }
+[data-project="bbc"]      { --accent: var(--a-bbc);       --accent-text: var(--a-bbc-t);       --accent-ink: var(--a-bbc-on); }
+[data-project="fpl"]      { --accent: var(--a-fpl);       --accent-text: var(--a-fpl-t);       --accent-ink: var(--a-fpl-on); }
+[data-project="playpilot"]{ --accent: var(--a-playpilot); --accent-text: var(--a-playpilot-t); --accent-ink: var(--a-playpilot-on); }
+[data-project="food"]     { --accent: var(--a-food);      --accent-text: var(--a-food-t);      --accent-ink: var(--a-food-on); }
+/* Anything derived from --accent is declared here, not on :root: var() resolves
+   on the element that declares it, so a :root mapping never sees a project's pop.
+   Mix in srgb: `in oklch` with transparent tints sand pink in Chromium. */
+[data-project] {
+  --accent-soft: color-mix(in srgb, var(--accent) 16%, transparent);
+  --primary: var(--accent); --primary-foreground: var(--accent-ink); --ring: var(--accent);
 }
 
 @layer base {
@@ -226,6 +157,38 @@
     @apply font-sans;
   }
   h1, h2, h3, h4, h5, h6 {
-    @apply font-heading;
+    @apply font-display;
   }
+  /* Every button presses in (DESIGN.md › Principles 5); only the primary grows, in ui/button. */
+  button {
+    transition: scale 260ms var(--ease-calm), background-color 160ms, color 160ms, border-color 160ms;
+  }
+  @media (prefers-reduced-motion: no-preference) {
+    button:not(:disabled):active {
+      scale: 0.965;
+    }
+  }
+  :focus-visible {
+    outline: 2px solid var(--accent, var(--ink));
+    outline-offset: 2px;
+  }
+  /* RevealHeading (components/ui/Motion.tsx) splits each of these into masked lines. */
+  .headline-line {
+    display: block;
+  }
+}
+
+/* Theme switch: SiteHeader wraps setTheme in a view transition. */
+::view-transition-old(root), ::view-transition-new(root) {
+  animation-duration: .45s;
+  animation-timing-function: var(--ease-calm);
+}
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-group(*), ::view-transition-old(*), ::view-transition-new(*) { animation: none !important; }
+}
+
+/* Sections waiting to animate in must still print */
+@media print {
+  [data-reveal], [data-reveal-heading], [data-stagger] > *, [data-wipe] { opacity:1 !important; transform:none !important; clip-path:none !important; }
+  header { position:static !important; backdrop-filter:none !important; }
 }

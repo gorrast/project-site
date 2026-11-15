@@ -1,66 +1,107 @@
 'use client'
 
 import React, { useState } from 'react'
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table'
+import { SectionHeading } from '@/components/SectionHeading'
+import { cn } from '@/lib/utils'
 import { FormRow } from './FormChip'
+import SectionSkeleton from './SectionSkeleton'
 import { HeadToHeadData } from './types'
 
 interface HeadToHeadProps {
   headToHead: HeadToHeadData
   players: { playerId: string; playerName: string }[]
+  seasonCount: number
+  isLoading: boolean
 }
 
-export default function HeadToHead({ headToHead, players }: HeadToHeadProps) {
+export default function HeadToHead({ headToHead, players, seasonCount, isLoading }: HeadToHeadProps) {
   const [selectedPlayerId, setSelectedPlayerId] = useState<string>(players[0]?.playerId ?? '')
 
   if (players.length === 0) return null
 
-  const activePlayerId = players.some(p => p.playerId === selectedPlayerId) ? selectedPlayerId : players[0].playerId
-  const opponents = headToHead[activePlayerId] ?? []
+  const active = players.find(p => p.playerId === selectedPlayerId) ?? players[0]
+  const opponents = [...(headToHead[active.playerId] ?? [])].sort((a, b) => b.winPct - a.winPct)
 
   return (
-    <div className="flex flex-col gap-4">
-      <div className="flex flex-wrap gap-2">
-        {players.map(p => (
-          <button
-            key={p.playerId}
-            type="button"
-            onClick={() => setSelectedPlayerId(p.playerId)}
-            className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors cursor-pointer ${
-              activePlayerId === p.playerId
-                ? 'bg-linear-to-r from-blue-600 to-purple-600 text-white shadow'
-                : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-200 hover:bg-gray-200 dark:hover:bg-gray-600'
-            }`}
-          >
-            {p.playerName}
-          </button>
-        ))}
-      </div>
-
-      {opponents.length === 0 ? (
-        <p className="text-sm text-gray-500 dark:text-gray-400">No recorded matches yet.</p>
-      ) : (
-        <div className="bg-white dark:bg-gray-800 rounded-2xl shadow-xl border border-gray-100 dark:border-gray-700 divide-y divide-gray-100 dark:divide-gray-700">
-          {opponents.map(o => (
-            <div key={o.opponentPlayerId} className="flex items-center gap-4 p-4 flex-wrap">
-              <span className="flex-1 min-w-[100px] font-semibold text-gray-900 dark:text-gray-100">
-                {o.opponentPlayerName}
-              </span>
-              <span className="w-16 shrink-0 text-right text-xs tabular-nums text-gray-500 dark:text-gray-400">
-                {o.wins}-{o.draws}-{o.losses}
-              </span>
-              <span className={`w-14 shrink-0 text-right font-bold text-sm ${o.winPct >= 50 ? 'text-green-600' : 'text-red-500'}`}>
-                {o.winPct.toFixed(1)}%
-              </span>
-              <FormRow
-                entries={o.form.map(f => ({
-                  result: f.result,
-                  title: `${f.result} (${f.myScore}-${f.oppScore}) — GW${f.gameweek}`,
-                }))}
-              />
-            </div>
-          ))}
+    <>
+      <SectionHeading
+        title="Head-to-head"
+        caption={`Every match across ${seasonCount} seasons, from ${active.playerName}'s side. Sorted by win rate.`}
+      />
+      {/* Two panes, list first; under 680px the list wraps into a row above the table. */}
+      <div className="grid items-start gap-x-6 gap-y-4 bbc:grid-cols-[minmax(0,220px)_minmax(0,1fr)]">
+        <div className="flex flex-wrap gap-0.5 bbc:flex-col bbc:flex-nowrap">
+          {players.map(p => {
+            const selected = p.playerId === active.playerId
+            return (
+              <button
+                key={p.playerId}
+                type="button"
+                aria-pressed={selected}
+                onClick={() => setSelectedPlayerId(p.playerId)}
+                className={cn(
+                  'flex h-[38px] cursor-pointer items-center gap-2.5 rounded-[10px] px-3 text-left text-sm whitespace-nowrap hover:bg-surface-2',
+                  selected ? 'bg-accent-soft text-ink hover:bg-accent-soft' : 'text-ink-2'
+                )}
+              >
+                <span className={cn('size-1.5 shrink-0 rounded-full', selected && 'bg-accent')} />
+                {p.playerName}
+              </button>
+            )
+          })}
         </div>
-      )}
-    </div>
+
+        {isLoading ? (
+          <SectionSkeleton />
+        ) : opponents.length === 0 ? (
+          <p className="text-sm text-ink-3">No recorded matches yet.</p>
+        ) : (
+          <div className="min-w-0 overflow-hidden rounded-2xl border border-line bg-surface">
+            <Table className="min-w-[560px]">
+              <TableHeader>
+                <TableRow>
+                  <TableHead className="pl-5">Opponent</TableHead>
+                  <TableHead className="text-right">W–D–L</TableHead>
+                  <TableHead>Win rate</TableHead>
+                  <TableHead className="pr-5">Last 5</TableHead>
+                </TableRow>
+              </TableHeader>
+              <TableBody>
+                {opponents.map(o => (
+                  <TableRow key={o.opponentPlayerId}>
+                    <TableCell className="pl-5 font-medium">{o.opponentPlayerName}</TableCell>
+                    <TableCell className="text-right font-mono text-[13px] text-ink-2 tabular-nums">
+                      {o.wins}–{o.draws}–{o.losses}
+                    </TableCell>
+                    <TableCell className="w-[174px]">
+                      <span className="flex items-center gap-2.5">
+                        <span className="h-1.5 flex-1 overflow-hidden rounded-full bg-surface-3">
+                          <span
+                            className={cn('block h-full rounded-full', o.winPct >= 50 ? 'bg-pos' : 'bg-neg')}
+                            style={{ width: `${o.winPct}%` }}
+                          />
+                        </span>
+                        <span className={cn('w-[38px] text-right font-mono text-[13px] tabular-nums', o.winPct >= 50 ? 'text-ink' : 'text-ink-2')}>
+                          {o.winPct.toFixed(0)}%
+                        </span>
+                      </span>
+                    </TableCell>
+                    <TableCell className="pr-5">
+                      <FormRow
+                        entries={o.form.map(f => ({
+                          result: f.result,
+                          title: `GW ${f.gameweek} · ${f.myScore}–${f.oppScore}`,
+                        }))}
+                      />
+                    </TableCell>
+                  </TableRow>
+                ))}
+              </TableBody>
+            </Table>
+          </div>
+        )}
+      </div>
+    </>
   )
 }

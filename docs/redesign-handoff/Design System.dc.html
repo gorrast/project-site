@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<script src="./support.js"></script>
+<script src="./motion.js"></script>
+</head>
+<body>
+<x-dc>
+<helmet>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin="">
+<link href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@500;600;700&amp;family=IBM+Plex+Sans:wght@400;500;600&amp;family=Geist+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet">
+<style>
+/* Base pair: Charcoal #1E1E1C + Sand #D8CBB3 build every page. One pop colour per project.
+   Each pop has three roles: --a-x (fills, marks, chart series), --a-x-t (text, 4.5:1 on every surface), --a-x-on (text on a fill). */
+:root,[data-theme="dark"]{color-scheme:dark;--charcoal:#1E1E1C;--sand:#D8CBB3;--page:#1E1E1C;--surface:#252522;--surface-2:#2D2C28;--surface-3:#363430;--line:#312F2B;--line-strong:#746E61;--series-muted:#47443D;--ink:#D8CBB3;--ink-2:#B7AC98;--ink-3:#A89E8C;--control-track:#181816;--control-thumb:#3E3B36;--shadow-thumb:0 1px 2px rgb(0 0 0 / .4);--shadow-pop:0 16px 48px rgb(0 0 0 / .5);--a-home:#2B65F7;--a-home-t:#5E92FF;--a-home-on:#FFFFFF;--a-bbc:#19C3E6;--a-bbc-t:#19C3E6;--a-bbc-on:#1E1E1C;--a-fpl:#F32AA4;--a-fpl-t:#FF49BA;--a-fpl-on:#1E1E1C;--a-playpilot:#8E37E2;--a-playpilot-t:#B778FF;--a-playpilot-on:#FFFFFF;--a-food:#F5B700;--a-food-t:#F5B700;--a-food-on:#1E1E1C;--c-shared:#F5B700;--c-hugo:#5E92FF;--c-benjamin:#FF49BA;--pos:oklch(0.79 0.12 150);--neg:oklch(0.75 0.13 25);--warn:oklch(0.82 0.11 80);--gold:oklch(0.80 0.11 85);--silver:oklch(0.78 0.01 80);--bronze:oklch(0.68 0.09 50);--font-display:"Space Grotesk",system-ui,sans-serif;--font-body:"IBM Plex Sans",system-ui,sans-serif;--font-mono:"Geist Mono",ui-monospace,monospace;--ease-calm:cubic-bezier(0.22,0.61,0.36,1);--ease-out:cubic-bezier(0.165,0.84,0.44,1)}
+[data-theme="light"]{color-scheme:light;--page:#EDE8DD;--surface:#F5F2EC;--surface-2:#E7DFD0;--surface-3:#DED3BE;--line:#D8CBB3;--line-strong:#7B7468;--series-muted:#B7AC98;--ink:#1E1E1C;--ink-2:#4C4942;--ink-3:#5A554C;--control-track:#E4DBCA;--control-thumb:#F9F7F4;--shadow-thumb:0 1px 2px rgb(30 30 28 / .16);--shadow-pop:0 16px 40px rgb(30 30 28 / .16);--a-home:#1B53E6;--a-home-t:#1B53E6;--a-home-on:#FFFFFF;--a-bbc:#006A81;--a-bbc-t:#006A81;--a-bbc-on:#FFFFFF;--a-fpl:#BC007B;--a-fpl-t:#BC007B;--a-fpl-on:#FFFFFF;--a-playpilot:#852AD8;--a-playpilot-t:#852AD8;--a-playpilot-on:#FFFFFF;--a-food:#7D5A00;--a-food-t:#7D5A00;--a-food-on:#FFFFFF;--c-shared:#7D5A00;--c-hugo:#1B53E6;--c-benjamin:#BC007B;--pos:oklch(0.46 0.12 150);--neg:oklch(0.49 0.16 25);--warn:oklch(0.47 0.12 75);--gold:oklch(0.60 0.12 80);--silver:oklch(0.58 0.01 80);--bronze:oklch(0.56 0.10 50)}
+[data-project]{--accent:var(--a-home);--accent-text:var(--a-home-t);--accent-ink:var(--a-home-on)}
+[data-project="bbc"]{--accent:var(--a-bbc);--accent-text:var(--a-bbc-t);--accent-ink:var(--a-bbc-on)}
+[data-project="fpl"]{--accent:var(--a-fpl);--accent-text:var(--a-fpl-t);--accent-ink:var(--a-fpl-on)}
+[data-project="playpilot"]{--accent:var(--a-playpilot);--accent-text:var(--a-playpilot-t);--accent-ink:var(--a-playpilot-on)}
+[data-project="food"]{--accent:var(--a-food);--accent-text:var(--a-food-t);--accent-ink:var(--a-food-on)}
+[data-project]{--accent-soft:color-mix(in srgb,var(--accent) 16%,transparent)}
+html,body{margin:0;background:var(--page);color:var(--ink);font-family:var(--font-body);-webkit-font-smoothing:antialiased}
+/* Motion: buttons grow on hover only when primary, every button presses in. Reveals live in motion.js. */
+button{transition:transform 260ms var(--ease-calm),background-color 160ms,color 160ms,border-color 160ms,box-shadow 160ms !important}
+@media (prefers-reduced-motion:no-preference){button:not(:disabled):active{transform:scale(0.965)}}
+@media (hover:hover) and (prefers-reduced-motion:no-preference){button[data-primary]:not(:disabled):hover{transform:scale(1.035)}}
+::view-transition-old(root),::view-transition-new(root){animation-duration:.45s;animation-timing-function:var(--ease-calm)}
+@media (prefers-reduced-motion:reduce){::view-transition-group(*),::view-transition-old(*),::view-transition-new(*){animation:none !important}}
+@media print{[data-reveal],[data-reveal-heading],[data-stagger]>*,[data-wipe]{opacity:1 !important;transform:none !important;clip-path:none !important}header{position:static !important;backdrop-filter:none !important}}
+a{color:var(--accent-text,var(--ink));text-decoration:none}
+a:hover{text-decoration:underline}
+button,select,input{font:inherit;color:inherit}
+:focus-visible{outline:2px solid var(--accent,var(--ink));outline-offset:2px}
+</style>
+</helmet>
+<div data-project="{{ project }}" data-screen-label="Design system" style="min-height:100vh;background:var(--page);color:var(--ink);font-family:var(--font-body)">
+
+  <header style="position:sticky;top:0;z-index:20;height:64px;display:flex;align-items:center;background:color-mix(in srgb, var(--page) 86%, transparent);backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px);border-bottom:1px solid var(--line)">
+    <div style="max-width:1200px;width:100%;margin:0 auto;padding:0 40px;display:flex;align-items:center;gap:12px;box-sizing:border-box">
+      <a href="Home.dc.html" style="font-family:var(--font-display);font-weight:600;font-size:16px;letter-spacing:-0.01em;color:var(--ink)">wigh.nu</a>
+      <span style="color:var(--line-strong);font-size:18px">/</span>
+      <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>Design system</span>
+      <div style="flex:1"></div>
+      <nav aria-label="Example pages" style="display:flex;gap:2px;overflow-x:auto;min-width:0">
+        <a href="Blue Bay Cup.dc.html" style="font-size:14px;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap" style-hover="background:var(--surface-2);text-decoration:none">Blue Bay Cup</a>
+        <a href="FPL Predictions.dc.html" style="font-size:14px;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap" style-hover="background:var(--surface-2);text-decoration:none">FPL</a>
+        <a href="Food Expenses.dc.html" style="font-size:14px;color:var(--ink-2);padding:8px 12px;border-radius:999px;white-space:nowrap" style-hover="background:var(--surface-2);text-decoration:none">Food</a>
+      </nav>
+      <button onClick="{{ toggleTheme }}" aria-label="Toggle theme" style="width:36px;height:36px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)">
+        <sc-if value="{{ isDark }}" hint-placeholder-val="{{ true }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="4"></circle><path d="M12 2v2M12 20v2m-7.07-17.07 1.41 1.41m10.32 10.32 1.41 1.41M2 12h2m16 0h2M6.34 17.66l-1.41 1.41M19.07 4.93l-1.41 1.41"></path></svg>
+        </sc-if>
+        <sc-if value="{{ isLight }}" hint-placeholder-val="{{ false }}">
+          <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="M12 3a6 6 0 0 0 9 9 9 9 0 1 1-9-9Z"></path></svg>
+        </sc-if>
+      </button>
+    </div>
+  </header>
+
+  <main style="max-width:1200px;margin:0 auto;padding:0 40px 140px;box-sizing:border-box;display:flex;flex-direction:column;gap:96px">
+
+    <section style="padding-top:72px;display:flex;flex-direction:column;gap:20px">
+      <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">wigh.nu · design foundations · v1</div>
+      <h1 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:60px;font-weight:600;letter-spacing:-0.035em;line-height:1">One shell, many projects</h1>
+      <p style="margin:0;max-width:640px;font-size:18px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">The rules every page on the site follows. Charcoal and sand everywhere, dark by default, three type families, one pop colour per project. Showcase pages get room to breathe; data pages stay dense and quiet.</p>
+      <div style="display:flex;align-items:center;gap:12px;flex-wrap:wrap;margin-top:8px">
+        <span style="font-size:13px;color:var(--ink-3);white-space:nowrap">Preview accent</span>
+        <div style="display:inline-flex;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line);flex-wrap:wrap">
+          <sc-for list="{{ projectOpts }}" as="o" hint-placeholder-count="5">
+            <button onClick="{{ o.onClick }}" style="height:32px;padding:0 14px;border:0;border-radius:999px;font-size:13px;font-weight:500;cursor:pointer;display:flex;align-items:center;gap:8px;white-space:nowrap;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }}"><span style="width:7px;height:7px;border-radius:50%;background:{{ o.swatch }}"></span>{{ o.label }}</button>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal="">
+      <h2 data-reveal-heading="" style="margin:0 0 24px;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Principles</h2>
+      <div data-stagger="" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(320px,1fr));border-top:1px solid var(--line)">
+        <sc-for list="{{ principles }}" as="p" hint-placeholder-count="7">
+          <div style="padding:24px 32px 28px 0;border-bottom:1px solid var(--line);display:grid;grid-template-columns:32px minmax(0,1fr);gap:4px 12px">
+            <span style="font-family:var(--font-mono);font-size:12px;color:var(--accent-text);padding-top:3px">{{ p.n }}</span>
+            <span style="font-family:var(--font-display);font-size:18px;font-weight:600;letter-spacing:-0.01em">{{ p.title }}</span>
+            <span></span>
+            <span style="font-size:14px;line-height:1.6;color:var(--ink-2);text-wrap:pretty">{{ p.body }}</span>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+    <section data-reveal="" style="display:flex;flex-direction:column;gap:40px">
+      <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Color</h2>
+      <div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(260px,1fr));gap:12px">
+        <div style="border-radius:16px;background:#1E1E1C;color:#D8CBB3;padding:22px;min-height:140px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--line)">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase">Base · 1 of 2</span>
+          <span style="display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-0.02em">Charcoal</span><span style="font-family:var(--font-mono);font-size:12px">#1E1E1C · dark page, light-mode ink</span></span>
+        </div>
+        <div style="border-radius:16px;background:#D8CBB3;color:#1E1E1C;padding:22px;min-height:140px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--line)">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase">Base · 2 of 2</span>
+          <span style="display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--font-display);font-size:24px;font-weight:600;letter-spacing:-0.02em">Sand</span><span style="font-family:var(--font-mono);font-size:12px">#D8CBB3 · dark-mode ink, light-mode rules</span></span>
+        </div>
+        <div style="border-radius:16px;background:#1E1E1C;padding:22px;min-height:140px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between;border:1px solid var(--line)">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:#D8CBB3">Pop · one per project</span>
+          <span style="display:flex;align-items:center;gap:10px;margin:14px 0 12px 4px"><span style="width:36px;height:36px;border-radius:50%;background:#2F6BFF;box-shadow:0 0 0 3px #1E1E1C,0 0 0 4px #D8CBB3" title="Electric Blue · site"></span><span style="width:28px;height:28px;border-radius:50%;background:#19C3E6"></span><span style="width:28px;height:28px;border-radius:50%;background:#F32AA4"></span><span style="width:28px;height:28px;border-radius:50%;background:#8E37E2"></span><span style="width:28px;height:28px;border-radius:50%;background:#F5B700"></span></span>
+          <span style="font-size:13px;color:#D8CBB3;line-height:1.5">Electric Blue is the site's own pop: home, the index and anything not inside a project. Sand sits at hue 83 and blue near its complement, which is why the pair works. Project pops stay 35°+ apart and away from win/loss green and red.</span>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Neutral steps · mixed from charcoal and sand only</div>
+        <div data-stagger="0.05" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(130px,1fr));gap:12px">
+          <sc-for list="{{ neutrals }}" as="c" hint-placeholder-count="10">
+            <div style="display:flex;flex-direction:column;gap:8px">
+              <div style="height:64px;border-radius:12px;border:1px solid var(--line);background:var({{ c.v }})"></div>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--font-mono);font-size:12px">--{{ c.name }}</span><span style="font-size:12px;color:var(--ink-3)">{{ c.use }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Project pops · fill, text and on-fill ink per project</div>
+        <div data-stagger="" style="display:grid;grid-template-columns:repeat(auto-fill,minmax(250px,1fr));gap:12px">
+          <sc-for list="{{ accents }}" as="c" hint-placeholder-count="5">
+            <div data-project="{{ c.id }}" style="display:flex;flex-direction:column;gap:12px;padding:14px;border-radius:14px;border:1px solid var(--line);background:var(--surface)">
+              <div style="display:flex;align-items:center;gap:14px">
+                <div style="width:44px;height:44px;border-radius:10px;flex:none;background:var(--accent);color:var(--accent-ink);display:grid;place-items:center;font-family:var(--font-display);font-weight:600;font-size:15px">Aa</div>
+                <div style="display:flex;flex-direction:column;gap:2px;min-width:0"><span style="font-size:14px;font-weight:500">{{ c.name }}</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3);white-space:nowrap">{{ c.colour }} · {{ c.hex }}</span></div>
+              </div>
+              <span style="font-size:13px;color:var(--accent-text)">Link and figure text · {{ c.name }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:12px">
+        <div style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Meaning · only where the data says so</div>
+        <div style="display:grid;grid-template-columns:repeat(auto-fill,minmax(160px,1fr));gap:12px">
+          <sc-for list="{{ semantic }}" as="c" hint-placeholder-count="6">
+            <div style="display:flex;align-items:center;gap:12px">
+              <div style="width:32px;height:32px;border-radius:50%;flex:none;background:var({{ c.v }})"></div>
+              <div style="display:flex;flex-direction:column;gap:2px"><span style="font-family:var(--font-mono);font-size:12px">--{{ c.name }}</span><span style="font-size:12px;color:var(--ink-3)">{{ c.use }}</span></div>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal="" style="display:flex;flex-direction:column;gap:24px">
+      <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Type</h2>
+      <div style="display:flex;flex-direction:column;border-top:1px solid var(--line)">
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Display</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">Space Grotesk 600 · 60/1.0 · −0.035em</span></div>
+          <span style="font-family:var(--font-display);font-size:60px;font-weight:600;letter-spacing:-0.035em;line-height:1">Blue Bay Cup</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Section</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">Space Grotesk 600 · 26/1.2 · −0.02em</span></div>
+          <span style="font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Overall standings</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Card title</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">Space Grotesk 600 · 18–24 · −0.01em</span></div>
+          <span style="font-family:var(--font-display);font-size:20px;font-weight:600;letter-spacing:-0.01em">Food expenses</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Lead</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">IBM Plex Sans 400 · 18/1.6</span></div>
+          <span style="font-size:18px;line-height:1.6;color:var(--ink-2);max-width:560px">Model-predicted points for your draft league, with an optimised starting XI.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Body · row text</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">IBM Plex Sans 400/500 · 14–15/1.6</span></div>
+          <span style="font-size:14px;line-height:1.6;max-width:560px">Select a row to follow that manager in the charts. Captions name the scope of every figure so nobody guesses what they're reading.</span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Numbers</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">Geist Mono 400/500 · 13–20 · tabular</span></div>
+          <span style="font-family:var(--font-mono);font-size:20px;font-weight:500;display:flex;gap:28px;flex-wrap:wrap"><span>1 708.0</span><span>2 300 kr</span><span>46–52</span><span style="color:var(--pos)">1.08</span></span>
+        </div>
+        <div style="display:grid;grid-template-columns:minmax(0,200px) minmax(0,1fr);gap:24px;align-items:baseline;padding:22px 0;border-bottom:1px solid var(--line)">
+          <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:13px;font-weight:500">Label</span><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">Geist Mono 400 · 11 · +0.08em · caps</span></div>
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Fantasy Draft Premier League · 4 seasons</span>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal="" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:48px">
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Spacing</h2>
+        <div data-stagger="0.05" style="display:flex;flex-direction:column;gap:8px">
+          <sc-for list="{{ spacing }}" as="sp" hint-placeholder-count="10">
+            <div style="display:grid;grid-template-columns:40px minmax(0,1fr) minmax(0,1.4fr);gap:12px;align-items:center">
+              <span style="font-family:var(--font-mono);font-size:12px">{{ sp.v }}</span>
+              <span style="height:10px;border-radius:3px;background:var(--accent);width:{{ sp.w }}"></span>
+              <span style="font-size:12px;color:var(--ink-3)">{{ sp.use }}</span>
+            </div>
+          </sc-for>
+        </div>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:20px">
+        <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Radius and elevation</h2>
+        <div style="display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:12px">
+          <div style="display:flex;flex-direction:column;gap:8px"><div style="height:64px;border:1px solid var(--line-strong);background:var(--surface);border-radius:6px"></div><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">6 · chips</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px"><div style="height:64px;border:1px solid var(--line-strong);background:var(--surface);border-radius:10px"></div><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">10 · fields</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px"><div style="height:64px;border:1px solid var(--line-strong);background:var(--surface);border-radius:16px"></div><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">16 · cards</span></div>
+          <div style="display:flex;flex-direction:column;gap:8px"><div style="height:64px;border:1px solid var(--line-strong);background:var(--surface);border-radius:999px"></div><span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">pill</span></div>
+        </div>
+        <div style="display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px;margin-top:8px">
+          <div style="height:96px;border-radius:16px;background:var(--surface);border:1px solid var(--line);padding:16px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between"><span style="font-size:13px;font-weight:500">Card</span><span style="font-size:12px;color:var(--ink-3)">Surface step + 1px line. No shadow.</span></div>
+          <div style="height:96px;border-radius:12px;background:var(--surface);border:1px solid var(--line-strong);box-shadow:var(--shadow-pop);padding:16px;box-sizing:border-box;display:flex;flex-direction:column;justify-content:space-between"><span style="font-size:13px;font-weight:500">Floating</span><span style="font-size:12px;color:var(--ink-3)">Menus, tooltips, dialogs only.</span></div>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal="" style="display:flex;flex-direction:column;gap:32px">
+      <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Components</h2>
+
+      <div data-stagger="" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(340px,1fr));gap:16px">
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Buttons</span>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+            <button data-primary="" style="height:40px;padding:0 20px;border-radius:999px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);font-size:14px;font-weight:600;cursor:pointer" style-hover="background:color-mix(in srgb, var(--accent) 86%, var(--ink))">Load league</button>
+            <button style="height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);font-size:14px;font-weight:500;cursor:pointer" style-hover="background:var(--surface-3)">Export CSV</button>
+            <button style="height:40px;padding:0 14px;border-radius:999px;border:1px solid transparent;background:transparent;color:var(--ink-2);font-size:14px;font-weight:500;cursor:pointer" style-hover="background:var(--surface-2);color:var(--ink)">Cancel</button>
+            <button disabled="" style="height:40px;padding:0 18px;border-radius:999px;border:1px solid var(--line);background:transparent;color:var(--ink-3);font-size:14px;font-weight:500;cursor:not-allowed">Disabled</button>
+          </div>
+          <div style="display:flex;flex-wrap:wrap;gap:10px;align-items:center">
+            <button style="height:32px;padding:0 14px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer">Small</button>
+            <button aria-label="Previous" style="width:36px;height:36px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m15 18-6-6 6-6"></path></svg></button>
+            <button aria-label="Next" style="width:36px;height:36px;border-radius:999px;border:1px solid var(--line-strong);background:transparent;color:var(--ink-2);display:grid;place-items:center;cursor:pointer;padding:0" style-hover="background:var(--surface-2);color:var(--ink)"><svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.75" stroke-linecap="round" stroke-linejoin="round"><path d="m9 18 6-6-6-6"></path></svg></button>
+            <span style="font-size:12px;color:var(--ink-3)">One primary action per view. It grows a touch on hover; every button presses in.</span>
+          </div>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Segmented · tabs</span>
+          <div style="display:inline-flex;align-self:flex-start;gap:2px;padding:3px;border-radius:999px;background:var(--control-track);border:1px solid var(--line)">
+            <sc-for list="{{ segOpts }}" as="o" hint-placeholder-count="3">
+              <button onClick="{{ o.onClick }}" style="height:34px;padding:0 16px;border:0;border-radius:999px;font-size:14px;font-weight:500;cursor:pointer;background:{{ o.bg }};color:{{ o.fg }};box-shadow:{{ o.shadow }};transition:background-color 160ms, color 160ms">{{ o.label }}</button>
+            </sc-for>
+          </div>
+          <div style="display:flex;border-bottom:1px solid var(--line);overflow-x:auto">
+            <sc-for list="{{ tabOpts }}" as="t" hint-placeholder-count="4">
+              <button onClick="{{ t.onClick }}" style="padding:10px 14px;margin-bottom:-1px;white-space:nowrap;flex:none;border:0;border-bottom:2px solid {{ t.border }};background:transparent;font-size:14px;font-weight:500;cursor:pointer;color:{{ t.fg }}">{{ t.label }}</button>
+            </sc-for>
+          </div>
+          <span style="font-size:12px;color:var(--ink-3)">Segmented switches a view in place. Tabs split a page into sections.</span>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:14px">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Fields</span>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;font-weight:500">PlayPilot username</span>
+            <input type="text" placeholder="hugowigh" style="height:40px;padding:0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--page);color:var(--ink);font-size:14px;outline:none;transition:border-color 160ms" style-focus="border-color:var(--accent)">
+          </label>
+          <label style="display:flex;flex-direction:column;gap:6px">
+            <span style="font-size:13px;font-weight:500">Season</span>
+            <span style="position:relative;display:block">
+              <select style="appearance:none;-webkit-appearance:none;width:100%;height:40px;padding:0 38px 0 14px;border-radius:10px;border:1px solid var(--line-strong);background:var(--page);color:var(--ink);font-size:14px"><option>2026/27 · live</option><option>2025/26</option></select>
+              <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" style="position:absolute;right:14px;top:13px;pointer-events:none;color:var(--ink-3)"><path d="m6 9 6 6 6-6"></path></svg>
+            </span>
+          </label>
+          <span style="font-size:13px;color:var(--neg)">Couldn't load league 4417. Check the ID and try again.</span>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:18px">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Chips · results · medals</span>
+          <div style="display:flex;flex-wrap:wrap;gap:6px">
+            <span style="height:32px;padding:0 14px;border-radius:999px;font-size:13px;display:inline-flex;align-items:center;border:1px solid var(--accent);background:var(--accent-soft)">Hugo Wigh</span>
+            <span style="height:32px;padding:0 14px;border-radius:999px;font-size:13px;display:inline-flex;align-items:center;border:1px solid var(--line);color:var(--ink-2)">Samuel Alm</span>
+            <span style="height:32px;padding:0 14px;border-radius:999px;font-size:13px;display:inline-flex;align-items:center;border:1px solid var(--line);color:var(--ink-2)">Movies · 214</span>
+          </div>
+          <div style="display:flex;gap:4px;align-items:center">
+            <span style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:color-mix(in srgb, var(--pos) 18%, transparent);color:var(--pos)">W</span>
+            <span style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:color-mix(in srgb, var(--pos) 18%, transparent);color:var(--pos)">W</span>
+            <span style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:var(--surface-3);color:var(--ink-3)">D</span>
+            <span style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;background:color-mix(in srgb, var(--neg) 18%, transparent);color:var(--neg)">L</span>
+            <span style="width:20px;height:20px;border-radius:6px;display:grid;place-items:center;font-family:var(--font-mono);font-size:10px;font-weight:600;color:var(--line-strong)">–</span>
+            <span style="margin-left:20px;display:flex;gap:14px">
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:var(--gold)"></span>2</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:13px"><span style="width:8px;height:8px;border-radius:50%;background:var(--silver)"></span>1</span>
+              <span style="display:inline-flex;align-items:center;gap:6px;font-family:var(--font-mono);font-size:13px;color:var(--ink-3)"><span style="width:8px;height:8px;border-radius:50%;background:var(--surface-3)"></span>–</span>
+            </span>
+          </div>
+          <span style="font-size:12px;color:var(--ink-3)">Tinted washes, never solid fills. Empty values read as –, never 0.</span>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Stat</span>
+          <div style="display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:20px">
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-3)">Month total</span><span style="font-family:var(--font-mono);font-size:24px;font-weight:500;letter-spacing:-0.02em">4 812<span style="font-size:13px;color:var(--ink-3);margin-left:4px">kr</span></span><span style="font-size:12px;color:var(--ink-3)">5 of 7 receipts</span></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-3)">Avg points</span><span style="font-family:var(--font-mono);font-size:24px;font-weight:500;letter-spacing:-0.02em">63.0</span><span style="font-size:12px;color:var(--pos)">+2.4 vs league</span></div>
+            <div style="display:flex;flex-direction:column;gap:4px"><span style="font-size:12px;color:var(--ink-3)">Luck</span><span style="font-family:var(--font-mono);font-size:24px;font-weight:500;letter-spacing:-0.02em">0.94</span><span style="font-size:12px;color:var(--ink-3)">1.00 is neutral</span></div>
+          </div>
+          <span style="font-size:12px;color:var(--ink-3)">Units sit one size down, muted. Every figure has a scope line.</span>
+        </div>
+
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;position:relative">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Tooltip · menu</span>
+          <div style="display:flex;gap:16px;align-items:flex-start;flex-wrap:wrap">
+            <div style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-pop);padding:10px 12px;min-width:160px;display:flex;flex-direction:column;gap:6px;font-size:12px">
+              <span style="font-weight:500;font-size:13px">GW 27</span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:2px;background:var(--accent)"></span><span style="color:var(--ink-3);flex:1">Hugo Wigh</span><span style="font-family:var(--font-mono)">46</span></span>
+              <span style="display:flex;align-items:center;gap:8px"><span style="width:8px;height:8px;border-radius:2px;background:var(--series-muted)"></span><span style="color:var(--ink-3);flex:1">Erik Kask</span><span style="font-family:var(--font-mono)">52</span></span>
+            </div>
+            <div style="background:var(--surface);border:1px solid var(--line-strong);border-radius:12px;box-shadow:var(--shadow-pop);padding:4px;min-width:150px;display:flex;flex-direction:column;font-size:14px">
+              <span style="padding:8px 10px;border-radius:8px;background:var(--accent-soft)">2026/27</span>
+              <span style="padding:8px 10px;border-radius:8px;color:var(--ink-2)">2025/26</span>
+              <span style="padding:8px 10px;border-radius:8px;color:var(--ink-2)">2024/25</span>
+            </div>
+          </div>
+        </div>
+
+      </div>
+
+      <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;overflow:hidden">
+        <div style="padding:20px 20px 4px"><span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Data table</span></div>
+        <div style="overflow-x:auto;overflow-y:hidden">
+          <div style="min-width:640px">
+            <div style="display:grid;grid-template-columns:40px minmax(140px,1fr) 72px 80px 80px 96px;column-gap:12px;align-items:center;height:44px;padding:0 20px;font-family:var(--font-mono);font-size:11px;letter-spacing:0.06em;text-transform:uppercase;color:var(--ink-3)"><span>Rank</span><span>Manager</span><span style="text-align:right">Avg pts</span><span style="text-align:right">Avg PF</span><span style="text-align:right">Avg PA</span><span style="text-align:right">Prize</span></div>
+            <sc-for list="{{ tableRows }}" as="r" hint-placeholder-count="3">
+              <div style="display:grid;grid-template-columns:40px minmax(140px,1fr) 72px 80px 80px 96px;column-gap:12px;align-items:center;height:52px;padding:0 20px;border-top:1px solid var(--line);font-size:14px;background:{{ r.bg }}" style-hover="background:var(--surface-2)">
+                <span style="font-family:var(--font-mono);font-size:13px">{{ r.rank }}</span>
+                <span style="font-weight:500">{{ r.name }}</span>
+                <span style="text-align:right;font-family:var(--font-mono);font-weight:500">{{ r.pts }}</span>
+                <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.pf }}</span>
+                <span style="text-align:right;font-family:var(--font-mono);font-size:13px;color:var(--ink-2)">{{ r.pa }}</span>
+                <span style="text-align:right;font-family:var(--font-mono);font-size:13px">{{ r.prize }}</span>
+              </div>
+            </sc-for>
+          </div>
+        </div>
+        <div style="padding:14px 20px;border-top:1px solid var(--line);font-size:12px;color:var(--ink-3)">Header in mono caps. Hairline rows, no zebra, no coloured header. Numbers right-aligned in mono. Selection is an accent wash.</div>
+      </div>
+    </section>
+
+    <section data-reveal="" id="motion" style="display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;align-items:flex-end;justify-content:space-between;gap:16px;flex-wrap:wrap">
+        <div style="display:flex;flex-direction:column;gap:6px">
+          <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Motion</h2>
+          <p style="margin:0;font-size:14px;color:var(--ink-3);max-width:640px">Ported from DH2465. One calm curve, things rise into place once, nothing loops. Content above the fold is readable immediately; reduced-motion turns all of it off.</p>
+        </div>
+        <button onClick="{{ replay }}" style="height:36px;padding:0 16px;border-radius:999px;border:1px solid var(--line-strong);background:var(--surface-2);color:var(--ink);font-size:13px;font-weight:500;cursor:pointer;display:inline-flex;align-items:center;gap:8px" style-hover="background:var(--surface-3)"><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M3 12a9 9 0 1 0 3-6.7L3 8"></path><path d="M3 3v5h5"></path></svg>Replay</button>
+      </div>
+      <div id="motion-demo" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(250px,1fr));gap:16px">
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;min-height:200px;box-sizing:border-box">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Heading · masked line rise</span>
+          <div style="flex:1;display:flex;flex-direction:column;justify-content:center">
+            <span data-demo="line" style="display:block;font-family:var(--font-display);font-size:34px;font-weight:600;letter-spacing:-0.03em;line-height:1.05">Overall</span>
+            <span data-demo="line" style="display:block;font-family:var(--font-display);font-size:34px;font-weight:600;letter-spacing:-0.03em;line-height:1.05;color:var(--accent-text)">standings</span>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">1.2s · power3.out · lines 0.14s apart</span>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;min-height:200px;box-sizing:border-box">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Section · fade and rise</span>
+          <div style="flex:1;display:flex;align-items:center">
+            <div data-demo="rise" style="width:100%;height:72px;border-radius:12px;background:var(--surface-2);border:1px solid var(--line);display:flex;align-items:center;padding:0 16px;box-sizing:border-box;gap:12px"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span><span style="font-size:14px">Below-the-fold section</span></div>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">28px · 1.0s · calm · once, at 8% in view</span>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;min-height:200px;box-sizing:border-box">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Group · quiet stagger</span>
+          <div data-demo="stagger" style="flex:1;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;align-content:center">
+            <span style="height:44px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)"></span>
+            <span style="height:44px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)"></span>
+            <span style="height:44px;border-radius:10px;background:var(--accent-soft);border:1px solid var(--accent)"></span>
+            <span style="height:44px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)"></span>
+            <span style="height:44px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)"></span>
+            <span style="height:44px;border-radius:10px;background:var(--surface-2);border:1px solid var(--line)"></span>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">16px · 0.6s · calm · 0.11s apart</span>
+        </div>
+        <div style="background:var(--surface);border:1px solid var(--line);border-radius:16px;padding:24px;display:flex;flex-direction:column;gap:16px;min-height:200px;box-sizing:border-box">
+          <span style="font-family:var(--font-mono);font-size:11px;letter-spacing:0.08em;text-transform:uppercase;color:var(--ink-3)">Chart · draw in</span>
+          <div style="flex:1;position:relative;min-height:80px">
+            <svg data-demo="wipe" viewBox="0 0 100 40" preserveAspectRatio="none" aria-hidden="true" style="position:absolute;inset:0;width:100%;height:100%;overflow:visible">
+              <polyline points="0,30 14,26 28,31 42,18 57,22 71,12 85,15 100,6" style="fill:none;stroke:var(--series-muted);stroke-width:1.25px;vector-effect:non-scaling-stroke"></polyline>
+              <polyline points="0,34 14,20 28,24 42,10 57,14 71,20 85,8 100,10" style="fill:none;stroke:var(--accent);stroke-width:2.5px;vector-effect:non-scaling-stroke;stroke-linejoin:round;stroke-linecap:round"></polyline>
+            </svg>
+          </div>
+          <span style="font-family:var(--font-mono);font-size:11px;color:var(--ink-3)">wipe left to right · 1.2s · redraws when the focus series changes</span>
+        </div>
+      </div>
+    </section>
+
+    <section data-reveal="" style="display:flex;flex-direction:column;gap:24px">
+      <div style="display:flex;flex-direction:column;gap:6px">
+        <h2 data-reveal-heading="" style="margin:0;font-family:var(--font-display);font-size:26px;font-weight:600;letter-spacing:-0.02em">Page shell</h2>
+        <p style="margin:0;font-size:14px;color:var(--ink-3);max-width:640px">Same header on every page: site name, project name with its accent dot, Projects link, theme toggle. Replaces the floating home and theme buttons and Blue Bay Cup's custom header. Content max 1200px, 40px gutters.</p>
+      </div>
+      <div data-stagger="" style="display:flex;flex-direction:column;gap:12px">
+        <sc-for list="{{ shells }}" as="sh" hint-placeholder-count="5">
+          <div data-project="{{ sh.id }}" style="border:1px solid var(--line);border-radius:14px;background:var(--page);overflow:hidden">
+            <div style="height:56px;display:flex;align-items:center;gap:12px;padding:0 20px;border-bottom:1px solid var(--line)">
+              <span style="font-family:var(--font-display);font-weight:600;font-size:15px">wigh.nu</span>
+              <span style="color:var(--line-strong)">/</span>
+              <span style="display:flex;align-items:center;gap:8px;font-size:14px;font-weight:500;white-space:nowrap"><span style="width:8px;height:8px;border-radius:50%;background:var(--accent)"></span>{{ sh.name }}</span>
+              <span style="flex:1"></span>
+              <span style="font-size:13px;color:var(--ink-3);white-space:nowrap">{{ sh.density }}</span>
+              <span style="height:30px;padding:0 14px;border-radius:999px;background:var(--accent);color:var(--accent-ink);font-size:13px;font-weight:600;display:inline-flex;align-items:center;white-space:nowrap;flex:none">{{ sh.action }}</span>
+            </div>
+          </div>
+        </sc-for>
+      </div>
+    </section>
+
+  </main>
+</div>
+</x-dc>
+<script type="text/x-dc" data-dc-script data-props="{&quot;theme&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;dark&quot;,&quot;light&quot;],&quot;default&quot;:&quot;dark&quot;,&quot;tsType&quot;:&quot;'dark' | 'light'&quot;},&quot;project&quot;:{&quot;editor&quot;:&quot;enum&quot;,&quot;options&quot;:[&quot;home&quot;,&quot;bbc&quot;,&quot;fpl&quot;,&quot;playpilot&quot;,&quot;food&quot;],&quot;default&quot;:&quot;home&quot;,&quot;tsType&quot;:&quot;string&quot;}}">
+class Component extends DCLogic {
+  state = { theme: (this.props && this.props.theme) || 'dark', project: (this.props && this.props.project) || 'home', seg: 'alltime', tab: 'month' };
+  componentDidMount() {
+    document.documentElement.dataset.theme = this.state.theme;
+    if (window.WighMotion) window.WighMotion.mount(document);
+  }
+  componentDidUpdate(prev) {
+    if (prev.theme !== this.props.theme && this.props.theme) this.setState({ theme: this.props.theme });
+    if (prev.project !== this.props.project && this.props.project) this.setState({ project: this.props.project });
+    document.documentElement.dataset.theme = this.state.theme;
+  }
+  renderVals() {
+    const s = this.state, isDark = s.theme === 'dark';
+    const seg = (cur, key) => (o) => ({
+      ...o,
+      bg: o.id === cur ? 'var(--control-thumb)' : 'transparent',
+      fg: o.id === cur ? 'var(--ink)' : 'var(--ink-3)',
+      shadow: o.id === cur ? 'var(--shadow-thumb)' : 'none',
+      onClick: () => this.setState({ [key]: o.id }),
+    });
+    const PROJ = [
+      { id: 'home', label: 'Site · Home', token: 'a-home', colour: 'Electric Blue', hex: '#2F6BFF', name: 'Home · index', action: 'View project', density: 'Showcase' },
+      { id: 'bbc', label: 'Blue Bay Cup', token: 'a-bbc', colour: 'Bay Cyan', hex: '#19C3E6', name: 'Blue Bay Cup', action: 'All-time', density: 'Data' },
+      { id: 'fpl', label: 'FPL Predictions', token: 'a-fpl', colour: 'Hot Magenta', hex: '#F32AA4', name: 'FPL Predictions', action: 'Load league', density: 'Data' },
+      { id: 'playpilot', label: 'PlayPilot', token: 'a-playpilot', colour: 'Ultraviolet', hex: '#8E37E2', name: 'PlayPilot Compare', action: 'Generate', density: 'Data' },
+      { id: 'food', label: 'Food Expenses', token: 'a-food', colour: 'Saffron', hex: '#F5B700', name: 'Food Expenses', action: 'Export CSV', density: 'Data' },
+    ];
+    const nextTheme = isDark ? 'light' : 'dark';
+    const M = window.WighMotion;
+    return {
+      isDark, isLight: !isDark, project: s.project,
+      toggleTheme: () => {
+        const apply = () => { document.documentElement.dataset.theme = nextTheme; this.setState({ theme: nextTheme }); };
+        if (M) M.theme(apply); else apply();
+      },
+      replay: () => { if (M) M.demo(document.getElementById('motion-demo')); },
+      projectOpts: PROJ.map(p => ({ ...seg(s.project, 'project')(p), swatch: `var(--${p.token})` })),
+      principles: [
+        { n: '01', title: 'One shell, many projects', body: 'Every page shares the header, content width, type, spacing and controls. A project gets its character from one accent hue and its own data, not from a custom layout.' },
+        { n: '02', title: 'Two colours and a pop', body: 'Charcoal and sand build every page; every neutral is a mix of the two. Each project adds one pop colour for the current selection, the primary action and the highlighted series. Green and red stay reserved for win/loss and up/down. No gradients.' },
+        { n: '03', title: 'Numbers are the content', body: 'Figures are set in Geist Mono with tabular digits, right-aligned in tables. Units sit one size smaller and muted. Missing values show as –, never 0.' },
+        { n: '04', title: 'Highlight one, mute the rest', body: 'Charts with many series draw everything in a neutral line and one series in the accent. The reader picks the series; we never rely on a twelve-colour legend.' },
+        { n: '05', title: 'Flat until it floats', body: 'Cards are a surface step and a 1px line. Shadows belong only to things that sit above the page: menus, tooltips, dialogs. Cards never lift on hover; only buttons move, and only a little.' },
+        { n: '06', title: 'Two densities', body: 'Showcase pages (home, project intros) use display type and generous space. Data views use 14px rows, hairline rules and captions that name each figure\u2019s scope.' },
+        { n: '07', title: 'Motion arrives, then gets out of the way', body: 'Headings rise out of a mask, sections settle in as you reach them, groups follow in a quiet stagger. Each plays once, on one calm curve. Nothing loops, nothing waits on a click, and reduced-motion turns it all off.' },
+      ],
+      neutrals: [
+        { name: 'page', v: '--page', use: 'Canvas' },
+        { name: 'surface', v: '--surface', use: 'Cards, tables' },
+        { name: 'surface-2', v: '--surface-2', use: 'Hover, secondary button' },
+        { name: 'surface-3', v: '--surface-3', use: 'Tracks, empty marks' },
+        { name: 'line', v: '--line', use: 'Rules, card edges' },
+        { name: 'line-strong', v: '--line-strong', use: 'Field and control borders, 3:1' },
+        { name: 'series-muted', v: '--series-muted', use: 'Muted chart series' },
+        { name: 'ink-3', v: '--ink-3', use: 'Labels, captions' },
+        { name: 'ink-2', v: '--ink-2', use: 'Secondary text' },
+        { name: 'ink', v: '--ink', use: 'Primary text' },
+      ],
+      accents: PROJ.map(p => ({ id: p.id, name: p.label, colour: p.colour, hex: p.hex })),
+      semantic: [
+        { name: 'pos', v: '--pos', use: 'Win, gain, under budget' },
+        { name: 'neg', v: '--neg', use: 'Loss, drop, errors' },
+        { name: 'warn', v: '--warn', use: 'Needs attention' },
+        { name: 'gold', v: '--gold', use: '1st place' },
+        { name: 'silver', v: '--silver', use: '2nd place' },
+        { name: 'bronze', v: '--bronze', use: '3rd place' },
+      ],
+      spacing: [
+        { v: 4, use: 'Chip gaps' }, { v: 8, use: 'Icon to label' }, { v: 12, use: 'Card grid gap' }, { v: 16, use: 'Control groups' },
+        { v: 20, use: 'Table cell inset' }, { v: 24, use: 'Card padding' }, { v: 40, use: 'Page gutter' }, { v: 64, use: 'Hero top' },
+        { v: 80, use: 'Between data sections' }, { v: 96, use: 'Between showcase sections' },
+      ].map(x => ({ ...x, w: (x.v / 96 * 100) + '%' })),
+      segOpts: [{ id: 'alltime', label: 'All-time' }, { id: 'season', label: 'Season' }, { id: 'h2h', label: 'Head-to-head' }].map(seg(s.seg, 'seg')),
+      tabOpts: [{ id: 'month', label: 'This month' }, { id: 'trends', label: 'Trends' }, { id: 'receipts', label: 'Receipts' }, { id: 'products', label: 'Products' }].map(t => ({
+        ...t, fg: t.id === s.tab ? 'var(--ink)' : 'var(--ink-3)', border: t.id === s.tab ? 'var(--accent)' : 'transparent', onClick: () => this.setState({ tab: t.id }),
+      })),
+      tableRows: [
+        { rank: 1, name: 'Samuel Alm', pts: '71.7', pf: '1708.0', pa: '1542.0', prize: '2 300 kr', bg: 'transparent' },
+        { rank: 2, name: 'Johan Svensson', pts: '63.7', pf: '1661.3', pa: '1514.7', prize: '850 kr', bg: 'transparent' },
+        { rank: 3, name: 'Hugo Wigh', pts: '63.0', pf: '1628.0', pa: '1565.7', prize: '1 380 kr', bg: 'var(--accent-soft)' },
+      ],
+      shells: PROJ.map(p => ({ id: p.id, name: p.name, action: p.action, density: p.density })),
+    };
+  }
+}
+</script>
+</body>
+</html>

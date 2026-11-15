@@ -12,6 +12,9 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Design-reference mocks and build caches, not app code:
+    "docs/**",
+    ".vercel/**",
   ]),
 ]);
 

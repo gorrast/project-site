@@ -7,126 +7,113 @@ import {
   flexRender,
   type ColumnDef,
 } from '@tanstack/react-table'
+import { motion } from 'motion/react'
 import {
   Table,
-  TableBody,
   TableCell,
   TableHead,
   TableHeader,
   TableRow,
 } from '@/components/ui/table'
+import { MetricGroup, quietItemProps } from '@/components/ui/Motion'
 import { cn } from '@/lib/utils'
 import { PlayerSeasonStats } from './types'
 import { FormRow } from './FormChip'
 
 interface SeasonTableProps {
   data: PlayerSeasonStats[]
-  seasonName: string
+  /** The manager the charts below follow; picking a row changes it. */
+  focusId: string
+  onFocus: (playerId: string) => void
 }
 
+const NUM = 'text-right font-mono text-[13px] text-ink-2 tabular-nums'
+
 function luckClass(val: number) {
-  return val > 1 ? 'text-green-600' : val < 1 ? 'text-red-500' : 'text-gray-600 dark:text-gray-400'
+  return val > 1 ? 'text-pos' : val < 1 ? 'text-neg' : 'text-ink-2'
 }
+
+const formEntries = (form: PlayerSeasonStats['form']) =>
+  form.map(f => ({
+    result: f.result,
+    title: `GW ${f.gameweek} · ${f.myScore}–${f.oppScore} vs ${f.opponentPlayerName}`,
+  }))
+
+const MotionRow = motion.create(TableRow)
 
 const columns: ColumnDef<PlayerSeasonStats>[] = [
   {
     accessorKey: 'rank',
     header: 'Rank',
+    meta: { className: 'w-10' },
     cell: ({ getValue }) => (
-      <span className="font-heading font-bold text-lg text-green-600">{getValue<number>()}</span>
+      <span className={cn('font-mono text-[13px]', getValue<number>() <= 3 ? 'text-ink' : 'text-ink-3')}>
+        {getValue<number>()}
+      </span>
     ),
   },
   {
     accessorKey: 'playerName',
-    header: 'Player',
-    cell: ({ getValue }) => (
-      <span className="font-semibold text-gray-900 dark:text-gray-100">{getValue<string>()}</span>
-    ),
-  },
-  {
-    accessorKey: 'totalPoints',
-    header: 'Points',
-    meta: { className: 'text-center' },
-    cell: ({ getValue }) => (
-      <span className="font-bold text-lg text-gray-900 dark:text-gray-100">{getValue<number>()}</span>
-    ),
-  },
-  {
-    accessorKey: 'wins',
-    header: 'W',
-    meta: { className: 'text-center' },
-  },
-  {
-    accessorKey: 'draws',
-    header: 'D',
-    meta: { className: 'text-center' },
-  },
-  {
-    accessorKey: 'losses',
-    header: 'L',
-    meta: { className: 'text-center' },
-  },
-  {
-    accessorKey: 'pointsFor',
-    header: 'PF',
-    meta: { className: 'text-center' },
-  },
-  {
-    accessorKey: 'pointsAgainst',
-    header: 'PA',
-    meta: { className: 'text-center' },
-  },
-  {
-    accessorKey: 'form',
-    header: 'Form',
-    meta: { className: 'text-center' },
-    cell: ({ getValue }) => {
-      const form = getValue<PlayerSeasonStats['form']>()
+    header: 'Manager',
+    meta: { className: 'w-full' },
+    cell: ({ row, table }) => {
+      const selected = table.options.meta?.focusId === row.original.playerId
       return (
-        <FormRow
-          entries={form.map(f => ({
-            result: f.result,
-            title: `${f.result} vs ${f.opponentPlayerName} (${f.myScore}-${f.oppScore})`,
-          }))}
-        />
+        // The click bubbles to the row's handler; the button makes the row reachable by keyboard.
+        <button type="button" aria-pressed={selected} className="flex cursor-pointer items-center gap-2 font-medium">
+          {row.original.playerName}
+          <span className={cn('size-1.5 shrink-0 rounded-full', selected && 'bg-accent')} />
+        </button>
       )
     },
   },
   {
+    accessorKey: 'totalPoints',
+    header: 'Pts',
+    meta: { className: 'min-w-[60px] text-right' },
+    cell: ({ getValue }) => <span className="font-mono font-medium tabular-nums">{getValue<number>()}</span>,
+  },
+  { accessorKey: 'wins', header: 'W', meta: { className: `min-w-11 ${NUM}` } },
+  { accessorKey: 'draws', header: 'D', meta: { className: `min-w-11 ${NUM}` } },
+  { accessorKey: 'losses', header: 'L', meta: { className: `min-w-11 ${NUM}` } },
+  { accessorKey: 'pointsFor', header: 'PF', meta: { className: `min-w-[68px] ${NUM}` } },
+  { accessorKey: 'pointsAgainst', header: 'PA', meta: { className: `min-w-[68px] ${NUM}` } },
+  {
+    accessorKey: 'form',
+    header: 'Form',
+    cell: ({ getValue }) => <FormRow entries={formEntries(getValue<PlayerSeasonStats['form']>())} />,
+  },
+  {
     accessorKey: 'luckFactor',
     header: 'Luck',
-    meta: { className: 'text-center' },
+    meta: { className: 'min-w-[84px] text-right' },
     cell: ({ getValue }) => {
       const val = getValue<number>()
-      return <span className={cn('font-bold text-lg', luckClass(val))}>{val.toFixed(2)}</span>
+      return <span className={cn('font-mono text-[13px] tabular-nums', luckClass(val))}>{val.toFixed(2)}</span>
     },
   },
 ]
 
-export default function SeasonTable({ data, seasonName }: SeasonTableProps) {
+export default function SeasonTable({ data, focusId, onFocus }: SeasonTableProps) {
   const table = useReactTable({
     data,
     columns,
     getCoreRowModel: getCoreRowModel(),
+    meta: { focusId },
   })
 
   return (
     <div className="w-full">
-      <h3 className="text-2xl font-bold mb-6 text-gray-900 dark:text-gray-100">{seasonName} Standings</h3>
-
       {/* Desktop: full table, >=680px */}
-      <div className="hidden bbc:block rounded-2xl shadow-2xl border border-gray-200 dark:border-gray-700 overflow-hidden overflow-x-auto">
-        <Table>
-          <TableHeader className="bg-linear-to-r from-green-600 to-emerald-600">
+      <div className="hidden overflow-hidden rounded-2xl border border-line bg-surface bbc:block">
+        <Table className="min-w-[780px]">
+          <TableHeader>
             {table.getHeaderGroups().map(hg => (
-              <TableRow key={hg.id} className="border-0 hover:bg-transparent has-aria-expanded:bg-transparent">
+              <TableRow key={hg.id}>
                 {hg.headers.map(header => (
                   <TableHead
                     key={header.id}
-                    className={cn(
-                      'py-4 px-6 text-white font-bold text-sm uppercase tracking-wider',
-                      header.column.columnDef.meta?.className
-                    )}
+                    className={cn('px-1.5 first:pl-5 last:pr-5', header.column.columnDef.meta?.className, 'text-[11px] text-ink-3')}
                   >
                     {flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
@@ -134,68 +121,63 @@ export default function SeasonTable({ data, seasonName }: SeasonTableProps) {
               </TableRow>
             ))}
           </TableHeader>
-          <TableBody>
-            {table.getRowModel().rows.map((row, index) => (
-              <TableRow
+          <MetricGroup as="tbody" stagger={0.04}>
+            {table.getRowModel().rows.map(row => (
+              <MotionRow
                 key={row.id}
-                className={cn(
-                  'transition-all duration-150 hover:bg-green-50 dark:hover:bg-green-900/20',
-                  index % 2 === 0
-                    ? 'bg-gray-50 dark:bg-gray-800'
-                    : 'bg-white dark:bg-gray-900',
-                  row.original.rank <= 3 && 'border-l-[3px] border-l-green-600'
-                )}
+                {...quietItemProps}
+                data-state={row.original.playerId === focusId ? 'selected' : undefined}
+                onClick={() => onFocus(row.original.playerId)}
+                className="cursor-pointer"
               >
                 {row.getVisibleCells().map(cell => (
                   <TableCell
                     key={cell.id}
-                    className={cn(
-                      'py-4 px-6 text-gray-700 dark:text-gray-300',
-                      cell.column.columnDef.meta?.className
-                    )}
+                    className={cn('h-[52px] px-1.5 first:pl-5 last:pr-5', cell.column.columnDef.meta?.className)}
                   >
                     {flexRender(cell.column.columnDef.cell, cell.getContext())}
                   </TableCell>
                 ))}
-              </TableRow>
+              </MotionRow>
             ))}
-          </TableBody>
+          </MetricGroup>
         </Table>
       </div>
 
       {/* Mobile: stacked cards, <680px */}
       <div className="flex flex-col gap-2.5 bbc:hidden">
-        {data.map(p => (
-          <div
-            key={p.playerId}
-            className={cn(
-              'rounded-xl border border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-800 shadow p-3',
-              p.rank <= 3 && 'border-l-[3px] border-l-green-600'
-            )}
-          >
-            <div className="flex items-center gap-3">
-              <span className="font-heading font-bold text-xl w-7 text-center shrink-0 text-green-600">{p.rank}</span>
-              <div className="flex-1 min-w-0">
-                <div className="font-semibold text-[15px] text-gray-900 dark:text-gray-100 truncate">{p.playerName}</div>
-                <div className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+        {data.map(p => {
+          const selected = p.playerId === focusId
+          return (
+            <button
+              key={p.playerId}
+              type="button"
+              aria-pressed={selected}
+              onClick={() => onFocus(p.playerId)}
+              className={cn(
+                'flex cursor-pointer items-center gap-3 rounded-2xl border p-3.5 text-left',
+                selected ? 'border-accent bg-accent-soft' : 'border-line bg-surface'
+              )}
+            >
+              <span className={cn('w-6 shrink-0 text-center font-mono text-[13px]', p.rank <= 3 ? 'text-ink' : 'text-ink-3')}>
+                {p.rank}
+              </span>
+              <span className="min-w-0 flex-1">
+                <span className="block truncate text-[15px] font-medium">{p.playerName}</span>
+                <span className="mt-1 block font-mono text-xs text-ink-3">
                   {p.wins}W {p.draws}D {p.losses}L · PF {p.pointsFor} · PA {p.pointsAgainst}
-                </div>
-                <div className="mt-1.5">
-                  <FormRow
-                    entries={p.form.map(f => ({
-                      result: f.result,
-                      title: `${f.result} vs ${f.opponentPlayerName} (${f.myScore}-${f.oppScore})`,
-                    }))}
-                  />
-                </div>
-              </div>
-              <div className="text-right shrink-0">
-                <div className="font-heading font-bold text-lg text-gray-900 dark:text-gray-100">{p.totalPoints}</div>
-                <div className={cn('text-[11px] font-semibold', luckClass(p.luckFactor))}>luck {p.luckFactor.toFixed(2)}</div>
-              </div>
-            </div>
-          </div>
-        ))}
+                </span>
+                <span className="mt-1.5 block">
+                  <FormRow entries={formEntries(p.form)} />
+                </span>
+              </span>
+              <span className="shrink-0 text-right">
+                <span className="block font-mono text-lg font-medium tabular-nums">{p.totalPoints}</span>
+                <span className={cn('block font-mono text-xs', luckClass(p.luckFactor))}>luck {p.luckFactor.toFixed(2)}</span>
+              </span>
+            </button>
+          )
+        })}
       </div>
     </div>
   )

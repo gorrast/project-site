@@ -6,6 +6,7 @@ interface SectionSkeletonProps {
   heightClassName?: string
 }
 
+// Static on purpose: nothing on the site loops (DESIGN.md › Motion).
 export default function SectionSkeleton({ heightClassName = 'h-64' }: SectionSkeletonProps) {
-  return <div className={`w-full ${heightClassName} rounded-2xl bg-gray-200 dark:bg-gray-700 animate-pulse`} />
+  return <div aria-hidden className={`w-full ${heightClassName} rounded-2xl border border-line bg-surface`} />
 }

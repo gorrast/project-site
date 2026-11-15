@@ -12,5 +12,5 @@ export default function BlueBayCupLayout({
  }: Readonly<{
     children: React.ReactNode; 
 }>) {
-  return <>{children}</>;
+  return <div data-project="bbc">{children}</div>;
 }

@@ -1,7 +1,7 @@
 'use client'
 
 import type { Consumer } from './types'
-import { CONSUMER_COLORS } from './colors'
+import { CONSUMER_COLORS, CONSUMER_LABELS } from './colors'
 
 const OPTS: { key: string; val: Consumer }[] = [
   { key: 'S', val: 'shared' },
@@ -19,24 +19,25 @@ interface SHBControlProps {
    * revert to. */
   onClear?: () => void
   titleFor?: (value: Consumer, isActive: boolean) => string
+  /** Accessible name for the group, e.g. "Who is Bananas for". */
+  label: string
 }
 
-export function SHBControl({ activeValue, onSelect, onClear, titleFor }: SHBControlProps) {
+/** DESIGN.md › Assign control (S/H/B). */
+export function SHBControl({ activeValue, onSelect, onClear, titleFor, label }: SHBControlProps) {
   return (
-    <div className="inline-flex items-center gap-0.5 rounded-[10px] bg-gray-100 dark:bg-white/10 p-0.5">
+    <div role="group" aria-label={label} className="inline-flex gap-0.5 rounded-lg border border-line bg-control-track p-0.5">
       {OPTS.map(({ key, val }) => {
         const isActive = activeValue === val
         return (
           <button
             key={key}
             type="button"
-            title={titleFor?.(val, isActive)}
+            aria-pressed={isActive}
+            title={titleFor?.(val, isActive) ?? CONSUMER_LABELS[val]}
             onClick={() => (isActive ? onClear?.() : onSelect(val))}
-            className="w-8 h-6 rounded-md font-mono text-xs font-medium transition-colors"
-            style={{
-              backgroundColor: isActive ? CONSUMER_COLORS[val] : 'transparent',
-              color: isActive ? '#ffffff' : '#6b7280',
-            }}
+            className="h-6 w-[30px] cursor-pointer rounded-md font-mono text-xs font-semibold"
+            style={isActive ? { backgroundColor: CONSUMER_COLORS[val], color: 'var(--c-on)' } : { color: 'var(--ink-3)' }}
           >
             {key}
           </button>
