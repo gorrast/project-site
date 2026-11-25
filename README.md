@@ -2,67 +2,51 @@
 
 Hugo Wigh's personal site — a small collection of side projects and tools. The live site is at **[wigh.nu](https://wigh.nu)**.
 
-## Pages
+## Shared stack
 
-- **`/`** — Home: an overview of the projects hosted here.
-- **`/bluebaycup`** — Blue Bay Cup: a tracker for a private Fantasy Premier League mini-league. Fetches gameweek data from the FPL API and shows season standings, overall multi-season rankings, prize money splits, and a luck-factor stat. Includes an admin panel at `/bluebaycup/admin` for entering gameweek results and managing seasons/players.
-- **`/playpilot`** — PlayPilot Compare: looks up and compares ratings data from PlayPilot profiles.
+- **Frontend:** Next.js (App Router), React, Tailwind, shadcn/ui components (`components/ui/`), Recharts for charts. Deployed on Vercel.
+- **Backend:** one Python FastAPI app (`api/index.py`) running as a single Vercel function. Each project's routes live in their own module and are routed there via `vercel.json` rewrites.
+- **Database:** Supabase (Postgres). Client helpers: `api/clients.py` (Python) and `lib/supabase/` (TypeScript).
+- **Scheduled jobs:** GitHub Actions (`.github/workflows/`) running Python scripts with uv.
 
-## Stack
+Each page lives in `app/<project>/` and is a thin wrapper around its component folder in `components/<project>/`.
 
-- **Frontend:** Next.js (App Router), React, Tailwind — deployed on Vercel.
-- **Backend:** split by runtime needs —
-  - `/api/playpilot/*` is a Next.js (TypeScript) Edge route. It needs the Edge runtime specifically to rotate through regions when scraping PlayPilot, since non-edge requests get rejected; it also streams live retry progress to the client over SSE.
-  - `/api/bluebaycup/*` and `/api/todos` are served by a Python FastAPI app (`api/index.py`), routed there via `vercel.json` rewrites.
-- **Database:** Supabase (Postgres).
+## Projects
 
-## Development
+### Blue Bay Cup — `/bluebaycup`
 
-Frontend-only, fast iteration — but note that `/api/bluebaycup/*` and `/api/todos` will 404 here, since those routes live in the Python function and plain `next dev` doesn't apply `vercel.json` rewrites:
+A tracker for a private Fantasy Premier League mini-league: season standings, multi-season rankings, head-to-head records, prize money splits and a luck-factor stat. An admin panel at `/bluebaycup/admin` handles gameweek results, seasons and players.
 
-```bash
-npm run dev
-```
+- **Stack:** Next.js frontend, FastAPI backend, Supabase, daily GitHub Actions sync from the FPL API.
+- **Frontend:** `components/bluebaycup/`, `app/bluebaycup/` (incl. `admin/`)
+- **API:** `/api/bluebaycup/*` in `api/index.py`; admin login in `api/admin_auth.py`
+- **Data sync:** `scripts/bluebaycup_update.py`, run by `.github/workflows/bluebaycup-update.yml`
+- **Schema:** `lib/supabase/database_schema.png`
 
-Full stack, matching production routing (Next.js + the Python function + rewrites, all on one port):
+### FPL Predictions — `/fpl-pred`
 
-```bash
-npm run dev:vercel
-```
+Predicted Fantasy Premier League points per player, shown on a pitch view and in a sortable table, with league team rosters and availability.
 
-First run needs the project linked to a Vercel account: `npx vercel login`, then `npm run dev:vercel` (it will prompt to link/create the project).
+- **Stack:** LightGBM model trained on FPL stats and bookmaker odds (pandas, scikit-learn), FastAPI backend, Supabase, Next.js frontend.
+- **Frontend:** `components/fpl-pred/`, `lib/fpl/config.ts`
+- **API:** `/api/fpl/*` in `api/fpl.py`
+- **Pipeline:** `pipeline/` — season sync, odds sync, feature computation, then `train_and_predict.py`. Runs daily via `.github/workflows/fpl-scheduled-update.yml`; one-off backfills have their own `fpl-backfill-*.yml` workflows. Pipeline libraries are in the `pipeline` uv dependency group so they stay out of the Vercel function.
+- **Schema & design notes:** `docs/schemas/fpl-schema.sql`, `docs/handoffs/fpl-*.md`
 
-### Python backend setup
+### PlayPilot Compare — `/playpilot`
 
-Dependencies are managed with [uv](https://docs.astral.sh/uv/):
+Looks up and compares movie and TV ratings between PlayPilot profiles.
 
-```bash
-uv sync
-```
+- **Stack:** Next.js only — a TypeScript route handler, no Python or database.
+- **Frontend:** `components/playpilot/`
+- **API:** `app/api/playpilot/ratings/route.ts`, with scraping logic in `lib/playpilot/`. It runs on the Edge runtime so it can rotate through regions (non-edge requests get rejected by PlayPilot), and streams retry progress to the client over SSE.
 
-This creates `.venv` and installs everything from `uv.lock`. Run scripts with `uv run`, e.g. `uv run scripts/bluebaycup_update.py`.
+### Food Expenses — `/ica-tracking`
 
-Point your editor's Python interpreter at `.venv/bin/python` (VS Code users: already configured via `.vscode/settings.json`).
+Tracks shared grocery spending from ICA receipts: monthly breakdowns, per-person budget shares, product trends and reports. Behind a login.
 
-## Database (Supabase)
-
-Schema (see `lib/supabase/database_schema.png` for a diagram):
-
-- `players` — `player_id`, `name`
-- `seasons` — `season_id`, `year`, `prize_pool`, `high_score_prize`
-- `teams` — `team_id`, `player_id` (FK), `season_id` (FK), `team_name`
-- `team_stats` — `team_id` (FK), `gameweek`, `rank`, `total_points`, `wins`, `draws`, `losses`, `points_for`, `points_against`
-- `admin_credentials` — `username`, `password_hash`, `salt` (BlueBayCup admin panel login)
-
-Required environment variables (`.env`):
-
-- `NEXT_PUBLIC_SUPABASE_URL`
-- `NEXT_PUBLIC_SUPABASE_ANON_KEY`
-- `SUPABASE_SERVICE_ROLE_KEY` — used by admin routes; bypasses RLS
-- `ADMIN_SESSION_SECRET` — HMAC secret for signing admin session cookies
-
-To seed an admin login, run `node scripts/create-admin-credentials.mjs <username> <password>` and execute the printed SQL in the Supabase SQL editor.
-
----
-
-For the live version of this site, visit **[wigh.nu](https://wigh.nu)**.
+- **Stack:** Next.js frontend, FastAPI backend, Supabase (`ica` schema), local Python importer.
+- **Frontend:** `components/ica-tracking/` (data hooks in `hooks/`)
+- **API:** `/api/ica-tracking/*` in `api/ica_tracking.py`
+- **Importer:** `scripts/kivra/` pulls receipts from Kivra via BankID. It runs locally only and is excluded from deploys (`.vercelignore`).
+- **Schema & design notes:** `docs/schemas/ica-schema.sql`, `docs/handoffs/ica-kivra-importer-handoff.md`, `docs/verify.md`
