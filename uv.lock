@@ -725,27 +725,39 @@ version = "0.1.0"
 source = { virtual = "." }
 dependencies = [
     { name = "fastapi" },
-    { name = "lightgbm" },
-    { name = "pandas" },
+    { name = "requests" },
+    { name = "supabase" },
+]
+
+[package.dev-dependencies]
+dev = [
     { name = "pillow" },
     { name = "qrcode" },
-    { name = "requests" },
-    { name = "scikit-learn" },
-    { name = "supabase" },
     { name = "tqdm" },
+]
+pipeline = [
+    { name = "lightgbm" },
+    { name = "pandas" },
+    { name = "scikit-learn" },
 ]
 
 [package.metadata]
 requires-dist = [
     { name = "fastapi", specifier = ">=0.115,<1.0" },
-    { name = "lightgbm", specifier = ">=4.5,<5.0" },
-    { name = "pandas", specifier = ">=2.2,<3.0" },
+    { name = "requests", specifier = "==2.34.2" },
+    { name = "supabase", specifier = ">=2.9,<3.0" },
+]
+
+[package.metadata.requires-dev]
+dev = [
     { name = "pillow", specifier = ">=12.3.0" },
     { name = "qrcode", specifier = ">=8.2" },
-    { name = "requests", specifier = "==2.34.2" },
-    { name = "scikit-learn", specifier = ">=1.5,<2.0" },
-    { name = "supabase", specifier = ">=2.9,<3.0" },
     { name = "tqdm", specifier = ">=4.70.1" },
+]
+pipeline = [
+    { name = "lightgbm", specifier = ">=4.5,<5.0" },
+    { name = "pandas", specifier = ">=2.2,<3.0" },
+    { name = "scikit-learn", specifier = ">=1.5,<2.0" },
 ]
 
 [[package]]

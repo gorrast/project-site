@@ -2,15 +2,24 @@
 name = "project-site"
 version = "0.1.0"
 requires-python = ">=3.12"
+# Only what the Vercel API function imports; Vercel installs with `uv sync --no-dev`.
 dependencies = [
     "fastapi>=0.115,<1.0",
+    "requests==2.34.2",
+    "supabase>=2.9,<3.0",
+]
+
+[dependency-groups]
+# FPL pipeline (GitHub Actions): `uv run --group pipeline ...`
+pipeline = [
     "lightgbm>=4.5,<5.0",
     "pandas>=2.2,<3.0",
+    "scikit-learn>=1.5,<2.0",
+]
+# Local-only tools (Kivra importer); installed by default locally, never on Vercel.
+dev = [
     "pillow>=12.3.0",
     "qrcode>=8.2",
-    "requests==2.34.2",
-    "scikit-learn>=1.5,<2.0",
-    "supabase>=2.9,<3.0",
     "tqdm>=4.70.1",
 ]
 
